@@ -1,0 +1,18 @@
+**
+*Step
+*Static, nlgeom
+**
+*Boundary
+1, 1, 2, 0.
+5, 1, 2, -1.
+*end step
+*step
+**
+*Dynamic, explicit
+*cload
+3, 2, -10.
+4, 5, 6.
+**
+*Dload
+2, SPOS, -5.
+*end step

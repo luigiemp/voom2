@@ -1,0 +1,81 @@
+**
+** Voom2 input for Processor = 0
+** Nodes are assumed to be sequentially numbered from 0
+**
+*NUMBEROFNODES
+16
+*NODE
+           -0.5            0.5              0
+            0.5            0.5              0
+            0.5            0.5              1
+            0.5            0.5              2
+            0.5            0.5              3
+           -0.5            0.5              3
+           -0.5            0.5              2
+           -0.5            0.5              1
+           -0.5           -0.5              0
+            0.5           -0.5              0
+            0.5           -0.5              1
+           -0.5           -0.5              1
+            0.5           -0.5              2
+           -0.5           -0.5              2
+            0.5           -0.5              3
+           -0.5           -0.5              3
+** Elements are assumed to be sequentially numbered from 0
+**
+*NUMBEROFELEMENTS
+3
+*ELEMENT
+           C3D8              0              1              2              7              8              9             10             11          STEEL
+           C3D8              7              2              3              6             11             10             12             13          STEEL
+           C3D8              6              3              4              5             13             12             14             15          STEEL
+**
+** Number of Local Nodes
+**
+*NUMLOCALNODES
+16
+**
+** MPI Info LocalNodeID - GlobalNodeID
+**
+*GLOBALID
+              0
+              1
+              2
+              3
+              4
+              5
+              6
+              7
+              8
+              9
+             10
+             11
+             12
+             13
+             14
+             15
+**
+** Material data
+**
+*MATERIAL, NAME=STEEL
+*CONDUCTIVITY,TYPE=ISO
+100.0     ,0.0
+**
+** Analysis information
+**
+**
+** Load step: 0
+*STEP
+*HEAT TRANSFER, STEADY STATE
+*BOUNDARY
+              0         10         10        1.0
+              1         10         10        1.0
+              8         10         10        1.0
+              9         10         10        1.0
+              4         10         10        0.0
+              5         10         10        0.0
+             14         10         10        0.0
+             15         10         10        0.0
+*CLOAD
+*DLOAD
+*END STEP
