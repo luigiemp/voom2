@@ -1,0 +1,73 @@
+/*!
+  \mainpage 
+
+  The <b>V</b>ariational <b>O</b>bject-<b>O</b>riented
+  <b>M</b>echanics (VOOM) library, is a collection of C++ classes
+  designed for development of numerical simulations of continuum solid
+  and structural mechanics problems, using the Finite Element Method.
+  The simulation framework is organized according to the use of
+  variational principles in the formulation of mechanics problems,
+  including virtual work and minimum potential energy for elasticity,
+  and variational constitutive updates for inelasticity.  
+
+  VOOM classes are stuctured around the idea that the mechanics
+  problem is variational, meaning we can express it as the
+  extremization of some functional, which is generally referred to
+  within voom classes as the <i>energy</i>.  Algorithms are then
+  employed that compute the energy along with its first and (perhaps)
+  second linearizations.  
+
+  The degrees of freedom are managed by Node classes, derived from the
+  virtual base clase voom::Node, which provides a generic interface to
+  nodal variables.  The classes responsible for computing the energy
+  and its derivatives are elements, derived from the virtual base
+  class voom::Element, which provides an interface for accessing the
+  nodes connected to each element, along with the energy, the first
+  derivative of the energy with respect to the element's nodal degrees
+  of freedom (referred to as the force vector or residual), and the
+  second derivative (referred to as the stiffness matrix).  Elements
+  also make use of more basic utility classes for shape functions, and
+  quadrature.  Note also, that classes can be derived from element to
+  implement energy/force/stiffness contributions beyond those of what
+  is conventionally considered a finite element.  In particular,
+  applied loads, constraints (e.g., Lagrange multiplier, or penalty),
+  contact interactions, and many other sources of energy can be
+  implemented by deriving from the voom::Element base class.
+  Particular examples of this are found in are voom::PointLoad and
+  voom::MultiplierConstraint.
+
+  To optimize the element calculations, a single interface is provided
+  to compute energy, forces, and/or stiffness through
+  voom::Element::compute.  This allows compute methods to avoid
+  computing more than is necessary or doing redundant computations.
+  Control over which quantities get computed is done through the
+  single integer argument to the compute method.  This argument should
+  be some combination of values of the enumeration type
+  voom::ComputeRequest.  These are assigned binary values
+  (0,1,2,4,8,...) so that they can be used with bitwise operators, |
+  (OR) and & (AND).  For instance, to compute energy and stiffness,
+  one would call compute( ENERGY | STIFFNESS ).  To check within a compute
+  function to see whether forces are requested, one would use
+  if(request & FORCE).  
+
+  Global assembly of the element residual vectors and stiffness
+  matrices into a global residal and stiffness matrix is performed by
+  Assembly classes, of which there is one implementation
+  voom::EpetraAssembly, which manages the residual vector and (sparse,
+  banded) stiffness matrix in data structures provided by the <a
+  href="http://trilinos.sandia.gov/packages/epetra">Epetra</a> package,
+  which is part of the <a href="http://trilinos.sandia.gov">Trilinos</a>
+  library available from Sandia National Laboratories.  Epetra arrays
+  are optimized for sparse matrix systems, and offer a clean interface
+  to the reusable linear and nonlinear solvers that are part of
+  Trilinos.  
+  
+  VOOM is developed for research and teaching uses under the direction
+  of Professor W.S. Klug in the <a
+  href="http://www.mae.ucla.edu">Mechanical and Aerospace Engineering
+  department</a> at <a href="http://www.ucla.edu">UCLA</a>.
+
+  <hr>
+  <a href="mailto:klug@seas.ucla.edu">William S. Klug</a>, University of California Los Angeles, &copy;
+  2004-2010 All rights reserved.
+*/
