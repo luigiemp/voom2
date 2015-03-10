@@ -25,7 +25,7 @@ namespace voom{
     _QPweights.resize(numQP, 0.0);
     _N.resize(nodePerElem * numQP, 0.0);
     _DN.resize(nodePerElem * numQP, VectorXd::Zero(dim));
-    
+     
     // Loop over quad points and fill N and DN
     for(uint q = 0; q < numQP; q++)
     {      
