@@ -1,5 +1,6 @@
 
 #include "HexQuadrature.h"
+#include "TetQuadrature.h"
 #include "LineQuadrature.h"
 #include "QuadQuadrature.h"
 
@@ -24,6 +25,21 @@ int main()
 
   bool PassA = QuadRule_A.check(1);
   bool PassB = QuadRule_B.check(3);
+
+  // -- Tet rule --
+  TetQuadrature TetRule_A(1), TetRule_B(2);
+
+  cout << "TetRule_A weight[0] = " << TetRule_A.getQuadWeights()[0] << endl;
+  cout << "TetRule_B weight[0] = " << TetRule_B.getQuadWeights()[0] << endl;
+
+  const vector<VectorXd > & TetQuadPoints_A = TetRule_A.getQuadPoints();
+  cout << "TetRule_A point[0] = " << TetQuadPoints_A[0](0) << " " << TetQuadPoints_A[0](1) << " " << TetQuadPoints_A[0](2) << endl;
+  const vector<VectorXd > & TetQuadPoints_B = TetRule_B.getQuadPoints();
+  cout << "TetRule_B point[0] = " << TetQuadPoints_B[0](0) << " " << TetQuadPoints_B[0](1) << " " << TetQuadPoints_B[0](2) << endl;
+  cout << endl;
+
+  bool PassTetRuleA = TetRule_A.check(1);
+  bool PassTetRuleB = TetRule_B.check(2);
 
   // -- Lin quad rule --
   LineQuadrature LinQuadRule(3);
