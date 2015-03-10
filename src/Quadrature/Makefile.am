@@ -4,4 +4,4 @@ INCLUDES     = 	-I./ 					\
 		-I/u/local/apps/eigen/current/include/eigen3 
 
 lib_LIBRARIES=libQuadrature.a
-libQuadrature_a_SOURCES = HexQuadrature.cc LineQuadrature.cc QuadQuadrature.cc
+libQuadrature_a_SOURCES = HexQuadrature.cc LineQuadrature.cc QuadQuadrature.cc TetQuadrature.cc
