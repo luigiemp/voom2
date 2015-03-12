@@ -6,6 +6,7 @@
 #define _VOOM_MATH_
 
 #include "voom.h"
+#include "ThirdOrderTensor.h"
 #include "FourthOrderTensor.h"
 
 namespace voom

@@ -57,7 +57,8 @@ namespace voom {
     NOTHING   	= 0,
     ENERGY    	= 1,
     FORCE     	= 2,
-    STIFFNESS 	= 4
+    STIFFNESS 	= 4,
+    DMATPROP    = 8
   };
 
 }; // namespace voom

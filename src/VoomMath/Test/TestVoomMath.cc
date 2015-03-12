@@ -36,25 +36,46 @@ int main()
   cout << Ma <<  " \n inverse \n  = " << Mc << endl << endl;
 
   cout << "Ma*inv(Ma) = \n " << Ma*Mc << endl;
-
-
-  FourthOrderTensor K(3,3,3,3);
-  K.set(0,1,2,0, 5.0);
-  cout << endl << "Entry at [0,1,2,0] is " << K.get(0,1,2,0) << endl;
-  K.incrementIterator();
-  K.sequentialSet(10.0);
-  cout << "Entry at [1,0,0,0] is " << K.get(1,0,0,0) << endl;
-  K.resetIterator();
-  cout << "Printing the transpose " << endl;
-  for (uint k=0; k<3; k++) {
-    for (uint i=0; i<3; i++) {
-      for (uint j=0; j<3; j++) {
-	cout << K.sequentialGet() << " ";
-	K.incrementIterator();
+  {
+    ThirdOrderTensor K(3,2,2);
+    K.set(0,1,1, 5.0);
+    cout << endl << "Entry at [0,1,1] is " << K.get(0,1,1) << endl;
+    K.incrementIterator();
+    K.sequentialSet(10.0);
+    cout << "Entry at [1,0,0] is " << K.get(1,0,0) << endl;
+    K.resetIterator();
+    cout << "Printing the transpose " << endl;
+    for (uint k=0; k<3; k++) {
+      for (uint i=0; i<2; i++) {
+	for (uint j=0; j<2; j++) {
+	  cout << K.sequentialGet() << " ";
+	  K.incrementIterator();
+	}
+	cout << endl;
       }
       cout << endl;
     }
-    cout << endl;
+  }
+
+  {
+    FourthOrderTensor K(3,3,3,3);
+    K.set(0,1,2,0, 5.0);
+    cout << endl << "Entry at [0,1,2,0] is " << K.get(0,1,2,0) << endl;
+    K.incrementIterator();
+    K.sequentialSet(10.0);
+    cout << "Entry at [1,0,0,0] is " << K.get(1,0,0,0) << endl;
+    K.resetIterator();
+    cout << "Printing the transpose " << endl;
+    for (uint k=0; k<3; k++) {
+      for (uint i=0; i<3; i++) {
+	for (uint j=0; j<3; j++) {
+	  cout << K.sequentialGet() << " ";
+	  K.incrementIterator();
+	}
+	cout << endl;
+      }
+      cout << endl;
+    }
   }
   
   cout << endl << "....................... " << endl;

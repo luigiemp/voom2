@@ -5,4 +5,4 @@ INCLUDES     = 	-I./ 					\
 		-I/u/local/apps/eigen/current/include/eigen3      
 
 lib_LIBRARIES=libMaterials.a
-libMaterials_a_SOURCES = MechanicsMaterial.cc CompNeoHookean.cc
+libMaterials_a_SOURCES = MechanicsMaterial.cc CompNeoHookean.cc PassMyoA.cc

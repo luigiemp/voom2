@@ -11,7 +11,8 @@ void MechanicsMaterial::checkConsistency(FKresults & R, const Matrix3d & F,
     Matrix3d Pan = R.P, Floc = F, Pplus, Pminus;
     Pplus << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
     Pminus = Pplus;
-    FourthOrderTensor Kan = R.K;
+    ThirdOrderTensor DmatAn = R.Dmat, DmatPlus, DmatMinus;
+    FourthOrderTensor Kan = R.K, DDmatAn = R.DDmat;
 
     // First derivative test
     if( (R.request & ENERGY) && (R.request & FORCE) )
@@ -79,6 +80,72 @@ void MechanicsMaterial::checkConsistency(FKresults & R, const Matrix3d & F,
       }
 
     } // Second derivative test
+
+
+
+    // Check Dmaterial
+    if( (R.request & FORCE) && (R.request & DMATPROP) )
+    {
+
+      vector<Real > MatProp = this->getMaterialParameters();
+      uint NumMat = MatProp.size();
+
+      error = 0.0;
+      for (unsigned int a = 0; a < NumMat; a++) {
+	MatProp[a] += h;
+	this->setMaterialParameters(MatProp);
+	this->compute(R,Floc);
+	Pplus = R.P;
+
+	MatProp[a] -= 2.0*h;
+	this->setMaterialParameters(MatProp);
+	this->compute(R,Floc);
+	Pminus = R.P;
+	
+	MatProp[a] += h;
+	this->setMaterialParameters(MatProp);
+
+	for (unsigned int i = 0; i<3; i++) {
+	  for (unsigned int J = 0; J<3; J++) {
+	    error += square( (Pplus(i,J) - Pminus(i,J))/(2.0*h) - DmatAn.get(a,i,J) );
+	    // cout <<  (Pplus(i,J) - Pminus(i,J))/(2.0*h) << " " << DmatAn.get(a,i,J) << endl;
+	  }
+	}
+      }
+      if (sqrt(error) < tol) {
+	cout << "First material properties derivative test PASSED with error = " << sqrt(error) << endl; }
+      else {
+	cout << "First material properties derivative test FAILED with error = " << sqrt(error) << endl; }
+
+
+      error = 0.0;
+      for (unsigned int a = 0; a < NumMat; a++) {
+	for (unsigned int b = 0; b < NumMat; b++) {
+	  MatProp[b] += h;
+	  this->setMaterialParameters(MatProp);
+	  this->compute(R,Floc);
+	  DmatPlus = R.Dmat;
+
+	  MatProp[b] -= 2.0*h;
+	  this->setMaterialParameters(MatProp);
+	  this->compute(R,Floc);
+	  DmatMinus = R.Dmat;
+	
+	  MatProp[b] += h;
+	  this->setMaterialParameters(MatProp);
+
+	  for (unsigned int i = 0; i<3; i++) {
+	    for (unsigned int J = 0; J<3; J++) {
+	      error += square( (DmatPlus.get(a,i,J) - DmatMinus.get(a,i,J))/(2.0*h) - DDmatAn.get(a,b,i,J) );
+	    }
+	  }
+	}
+      }
+      if (sqrt(error) < tol) {
+	cout << "Second material properties derivative test PASSED with error = " << sqrt(error) << endl; }
+      else {
+	cout << "Second material properties derivative test FAILED with error = " << sqrt(error) << endl; }
+    }
            
   } // checkConsistency
 

@@ -45,6 +45,21 @@ namespace voom {
     
     } // STIFFNESS
 
+    if( R.request & DMATPROP ) 
+    {
+      R.Dmat.resize(2, 3, 3);     // Already initialized to zero
+      R.DDmat.resize(2, 2, 3, 3); // Already initialized to zero 
+      Matrix3d Pa = LogDetF*(invF.transpose());
+      Matrix3d Pb = F - (invF.transpose());
+
+      for (unsigned int i = 0; i<3; i++) {
+	for (unsigned int J = 0; J<3; J++) {
+	  (R.Dmat).set( 0, i, J, Pa(i,J) );
+	  (R.Dmat).set( 1, i, J, Pb(i,J) );
+	} // i
+      } // J
+    } // DMATPROP
+
   } // CompNeoHookean::compute
 
 

@@ -12,7 +12,7 @@ namespace voom
     struct FKresults
     {
       // Finite kinematics request and result type
-      FKresults() : K(3,3,3,3)
+      FKresults() : K(3,3,3,3), Dmat(), DDmat()
       {
 	W = 0.0;
 	P << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
@@ -21,7 +21,9 @@ namespace voom
     
       Real W;
       Matrix3d P;
-      FourthOrderTensor K; // Initialized automatically to zero
+      FourthOrderTensor K;      // Initialized automatically to zero
+      ThirdOrderTensor  Dmat;   
+      FourthOrderTensor DDmat;  
       int request;
     
     }; // struct FKresults
@@ -43,7 +45,12 @@ namespace voom
 			  const Real h = 1.0e-7, const Real tol = 1.0e-6);
 
     //! SetMaterialParameters function
-    virtual void setMaterialParameters(vector<Real > &) = 0;
+    virtual void setMaterialParameters(const vector<Real > &) = 0;
+    virtual void setInternalParameters(const vector<Real > &) = 0;
+
+     //! GetMaterialParameters function
+    virtual vector<Real > getMaterialParameters() = 0;
+    virtual vector<Real > getInternalParameters() = 0;
 
     //! Tells if material has history variables and needs to be replicated at each quadrature point
     // It is used in the Model derived classes

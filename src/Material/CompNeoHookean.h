@@ -38,10 +38,23 @@ namespace voom {
       _mu = 0.5*E/(1.0+nu);
     }
 
-    void setMaterialParameters(vector<Real > & LambdaMu) {
+    void setMaterialParameters(const vector<Real > & LambdaMu) {
       _lambda = LambdaMu[0];
       _mu = LambdaMu[1];
     }
+    void setInternalParameters(const vector<Real > & IntParam) {}; // No internal parameters for CompNeoHookean
+
+    vector<Real > getMaterialParameters() {
+      vector<Real > MatProp(2, 0.0);
+      MatProp[0] = _lambda;
+      MatProp[1] = _mu;
+      return MatProp;
+    }
+    vector<Real > getInternalParameters() { // No internal parameters for CompNeoHookean
+      vector<Real > IntParam;
+      return IntParam;
+    }
+
     
     // Operators
     //! Based on deformation gradient tensor F, calculates state of material
