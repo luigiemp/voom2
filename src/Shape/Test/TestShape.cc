@@ -1,6 +1,8 @@
 #include "HexShape.h"
 #include "LinTetShape.h"
 #include "QuadTetShape.h"
+#include "LinTriShape.h"
+#include "QuadTriShape.h"
 #include "BarShape.h"
 #include "LMEShape.h"
 #include "MRKPMShape.h"
@@ -43,6 +45,24 @@ int main()
     QuadTetShape QuadTetShp(Point3D);
     QuadTetShp.checkConsistency(Point3D);
     QuadTetShp.checkPartitionUnity(Point3D);
+  }
+
+  // TriShape testing
+  {
+    Vector2d Point2D = Vector2d::Zero();
+    srand( time(NULL) );
+    Point2D(0) = 2.0*(Real(rand())/RAND_MAX - 0.5);
+    Point2D(1) = 2.0*(Real(rand())/RAND_MAX - 0.5);
+    
+    cout << "Testing LinTriShape" << endl;
+    LinTriShape LinTriShp(Point2D);
+    LinTriShp.checkConsistency(Point2D);
+    LinTriShp.checkPartitionUnity(Point2D);
+
+    cout << "Testing QuadTriShape" << endl;
+    QuadTriShape QuadTriShp(Point2D);
+    QuadTriShp.checkConsistency(Point2D);
+    QuadTriShp.checkPartitionUnity(Point2D);
   }
 
   // BarShape testing
