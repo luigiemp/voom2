@@ -30,13 +30,13 @@ namespace voom{
     for(uint q = 0; q < numQP; q++)
     {      
       // Compute trasformation Jacobian
-      Matrix3d J = Matrix3d::Zero(), Jinv = Matrix3d::Zero();
+      MatrixXd J = MatrixXd::Zero(dim, dim), Jinv = MatrixXd::Zero(dim ,dim);
       for(uint i = 0; i < dim; i++)
 	for(uint j = 0; j < dim; j++)
 	  for(uint a = 0; a < nodePerElem; a++)
 	    J(i,j) += shape[q]->getDN(a,j)*nodesX[a](i);
       
-      Real detJ = J.determinant();
+      Real detJ = fabs(J.determinant());
       Jinv = J.inverse();
       // Store QPweight
       _QPweights[q] = quadWeight[q]*detJ;
