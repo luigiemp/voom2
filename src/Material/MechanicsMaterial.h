@@ -55,6 +55,9 @@ namespace voom
     //! Tells if material has history variables and needs to be replicated at each quadrature point
     // It is used in the Model derived classes
     virtual bool HasHistoryVariables() = 0;
+
+    // Set N - only implemented for anisotropic materials
+    virtual void setN(Vector3d N) {}; 
     
   }; // class MechanicsMaterial
 
