@@ -44,7 +44,7 @@ namespace voom
     
     cout << "Error = " << error << " Norm = " << norm << endl;
     if ( abs(error) < norm * tol) {
-      cout << "Shape consistency check passed" << endl << endl;
+      cout << "Shape consistency check passed" << endl;
       return true;
     }
     else {
@@ -58,7 +58,6 @@ namespace voom
 	       << setw(24) << DNnumerical[a](i) << endl;
     }
 
-    cout << endl;
     return false;
   } // consistency check
 
