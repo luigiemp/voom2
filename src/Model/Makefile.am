@@ -7,8 +7,7 @@ INCLUDES     = 	-I./ 						\
 		-I./../Material					\
 		-I./../Element					\
 		-I./../Mesh 					\
-		-I/u/local/apps/trilinos/current/include	\
-		-I/u/local/apps/eigen/current/include/eigen3      
+		-I/u/local/apps/eigen/3.2.4/gcc-4.4.7/include/eigen3
 
 lib_LIBRARIES = libModel.a
-libModel_a_SOURCES = Model.cc EllipticModel.cc PoissonModel.cc MechanicsModel.cc
+libModel_a_SOURCES = Model.cc EllipticModel.cc MechanicsModel.cc ## PoissonModel.c 

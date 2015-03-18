@@ -3,7 +3,8 @@
 #define __EllipticModel_h__
 
 #include "Model.h"
-#include "EpetraEllipticResult.h"
+#include "EllipticResult.h"
+// #include "EpetraEllipticResult.h"
 
 namespace voom {
   //! Elliptic model is the parent class for FiniteMechanics, LinearizedMechanics, Poisson  
@@ -20,6 +21,9 @@ namespace voom {
     //! Check consistency - common to all elliptic models
     void checkConsistency(EllipticResult & R, Real perturbationFactor, int request = 6,
 			  Real h = 1e-6, Real tol = 1e-6);
+
+    //! Return number of unique material pointers
+    virtual uint getNumMat() = 0;
 
     //! Return component of residual vector given nodal ID and number of DoF index
     // This function would be needed if we decide to NOT store DoF sequentially in the residual vector

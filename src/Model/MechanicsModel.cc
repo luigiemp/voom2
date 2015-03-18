@@ -3,51 +3,51 @@
 namespace voom {
 
   // Constructor
-  MechanicsModel::MechanicsModel(Mesh* aMesh, 
-				 const vector<string > & ElMatType, 
-				 const map<string, MechanicsMaterial* > & ElMaterials): 
-    EllipticModel(aMesh, aMesh->getDimension())
+  MechanicsModel::MechanicsModel(Mesh* aMesh, vector<MechanicsMaterial * > materials, 
+				 const uint NodeDoF):
+    EllipticModel(aMesh, NodeDoF), _materials(materials)
   {
+    // THERE IS ONE MATERIAL PER ELEMENT - CAN BE CHANGEd - DIFFERENT THAN BEFORE
     // Resize and initialize (default function) _field vector
-    _field.resize(  (_myMesh->getLocalDoF()).size() + (_myMesh->getGhostDoF()).size() );
+    _field.resize(  (_myMesh->getNumberOfNodes() )*_nodeDoF );
     this->initializeField();
 
-    // Fill in material vectors - ONE MATERIAL PER EACH QUADRATURE POINT
-    vector<GeomElement* > Elements = _myMesh->getElements() ;
-    uint NumEl = Elements.size();
-    assert( ElMatType.size() == NumEl );
+    // // Fill in material vectors - ONE MATERIAL PER EACH QUADRATURE POINT
+    // vector<GeomElement* > Elements = _myMesh->getElements();
+    // uint NumEl = Elements.size();
+    // assert( ElMatType.size() == NumEl );
     
-    // Create new material pointers so that _materials does not store  
-    // pointers created outside Model and on which Model has no control
-    map<string, MechanicsMaterial* >::const_iterator it;
-    map<string, MechanicsMaterial* > ElMaterialsCopy;
-    for (it = ElMaterials.begin(); it != ElMaterials.end(); it++)
-    {
-      // If material has no history variables, then store the altready created pointer
-      // It will be cloned anyway in the next loop over elements and quad point
-      if ( (it->second)->HasHistoryVariables() ) {
-	ElMaterialsCopy.insert(make_pair(it->first, it->second));
-      }
-      // Clone material so that in the next loop we store in _materials a Material* 
-      // created here
-      else {
-	ElMaterialsCopy.insert( make_pair( it->first, (it->second)->clone() ) );
-      }
-    }
+    // // Create new material pointers so that _materials does not store  
+    // // pointers created outside Model and on which Model has no control
+    // map<string, MechanicsMaterial* >::const_iterator it;
+    // map<string, MechanicsMaterial* > ElMaterialsCopy;
+    // for (it = ElMaterials.begin(); it != ElMaterials.end(); it++)
+    // {
+    //   // If material has no history variables, then store the altready created pointer
+    //   // It will be cloned anyway in the next loop over elements and quad point
+    //   if ( (it->second)->HasHistoryVariables() ) {
+    // 	ElMaterialsCopy.insert(make_pair(it->first, it->second));
+    //   }
+    //   // Clone material so that in the next loop we store in _materials a Material* 
+    //   // created here
+    //   else {
+    // 	ElMaterialsCopy.insert( make_pair( it->first, (it->second)->clone() ) );
+    //   }
+    // }
     
-    for (uint e = 0; e <  NumEl; e++) // Loop over all the elements in the mesh
-    { 
-      MechanicsMaterial* ElMat = ElMaterialsCopy[ElMatType[e]];
-      if ( ElMat->HasHistoryVariables() ) {
-	for (uint j = 0; j < Elements[e]->getNumberOfQuadPoints(); j++) {
-	  _materials.push_back( ElMat->clone() );
-	}
-      } else {
-	for (uint j = 0; j < Elements[e]->getNumberOfQuadPoints(); j++) {
-	  _materials.push_back( ElMat );
-	}
-      }
-    }
+    // for (uint e = 0; e <  NumEl; e++) // Loop over all the elements in the mesh
+    // { 
+    //   MechanicsMaterial* ElMat = ElMaterialsCopy[ElMatType[e]];
+    //   if ( ElMat->HasHistoryVariables() ) {
+    // 	for (uint j = 0; j < Elements[e]->getNumberOfQuadPoints(); j++) {
+    // 	  _materials.push_back( ElMat->clone() );
+    // 	}
+    //   } else {
+    // 	for (uint j = 0; j < Elements[e]->getNumberOfQuadPoints(); j++) {
+    // 	  _materials.push_back( ElMat );
+    // 	}
+    //   }
+    // }
     
   }
   
@@ -175,12 +175,15 @@ namespace voom {
     for(uint q = 0; q < numQP; q++) {
       // Initialize F to zero
       Flist[q] = Matrix3d::Zero();
-	for(uint I = 0; I < dim; I++) 
-	  for(uint j = 0; j < dim; j++)
+	for(uint i = 0; i < dim; i++) 
+	  for(uint J = 0; J < dim; J++)
 	    for(uint a = 0; a < nodeNum; a++)
-	    Flist[q](I,j) += 
-	      _field[NodesID[a]*dim + I] * geomEl->getDN(q, a, j);
+	      Flist[q](i,J) += 
+		_field[NodesID[a]*dim + i] * geomEl->getDN(q, a, J);
+
     } // loop over quadrature points
+
+    
 
   }
 
@@ -209,7 +212,7 @@ namespace voom {
     }
 
     // Loop through elements, also through material points array, which is unrolled
-    uint index = 0;
+    // uint index = 0;
     MechanicsMaterial::FKresults FKres;
     FKres.request = R.getRequest();
     for(int e = 0; e < elements.size(); e++)
@@ -226,8 +229,9 @@ namespace voom {
       
       // Loop over quadrature points
       for(int q = 0; q < numQP; q++) {
-	_materials[index]->compute(FKres, Flist[q]);
-	index++;
+	// _materials[index]->compute(FKres, Flist[q]);
+	// index++;
+	_materials[e]->compute(FKres, Flist[q]);
 
 	// Volume associated with QP q
 	Real Vol = geomEl->getQPweights(q);
@@ -292,17 +296,19 @@ namespace voom {
     string fileName(OutputFile);
     ofstream out;
     
+    uint NlocalDoF = _myMesh->getNumberOfNodes()*_nodeDoF;
+
     // Writing field values to output file
     if (format == "BINARY") {
       out.open( fileName.c_str(), ios::out|ios::binary|ios::app);
-      for(uint i = 0; i < (_myMesh->getLocalDoF()).size(); i++)
+      for(uint i = 0; i < NlocalDoF; i++)
 	out.write((char*)(&_field[i]), sizeof(Real));
     } 
     else {
       out.open( fileName.c_str(), ios::out|ios::app );
       uint i = 0;
       const uint dim   = _myMesh->getDimension();
-      while ( i < (_myMesh->getLocalDoF()).size() ) {
+      while ( i < NlocalDoF ) {
 	for ( uint j = 0; j < dim; j++ ) {      
 	  out << _field[i] << " ";
 	  i++;

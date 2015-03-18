@@ -14,9 +14,7 @@ namespace voom {
     // Virtual functions to set Elliptic results members (e.g. to be used in the EllipticModel compute function)
     virtual void setRequest(int request) { _request = request; };
     virtual void setEnergy(Real energy) {_energy = energy; };
-    virtual void setResidual(int LocalIndex, Real value) = 0;
-    // setStiffness is not needed right now, may be defined later
-    // virtual void setStiffness(int LocalRow, int LocalCol, Real value) = 0;
+    virtual void setResidual(int ind, Real value) = 0;
 
     // Reset function
     virtual void resetResidualToZero() = 0;
@@ -24,15 +22,15 @@ namespace voom {
     
     // Virtual functions to add to Elliptic result members
     virtual void addEnergy(Real DeltaEnergy) {_energy += DeltaEnergy; };
-    virtual void addResidual(int LocalIndex, Real value) = 0;
-    virtual void addStiffness(int LocalRow, int LocalCol, Real value) = 0;
+    virtual void addResidual(int ind, Real value) = 0;
+    virtual void addStiffness(int indRow, int indCol, Real value) = 0;
     virtual void FinalizeGlobalStiffnessAssembly() = 0;
 
     // Virtual functions to get Elliptic result members
     virtual int  getRequest() {return _request; };
     virtual Real getEnergy()  {return _energy; };
-    virtual Real getResidual(int LocalIndex) = 0;
-    virtual Real getStiffness(int LocalRow, int LocalCol) = 0;
+    virtual Real getResidual(int ind) = 0;
+    virtual Real getStiffness(int indRow, int indCol) = 0;
 
   private:
     int  _request;

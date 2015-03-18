@@ -15,10 +15,11 @@ namespace voom{
     //! Basic Constructor
     /*! Construct from basic data structures defining the mesh, materials, BCs. 
      */
-    MechanicsModel(Mesh* aMesh, 
-		   const vector<string > & ElMatType, 
-		   const map<string, MechanicsMaterial* > & ElMaterials);		   
-    
+    MechanicsModel(Mesh* aMesh, vector<MechanicsMaterial * > _materials, 
+		   const uint NodeDoF);
+		   // const vector<string > & ElMatType, 
+		   // const map<string, MechanicsMaterial* > & ElMaterials);
+  
     //! Input-file-based Constructor
     // MechanicsModel(Mesh* myMesh, const string inputFile, const uint NodeDoF);
 
@@ -55,19 +56,24 @@ namespace voom{
 
     //! Linearized update (local and ghost solution)
     // From solution array (Used by Solver)
-    void linearizedUpdate(const Real* localValues, 
-			  const Real* ghostValues) {
-      const int nLocalDof = (_myMesh->getLocalDoF()).size();
+    // void linearizedUpdate(const Real* localValues, 
+    // 			  const Real* ghostValues) {
+    //   const int nLocalDof = (_myMesh->getLocalDoF()).size();
+    //   for(uint i = 0; i < nLocalDof; i++)
+    // 	_field[i] += localValues[i];
+    //   for(uint i = 0; i < (_myMesh->getGhostDoF()).size(); i++)
+    //   _field[i + nLocalDof] += ghostValues[i];
+    // };
+    void linearizedUpdate(const Real* localValues) {
+      const int nLocalDof = (_myMesh->getNumberOfNodes())*_nodeDoF;
       for(uint i = 0; i < nLocalDof; i++)
 	_field[i] += localValues[i];
-      for(uint i = 0; i < (_myMesh->getGhostDoF()).size(); i++)
-      _field[i + nLocalDof] += ghostValues[i];
     };
 
     // One value at the time (Node ID, dof index, value)
     void linearizedUpdate(const int id, const int dof, const Real value) {
       const uint dim = _myMesh->getDimension();
-      assert( id < _field.size() && dof < dim );
+      // assert( id < _field.size() && dof < dim );
       _field[id*dim + dof] += value;
     }
     
@@ -78,6 +84,14 @@ namespace voom{
     void PrintField() {
       for (uint i = 0; i < _field.size(); i++)
 	cout << _field[i] << endl;
+    }
+
+    uint getNumMat() {
+      set<MechanicsMaterial *> UNIQUEmaterials;
+      for (uint i = 0; i < _materials.size(); i++) 
+	UNIQUEmaterials.insert(_materials[i]);
+	
+      return UNIQUEmaterials.size();
     }
     
     //! Write output

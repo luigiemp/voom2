@@ -35,6 +35,11 @@ namespace voom {
     uint getDoFperNode() {
       return _nodeDoF;
     }
+    
+    //! GetMesh
+    Mesh * getMesh() {
+      return _myMesh;
+    }
 
     //! Initialize field
     // From constant value
@@ -45,8 +50,9 @@ namespace voom {
 
     //! Linearized update (local and ghost solution)
     // From solution array (Used by Solver)
-    virtual void linearizedUpdate(const Real* locaValues, 
-				  const Real* ghostValues) = 0;
+    // virtual void linearizedUpdate(const Real* locaValues, 
+    // 				  const Real* ghostValues) = 0;
+    virtual void linearizedUpdate(const Real* locaValues) = 0;
 
     // One value at the time (Node ID, DoF index, value)
     virtual void linearizedUpdate(const int id, const int dof, const Real value) = 0;
