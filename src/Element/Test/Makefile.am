@@ -6,7 +6,7 @@ INCLUDES = -I./				\
 	   -I./../../VoomMath		\
 	   -I./../../Shape		\
            -I./../../Quadrature		\
-	   -I/u/local/apps/eigen/current/include/eigen3
+	    -I/u/home/l/luigiemp/project-cardio/Program/eigenInst/include/eigen3
 AM_LDFLAGS = -L./../			\
 	     -L./../../VoomMath/	\
 	     -L./../../Shape 		\
