@@ -33,13 +33,16 @@ namespace voom
     Mesh classes are also responsible for i/o.  They provide methods to
     read and write input files, including the case of restarts.
   */
-  enum MESHTYPE { FINITEELEMENT, MESHFREERKPM, MESHFREELME };
+  // enum MESHTYPE { FINITEELEMENT, MESHFREERKPM, MESHFREELME };
 
   class Mesh
   {
   public:
     //! Input-file based Constructor
-    Mesh(const string inputFile );
+    Mesh(const string Nodes, const string ConnTable);
+
+    // //! Position only based constructor
+    // Mesh(const vector<VectorXd > &  X): _X(X) {};
 
     //! Destructor
     // Destructor made virtual due to inheritance
@@ -49,12 +52,11 @@ namespace voom
     }
 
     //! Get mesh dimension
-    uint getDimension() { return _positions[0].size(); }
+    uint getDimension() { return _X[0].size(); }
     
     //! Get position data
     const VectorXd & getX(const int nodeId) {
-      assert( nodeId < _positions.size() );
-      return _positions[nodeId];
+      return _X[nodeId];
     }
 
     //! Get position component
@@ -63,7 +65,7 @@ namespace voom
     }
 
     //! Get number of Nodes
-    int getNumberOfNodes() { return _positions.size(); }
+    int getNumberOfNodes() { return _X.size(); }
 
     //! Get number of elements
     int getNumberOfElements() { return _elements.size(); }
@@ -73,31 +75,31 @@ namespace voom
       return _elements;
     }
 
-    //! Return mapping between local and global DoF and ghost DoF
-    const vector<int > & getLocalDoF() { return _localDoF; };
-    const vector<int > & getGhostDoF() { return _ghostDoF; };
+    // //! Return mapping between local and global DoF and ghost DoF
+    // const vector<int > & getLocalDoF() { return _localDoF; };
+    // const vector<int > & getGhostDoF() { return _ghostDoF; };
 
     //! Gateway to mesh class
-    static Mesh* New(const string inputFile);
+    // static Mesh* New(const string inputFile);
 
   protected:
     //! Default constructor is protected because it should be called only by derived classes, not from outside
     Mesh() {};
-    //! Protected because elements are not initialized here and should be used only from a derived class
-    Mesh(const vector<VectorXd > &  Positions,
-	 const vector<int > & LocalDoF,
-	 const vector<int > & GhostDoF):
-      _positions(Positions), _localDoF(LocalDoF), _ghostDoF(GhostDoF) {};
+    // //! Protected because elements are not initialized here and should be used only from a derived class
+    // Mesh(const vector<VectorXd > &  Positions,
+    // 	 const vector<int > & LocalDoF,
+    // 	 const vector<int > & GhostDoF):
+    //   _positions(Positions), _localDoF(LocalDoF), _ghostDoF(GhostDoF) {};
     
     //! Nodal positions
-    vector<VectorXd >     _positions;
+    vector<VectorXd >     _X;
 
     //! List of Elements
     vector<GeomElement* > _elements;
 
-    //! Map of Degrees of freedom local ID to global ID
-    vector<int >          _localDoF;
-    vector<int >          _ghostDoF;
+    // //! Map of Degrees of freedom local ID to global ID
+    // vector<int >          _localDoF;
+    // vector<int >          _ghostDoF;
 
   }; // Class Mesh
 

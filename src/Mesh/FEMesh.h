@@ -5,11 +5,17 @@
 
 #include "Mesh.h"
 #include "HexQuadrature.h"
+#include "TetQuadrature.h"
 #include "LineQuadrature.h"
 #include "QuadQuadrature.h"
+#include "TriQuadrature.h"
 
 #include "HexShape.h"
 #include "BarShape.h"
+#include "LinTriShape.h"
+#include "QuadTriShape.h"
+#include "LinTetShape.h"
+#include "QuadTetShape.h"
 
 namespace voom{
   
@@ -17,35 +23,34 @@ namespace voom{
   
   public:
     //! Constructor from input file
-    FEMesh(const string inputFile);
+    FEMesh(const string Nodes, const string ConnTable);
 
     //! Constructor from nodes and connectivities
-    //! (assume only one type of elements and quadrature in the mesh)
-    FEMesh(const vector<VectorXd > &  Positions,
-	   const vector<vector<int > > & Connectivity, 
-	   const vector<int > & LocalDoF,
-	   const vector<int > & GhostDoF,
-	   string ElementType,
-	   uint QuadOrder);
+    //! (assume only one type of elements and quadrature in one mesh)
+    // FEMesh(const vector<VectorXd > &  Positions,
+    // 	   const vector<vector<int > > & Connectivity, 
+    // 	   string ElementType,
+    // 	   uint QuadOrder);
+
+    // Build a mesh using the same nodes that are already used by another mesh
+    // FEMesh(FEMesh*, const string ConnTable);
 
     //! Destructor
     // Destructor made virtual due to inheritance
     virtual ~FEMesh() {
       for(uint i = 0; i < _shapes.size(); i++)
-	for(uint j = 0; j < _shapes[i].size(); j++)
-	  delete _shapes[i][j];
+	delete _shapes[i];
 
-      for(uint i = 0; i < _quadrature.size(); i++) 
-	delete _quadrature[i];
+      delete _quadrature;
     }
   
   protected:
     //! List of shape objects 
     // One vector of shape functions per each element type
-    vector<vector<Shape*> > _shapes;
+    vector<Shape*> _shapes;
     
     //! One Quadrature rule per each element type
-    vector<Quadrature*>     _quadrature;
+    Quadrature*    _quadrature;
   };
 }
 
