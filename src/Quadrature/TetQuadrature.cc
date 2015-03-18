@@ -74,7 +74,7 @@ namespace voom {
     // 	0.0656948493683187, 0.0656948493683187, 0.0656948493683187, 0.0656948493683187, 0.0656948493683187]/6;
     
     default :
-      std::cout << "HexQuadrature::::HexQuadrature(unsigned int order): No quadrature rule is implmented for order " 
+      std::cout << "TetQuadrature::::TetQuadrature(unsigned int order): No quadrature rule is implmented for order " 
 		<< order << ". Terminating program execution." << std::endl;
       
     }; // switch loop
@@ -124,7 +124,6 @@ namespace voom {
         }
       }
     }
-    Inumerical *= 1.0;
 
      
     // Print test results to terminal
