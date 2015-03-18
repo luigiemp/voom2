@@ -1,6 +1,7 @@
 
 #include "HexQuadrature.h"
 #include "TetQuadrature.h"
+#include "TriQuadrature.h"
 #include "LineQuadrature.h"
 #include "QuadQuadrature.h"
 
@@ -40,6 +41,11 @@ int main()
 
   bool PassTetRuleA = TetRule_A.check(1);
   bool PassTetRuleB = TetRule_B.check(2);
+
+  // -- 2D tri rule --
+  TriQuadrature TriRule_A(1), TriRule_B(2);
+  bool PassTriRuleA = TriRule_A.check(1);
+  bool PassTriRuleB = TriRule_B.check(2);
 
   // -- Lin quad rule --
   LineQuadrature LinQuadRule(3);
