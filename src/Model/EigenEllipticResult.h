@@ -79,7 +79,7 @@ namespace voom {
       };
 
 
-  private:
+  public:
     
     SparseMatrix<Real > *_stiffness;
     VectorXd *_residual;
