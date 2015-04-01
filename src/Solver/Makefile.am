@@ -4,8 +4,6 @@ INCLUDES     = 	-I./ 						\
 	 	-I./../VoomMath/ -I./../Shape			\
 		-I./../Element/ -I./../Quadrature		\
 		-I./../Mesh -I./../Material -I./../Model	\
-		-I/u/local/apps/trilinos/current/include	\
-		-I/u/local/apps/eigen/current/include/eigen3      
-
+		-I/u/local/apps/eigen/3.2.4/gcc-4.4.7/include/eigen3
 lib_LIBRARIES = libSolver.a
-libSolver_a_SOURCES = EpetraSparseSolver.cc EpetraNRsolver.cc
+libSolver_a_SOURCES = EigenNRsolver.cc LBFGSB.cc lbfgsb-routines.f # EpetraNRsolver.cc

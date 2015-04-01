@@ -10,14 +10,14 @@ namespace voom {
   {
 
     //! Constructor and destructor
-    EigenEllipticResult(int PbDoF, int NumDiffMat): _pbDoF(PbDoF)
+    EigenEllipticResult(int PbDoF, int NumMatProp): _pbDoF(PbDoF), _numMatProp(NumMatProp)
     {
       // Create results structures
       _stiffness = new SparseMatrix<Real >(_pbDoF, _pbDoF);
       _residual = new VectorXd(_pbDoF);
       
-      _Hg = new SparseMatrix<Real >(NumDiffMat, NumDiffMat);
-      _Gradg = new VectorXd(NumDiffMat);
+      _Hg = new SparseMatrix<Real >(NumMatProp, NumMatProp);
+      _Gradg = new VectorXd(NumMatProp);
     };
 
     ~EigenEllipticResult() {
@@ -27,69 +27,102 @@ namespace voom {
       delete _Gradg;
     };
 
-    // Again residual and stiffness are needed by Solver (not good as above)
-    VectorXd * getResidual() {return _residual; };
-    SparseMatrix<Real > * getStiffness() {return _stiffness; };
+    // Return NumMatProp and PbDoF
+    int getNumMatProp() {
+      return _numMatProp;
+    }
+
+    int getPbDoF() {
+      return _pbDoF;
+    }
     
     
     //! Interface (Mutators)
     // Set functions
     void setResidual(int ind, Real value) {
-      (*_residual)[ind] = value;
-      }
+      (*_residual)(ind) = value;
+    }
     
     // Reset function
-      void resetResidualToZero() {
-	for (int i = 0; i < _pbDoF; i++)
-	  (*_residual)[i] = 0.0;
-      }
+    void resetResidualToZero() {
+      *_residual = VectorXd::Zero(_pbDoF);
+    }
 
-      void resetStiffnessToZero() {
-	_stiffness->setZero();
-	// for (int k = 0; k < _stiffness->outerSize(); ++k)
-	//   for (SparseMatrix<Real>::InnerIterator it(*_stiffness,k); it; ++it) {
-	//       coeffRef(it.row(), it.col()) = 0.0;
-	//   }
-      }
+    void resetStiffnessToZero() {
+      _stiffness->setZero();
+    }
+
+    void resetGradgToZero() {
+      *_Gradg = VectorXd::Zero(_numMatProp);
+    }
+
+    void resetHgToZero() {
+      _Hg->setZero();
+    }
 
 
 
     // Add functions
-      void addResidual(int ind, Real value) {
-	(*_residual)[ind] += value;
-      }
-
-      void addStiffness(int indRow, int indCol, Real value) {
-	_stiffness->coeffRef(indRow, indCol) += value;
-      };
+    void addResidual(int ind, Real value) {
+      (*_residual)(ind) += value;
+    }
+    
+    void addStiffness(int indRow, int indCol, Real value) {
+      _stiffness->coeffRef(indRow, indCol) += value;
+    };
 
     void FinalizeGlobalStiffnessAssembly() {
       _stiffness->makeCompressed();
+    };
+
+    void setStiffnessFromTriplets(vector<Triplet<Real > > & B) {
+      _stiffness->setFromTriplets(B.begin(), B.end());
+    };
+
+    void addGradg(int ind, Real value) {
+      (*_Gradg)(ind) += value;
+    }
+
+    void addHg(int indRow, int indCol, Real value) {
+      _stiffness->coeffRef(indRow, indCol) += value;
+    }
+
+    void setHgFromTriplets(vector<Triplet<Real > > & B) {
+      _Hg->setFromTriplets(B.begin(), B.end());
     };
   
 
 
     //! InterfacesetZero (Accessors)
-      Real getResidual(int ind) {
-	return (*_residual)[ind];
-      }
+    Real getResidual(int ind) {
+      return (*_residual)(ind);
+    }
 
-      Real getStiffness(int indRow, int indCol) {
-	return _stiffness->coeff(indRow, indCol);
-      };
+    Real getStiffness(int indRow, int indCol) {
+      return _stiffness->coeff(indRow, indCol);
+    };
+
+    Real getGradg(int ind) {
+      return (*_Gradg)(ind);
+    }
+
+    Real getHg(int indRow, int indCol) {
+      return _Hg->coeff(indRow, indCol);
+    };
 
 
   public:
     
     SparseMatrix<Real > *_stiffness;
     VectorXd *_residual;
-      
+    
     SparseMatrix<Real > *_Hg;
     VectorXd *_Gradg;
     
     int _pbDoF;
+    int _numMatProp;
   }; // EigenEllipticResult 
-
+  
 }; // namespace voom
 
 #endif

@@ -52,47 +52,27 @@ namespace voom {
     // From solution array (Used by Solver)
     // virtual void linearizedUpdate(const Real* locaValues, 
     // 				  const Real* ghostValues) = 0;
-    virtual void linearizedUpdate(const Real* locaValues) = 0;
+    virtual void linearizedUpdate(const Real* locaValues, Real fact) = 0;
 
     // One value at the time (Node ID, DoF index, value)
     virtual void linearizedUpdate(const int id, const int dof, const Real value) = 0;
 
+    // One value at the time (DoF index, value)
+    virtual void linearizedUpdate(const int dof, const Real value) = 0;
+
     // Set solution field
     virtual void setField(uint dof, Real value) = 0;
+    virtual void setField(const Real* value) = 0;
+
+    // Get solution field
+    virtual void getField(vector<double> & x) = 0;
 
     // Print field
-    virtual void PrintField() = 0;
+    virtual void printField() = 0;
 
     //! Output generation
-    /*!
-      Output format is
-      nLocalNodes   Dof_per_Node   Name_of_Dof1 Name_of_Dof2 ....
-      nElements     Output_per_Element  Name_output1 Name_output2 ...
-      nSteps
+    virtual void writeOutputVTK(const string OutputFile, int step) = 0;
 
-      First all nodal outputs are written
-      Dof_Value forall nodes
-      Output_Value forall elements
-      
-      This is repeated nSteps times
-    */
-    virtual void writeOutput(const string OutputFile, const string format = "BINARY") = 0;
-
-    // Initialize output file
-    void initializeOutput(const int DOF_PER_NODE   , const char* DOF_NAMES,
-			  const int OUTPUT_PER_ELEM, const char* OUTPUT_NAMES,
-			  const int NSTEPSconst,
-			  const string OutputFile, const string format = "BINARY");
-
-    /*! 
-      Gateway to Model class. 
-      \param mesh Pointer to parent Mesh class
-      \param inputFile Input v2i file from which loading information is 
-      parsed to determine the type of analysis to be performed.
-    */
-    // static Model* New(Mesh* mesh, const string inputFile, const uint NodeDoF);
-
-    
 
 
   protected:
@@ -100,9 +80,6 @@ namespace voom {
 
     //! DoF per node
     uint         _nodeDoF;
-
-    // //! Parse Input deck to get list of Material Names
-    // void _getMaterialNamesList(vector<string > & names);
   
   }; // Model
 

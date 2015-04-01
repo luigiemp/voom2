@@ -86,8 +86,6 @@ namespace voom {
       exit(EXIT_FAILURE);
     }
     
-
-
     // Compute the geometric elements
     for (uint e = 0; e < NumEl; e++) {
       vector<int > ConnEl(NumNodesEl, 0);
@@ -96,6 +94,7 @@ namespace voom {
 	inp >> ConnEl[n];
 	Xel.push_back(_X[ConnEl[n]]);
       }
+
       _elements[e] = new FEgeomElement(e, ConnEl, 
 				       Xel,
 				       _shapes,

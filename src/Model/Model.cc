@@ -124,44 +124,44 @@ namespace voom {
 
 
   // Initialize output file
-  void Model::initializeOutput(const int DOF_PER_NODE   , const char* DOF_NAMES,
-			       const int OUTPUT_PER_ELEM, const char* OUTPUT_NAMES,
-			       const int NSTEPS,
-			       const string OutputFile, const string format)
-  {
-    // Write Output Header Information
-    string fileName(OutputFile);
+  // void Model::initializeOutput(const int DOF_PER_NODE   , const char* DOF_NAMES,
+  // 			       const int OUTPUT_PER_ELEM, const char* OUTPUT_NAMES,
+  // 			       const int NSTEPS,
+  // 			       const string OutputFile, const string format)
+  // {
+  //   // Write Output Header Information
+  //   string fileName(OutputFile);
 
-    ofstream out;
-    char header[500];
-    const int nNodes = _myMesh->getNumberOfNodes();
-    const int nElems = _myMesh->getNumberOfElements();
+  //   ofstream out;
+  //   char header[500];
+  //   const int nNodes = _myMesh->getNumberOfNodes();
+  //   const int nElems = _myMesh->getNumberOfElements();
 
-    strcpy(header, "NLOCALNODES DOF_PER_NODE DOF_NAMES\nNELEMENTS OUTPUT_PER_ELEM OUTPUT_NAMES\nNSTEPS\n");
-    // Writing header information
-    if (format == "BINARY") {
-      out.open(fileName.c_str(), ios::out|ios::binary);
-      out.write(header, 500);
-      out.write((char*)(&nNodes), sizeof(int));
-      out.write((char*)(&DOF_PER_NODE), sizeof(int));
-      out.write((char*)(DOF_NAMES), sizeof(int)); // Each out name should not be more than 30 chars
-      out.write((char*)(&nElems), sizeof(int));
-      out.write((char*)(&OUTPUT_PER_ELEM), sizeof(int));
-      out.write((char*)(OUTPUT_NAMES), sizeof(int));
-      out.write((char*)(&NSTEPS), sizeof(int));
-    } 
-    else {
-      out.open( fileName.c_str() );
-      out << header << endl;
-      out << _myMesh->getNumberOfNodes() << " " << DOF_PER_NODE << " " << DOF_NAMES << endl;
-      out << _myMesh->getNumberOfElements() << " " << OUTPUT_PER_ELEM << " " << OUTPUT_NAMES << endl;
-      out << NSTEPS << endl;
-    }
+  //   strcpy(header, "NLOCALNODES DOF_PER_NODE DOF_NAMES\nNELEMENTS OUTPUT_PER_ELEM OUTPUT_NAMES\nNSTEPS\n");
+  //   // Writing header information
+  //   if (format == "BINARY") {
+  //     out.open(fileName.c_str(), ios::out|ios::binary);
+  //     out.write(header, 500);
+  //     out.write((char*)(&nNodes), sizeof(int));
+  //     out.write((char*)(&DOF_PER_NODE), sizeof(int));
+  //     out.write((char*)(DOF_NAMES), sizeof(int)); // Each out name should not be more than 30 chars
+  //     out.write((char*)(&nElems), sizeof(int));
+  //     out.write((char*)(&OUTPUT_PER_ELEM), sizeof(int));
+  //     out.write((char*)(OUTPUT_NAMES), sizeof(int));
+  //     out.write((char*)(&NSTEPS), sizeof(int));
+  //   } 
+  //   else {
+  //     out.open( fileName.c_str() );
+  //     out << header << endl;
+  //     out << _myMesh->getNumberOfNodes() << " " << DOF_PER_NODE << " " << DOF_NAMES << endl;
+  //     out << _myMesh->getNumberOfElements() << " " << OUTPUT_PER_ELEM << " " << OUTPUT_NAMES << endl;
+  //     out << NSTEPS << endl;
+  //   }
 
-    // Writing results is done in the derived classes
-    out.close();
+  //   // Writing results is done in the derived classes
+  //   out.close();
 
-  } // end of initializeOutput
+  // } // end of initializeOutput
 
 
 

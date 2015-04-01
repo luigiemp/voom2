@@ -9,16 +9,16 @@
 
 #include "voom.h"
 #include "Model.h"
-#include "EpetraEllipticResult.h"
+// #include "EpetraEllipticResult.h"
 
-// Epetra Headers
-#include "Epetra_ConfigDefs.h"
-#ifdef HAVE_MPI
-#include "mpi.h"
-#include "Epetra_MpiComm.h"
-#else
-#include "Epetra_SerialComm.h"
-#endif
+// // Epetra Headers
+// #include "Epetra_ConfigDefs.h"
+// #ifdef HAVE_MPI
+// #include "mpi.h"
+// #include "Epetra_MpiComm.h"
+// #else
+// #include "Epetra_SerialComm.h"
+// #endif
 
 
 namespace voom

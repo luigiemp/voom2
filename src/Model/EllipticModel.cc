@@ -29,12 +29,14 @@ namespace voom {
     if ( request & FORCE ) {
       Real error = 0.0, norm = 0.0;
 
-      R.setRequest(2); // First compute forces numerically
+      R.setRequest(3); // First compute forces numerically
       this->compute(R);
 
       R.setRequest(1); // Reset result request so that only energy is computed 
-      this->compute(R);
+      // this->compute(R);
+
       cout << "Model energy at test start = " <<  R.getEnergy() << endl;
+
       for(int a = 0; a < nodeNum; a++) {
 	for(int i = 0; i < _nodeDoF; i++) {
 	  // Perturb +h
@@ -107,11 +109,11 @@ namespace voom {
       norm  = sqrt(norm);
       if ( abs(error) < norm * tol) {
 	cout << "** Elliptic Model Hessian consistency check PASSED" << endl;
-	cout << "** Error: " << error << " Norm: " << norm << " Norm*tol: " << norm*tol << endl;
+	cout << "** Error: " << error << " Norm: " << norm << " Norm*tol: " << norm*tol << endl << endl;
       }
       else {
 	cout << "** Elliptic Model Hessian consistency check FAILED" << endl;
-	cout << "** Error: " << error << " Norm: " << norm << " Norm*tol: " << norm*tol << endl;
+	cout << "** Error: " << error << " Norm: " << norm << " Norm*tol: " << norm*tol << endl << endl;
       }
     } // Check Stiffness    
 
@@ -120,7 +122,7 @@ namespace voom {
       for(uint i = 0; i < _nodeDoF; i++) {
 	this->linearizedUpdate(a, i, -perturb[a*_nodeDoF + i]);
       }
-    }      
+    } 
     
   } // Check consistency
 

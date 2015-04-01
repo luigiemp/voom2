@@ -12,10 +12,11 @@ namespace voom {
   {
     // Needed for all requests
     Real LogDetF = log(F.determinant());
+    // cout << "J = " << F.determinant() << endl;
     Matrix3d invF, ID;
     ID << 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0;
 
-    if( (R.request & FORCE) || (R.request & STIFFNESS) )
+    if( (R.request & FORCE) || (R.request & STIFFNESS) || (R.request & DMATPROP) )
     {
       invF = F.inverse();
     }
@@ -23,8 +24,9 @@ namespace voom {
     if( R.request & ENERGY )
     {
       R.W = LogDetF*(0.5*_lambda*LogDetF - _mu) + 0.5*_mu*( (F.transpose()*F).trace() - 3.0);
+      // cout << LogDetF*(0.5*_lambda*LogDetF - _mu) << " " <<  0.5*_mu*( (F.transpose()*F).trace() - 3.0) << endl;
     }
-    if( R.request & FORCE ) 
+    if( (R.request & FORCE) || (R.request & DMATPROP) ) 
     {
       R.P = (_lambda*LogDetF - _mu)*(invF.transpose()) + _mu*F;
     }
@@ -56,6 +58,7 @@ namespace voom {
 	for (unsigned int J = 0; J<3; J++) {
 	  (R.Dmat).set( 0, i, J, Pa(i,J) );
 	  (R.Dmat).set( 1, i, J, Pb(i,J) );
+	  // cout << LogDetF << " " << Pa(i,J) << " " << Pb(i,J) << endl;
 	} // i
       } // J
     } // DMATPROP

@@ -55,6 +55,18 @@ namespace voom
     uint getDimension() { return _X[0].size(); }
     
     //! Get position data
+    VectorXd getX() {
+      uint Xsize = _X.size();
+      uint dim = _X[0].size();
+      VectorXd X0 = VectorXd::Zero(Xsize*dim);
+      for (int i = 0; i < Xsize; i++) {
+	for (int j = 0; j < dim; j++) {
+	  X0(i*dim + j) = _X[i](j);
+	}
+      }
+      return X0;
+    }
+      
     const VectorXd & getX(const int nodeId) {
       return _X[nodeId];
     }

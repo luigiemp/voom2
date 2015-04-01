@@ -15,10 +15,10 @@ namespace voom {
   {
   public: 
     // Constructors/destructors:
-    CompNeoHookean(): _lambda(1.0), _mu(1.0) {};
-    CompNeoHookean(Real Lambda, Real Mu): _lambda(Lambda), _mu(Mu) {};
+    CompNeoHookean(int ID): MechanicsMaterial(ID), _lambda(1.0), _mu(1.0) {};
+    CompNeoHookean(int ID, Real Lambda, Real Mu): MechanicsMaterial(ID), _lambda(Lambda), _mu(Mu) {};
     CompNeoHookean(CompNeoHookean* BaseMaterial): 
-      _lambda(BaseMaterial->_lambda), _mu(BaseMaterial->_mu) {};
+    MechanicsMaterial(BaseMaterial->_matID), _lambda(BaseMaterial->_lambda), _mu(BaseMaterial->_mu) {};
 
     // Clone
     virtual CompNeoHookean* clone() const {
@@ -27,7 +27,7 @@ namespace voom {
       
     // Default copy constructor (compiler should already provide exactly this)
     CompNeoHookean(const CompNeoHookean & Old): 
-    _lambda(Old._lambda), _mu(Old._mu) {};
+    MechanicsMaterial(Old._matID), _lambda(Old._lambda), _mu(Old._mu) {};
 
     Real getLambda() {return _lambda;};
     Real getMu() {return _mu;};

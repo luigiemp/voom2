@@ -29,7 +29,7 @@ namespace voom
     }; // struct FKresults
 
     //! Constructor
-    MechanicsMaterial(){;}
+    MechanicsMaterial(int MatID): _matID(MatID) {;}
 
     //! Destructor
     virtual ~MechanicsMaterial(){;}
@@ -52,12 +52,24 @@ namespace voom
     virtual vector<Real > getMaterialParameters() = 0;
     virtual vector<Real > getInternalParameters() = 0;
 
+    // Get Material ID
+    int getMatID() {
+      return _matID;
+    }
+
     //! Tells if material has history variables and needs to be replicated at each quadrature point
     // It is used in the Model derived classes
     virtual bool HasHistoryVariables() = 0;
 
     // Set N - only implemented for anisotropic materials
     virtual void setN(Vector3d N) {}; 
+
+  protected:
+    int _matID;
+    
+  private:
+    // No material can be initialized without ID
+    MechanicsMaterial(){;};
     
   }; // class MechanicsMaterial
 

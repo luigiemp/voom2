@@ -12,6 +12,10 @@
   \brief Inlcudes and typedef Real that should be available to all VOOM classes.
  */
 
+// #ifndef EIGEN_YES_I_KNOW_SPARSE_MODULE_IS_NOT_STABLE_YET
+// #define EIGEN_YES_I_KNOW_SPARSE_MODULE_IS_NOT_STABLE_YET
+// #endif
+
 #ifndef _VOOM_H_
 #define _VOOM_H_
 
@@ -31,6 +35,7 @@
 #include <iomanip>
 
 #include <Eigen/Dense>
+#include <Eigen/Sparse>
 
 using namespace std;
 using namespace Eigen;

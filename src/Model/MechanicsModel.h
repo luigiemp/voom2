@@ -4,6 +4,7 @@
 
 #include "EllipticModel.h"
 #include "MechanicsMaterial.h"
+#include "EigenEllipticResult.h"
 
 namespace voom{
 
@@ -16,7 +17,10 @@ namespace voom{
     /*! Construct from basic data structures defining the mesh, materials, BCs. 
      */
     MechanicsModel(Mesh* aMesh, vector<MechanicsMaterial * > _materials, 
-		   const uint NodeDoF);
+		   const uint NodeDoF,
+		   int PressureFlag = 0, Real Pressure = 0.0, Mesh* SurfaceMesh = NULL,
+		   int NodalForcesFlag = 0, vector<int > * ForcesID = NULL, vector<Real > * Forces = NULL);
+
 		   // const vector<string > & ElMatType, 
 		   // const map<string, MechanicsMaterial* > & ElMaterials);
   
@@ -42,7 +46,7 @@ namespace voom{
       const uint numNodes = _myMesh->getNumberOfNodes();
       const uint dim = _myMesh->getDimension();
 
-      for (uint i = 0; i < numNodes; i++)
+      for (uint i = 0; i < numNodes; i++) 
 	for (uint j = 0; j < dim; j++)
 	  _field[i*dim+j] = _myMesh->getX(i,j)*value; // value = isotropic expansion/shrinking
     };
@@ -54,20 +58,11 @@ namespace voom{
 
 
 
-    //! Linearized update (local and ghost solution)
-    // From solution array (Used by Solver)
-    // void linearizedUpdate(const Real* localValues, 
-    // 			  const Real* ghostValues) {
-    //   const int nLocalDof = (_myMesh->getLocalDoF()).size();
-    //   for(uint i = 0; i < nLocalDof; i++)
-    // 	_field[i] += localValues[i];
-    //   for(uint i = 0; i < (_myMesh->getGhostDoF()).size(); i++)
-    //   _field[i + nLocalDof] += ghostValues[i];
-    // };
-    void linearizedUpdate(const Real* localValues) {
+    //! Linearized update
+    void linearizedUpdate(const Real* localValues, Real fact) {
       const int nLocalDof = (_myMesh->getNumberOfNodes())*_nodeDoF;
       for(uint i = 0; i < nLocalDof; i++)
-	_field[i] += localValues[i];
+	_field[i] += fact*localValues[i];
     };
 
     // One value at the time (Node ID, dof index, value)
@@ -76,14 +71,48 @@ namespace voom{
       // assert( id < _field.size() && dof < dim );
       _field[id*dim + dof] += value;
     }
+
+    // One value at the time (Node ID, dof index, value)
+    void linearizedUpdate(const int dof, const Real value) {
+      _field[dof] += value;
+    }
     
     void setField(uint dof, Real value) {
       _field[dof] = value;
     }
+    void setField(const Real* value) {
+      _field.assign(value, value+_field.size());
+    };
 
-    void PrintField() {
-      for (uint i = 0; i < _field.size(); i++)
-	cout << _field[i] << endl;
+    void getField(vector<double> & x) {
+      assert(x.size() == _field.size());
+      x = _field;
+    }
+
+    void setPrevField() {
+      _prevField = _field;
+    };
+
+    void printField() {
+      // Assume dim = 3 - need to be changed
+      int i = 0;
+      while (i < _field.size()) {
+	for (uint j = 0; j < 3; j++) {
+	  cout << _field[i] << " ";
+	  i++;
+	}
+	cout << endl;
+      }
+    }
+
+    void writeField(string FileName) {
+      ofstream out;
+      out.open( FileName.c_str() );
+      out << _field.size() << endl;
+      for (uint i = 0; i < _field.size(); i++) {
+	out << setprecision(15) << _field[i] << endl;
+      }
+      out.close();
     }
 
     uint getNumMat() {
@@ -93,19 +122,30 @@ namespace voom{
 	
       return UNIQUEmaterials.size();
     }
+
+    uint getTotNumMatProp() {
+      set<MechanicsMaterial *> UNIQUEmaterials;
+      for (uint i = 0; i < _materials.size(); i++) 
+	UNIQUEmaterials.insert(_materials[i]);
+	
+      return ( UNIQUEmaterials.size() * (_materials[0]->getMaterialParameters()).size() );
+    }
+
+    vector<MechanicsMaterial * > getMaterials() {
+      return _materials;
+    }
     
     //! Write output
-    void writeOutput(const string OutputFile, const string format = "BINARY"); 
+    void writeOutputVTK(const string OutputFile, int step); 
 
     //! Solve the system
     void compute(EllipticResult & R);
 
-    //! Return component of residual vector given nodal id and DoF
-    /*Real getResidualComponent(EllipticResult & R, int ID, int dim) {
-      assert(dim == 0);
-      return 0.0; //R.getResidual(ID);
-    };
-    */
+    // Apply pressure
+    void applyPressure(EllipticResult & R);
+
+    // Check consistency of gradg and Hg
+    void checkDmat(EigenEllipticResult & R, Real perturbationFactor, Real h, Real tol);
 
 
 
@@ -120,6 +160,17 @@ namespace voom{
     //! Solution value at all nodes, local and ghost
     //! Displacement are stored unrolled, [phi_x, phi_y, phi_z]
     vector<Real > _field;
+
+    // It should not be done here - maye we should have bodies and forms models from bodies
+    int _pressureFlag;
+    Real _pressure;
+    Mesh* _surfaceMesh;
+
+    int _nodalForcesFlag;
+    vector<int > * _forcesID;
+    vector<Real > * _forces;
+    
+    vector<Real > _prevField;
   };
 
 } // namespace voom

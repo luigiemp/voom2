@@ -14,7 +14,7 @@ int main()
   
   {
     cout << endl << "Testing CompNeoHookean material. " << endl;
-    CompNeoHookean MatMech(1.0, 3.0);
+    CompNeoHookean MatMech(0, 1.0, 3.0);
     
     MechanicsMaterial::FKresults Rm;
     Rm.request = 15;
@@ -38,12 +38,15 @@ int main()
     //   }
     // }
     
+    cout << endl << "Material ID = " << MatMech.getMatID() << endl << endl;
+ 
     MatMech.checkConsistency(Rm,F);
   }
 
   {
     cout << endl << "Testing PassMyoA material. " << endl;
-    PassMyoA MatMech(1.0+double(rand())/RAND_MAX, 3.0+double(rand())/RAND_MAX, 2.0+double(rand())/RAND_MAX, 2.0+double(rand())/RAND_MAX);
+    // PassMyoA MatMech(1.0+double(rand())/RAND_MAX, 3.0+double(rand())/RAND_MAX, 1.0+double(rand())/RAND_MAX, 1.0+double(rand())/RAND_MAX, 1.0+double(rand())/RAND_MAX);
+    PassMyoA MatMech(0, 1.0+double(rand())/RAND_MAX, 3.0+double(rand())/RAND_MAX, 1.0+double(rand())/RAND_MAX, 1.0+double(rand())/RAND_MAX, 2.0+double(rand())/RAND_MAX, 2.0+double(rand())/RAND_MAX);
     
     MechanicsMaterial::FKresults Rm;
     Rm.request = 15;
@@ -69,9 +72,11 @@ int main()
     cout << "K[0,0,0,0] = " << Rm.K.get(0,0,0,0) << endl;
     for (unsigned int i = 0; i<3; i++) {
       for (unsigned int J = 0; J<3; J++) {
-	cout << i << " " << J << " " << (Rm.Dmat).get( 0, i, J ) << " " << (Rm.Dmat).get( 1, i, J ) << endl;
+	cout << i << " " << J << " " << (Rm.Dmat).get( 0, i, J ) << " " << (Rm.Dmat).get( 1, i, J ) << " " << (Rm.Dmat).get( 2, i, J ) << endl;
       }
     }
+
+    cout << endl << "Material ID = " << MatMech.getMatID() << endl << endl;
 
     MatMech.checkConsistency(Rm,F);
   }
