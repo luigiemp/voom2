@@ -20,7 +20,7 @@ namespace voom
 
     // All other lines are the nodal coordinates
     for (uint i = 0; i < NumNodes; i++) {    
-      inp >> temp;
+      // inp >> temp; - if this is commented each line is just the [x,y,z] ccordinate, no node number
       for (uint j = 0; j < dim; j++) {
 	inp >> _X[i](j);
       }
