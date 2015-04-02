@@ -72,7 +72,7 @@ int main()
     cout << "K[0,0,0,0] = " << Rm.K.get(0,0,0,0) << endl;
     for (unsigned int i = 0; i<3; i++) {
       for (unsigned int J = 0; J<3; J++) {
-	cout << i << " " << J << " " << (Rm.Dmat).get( 0, i, J ) << " " << (Rm.Dmat).get( 1, i, J ) << " " << (Rm.Dmat).get( 2, i, J ) << endl;
+	cout << i << " " << J << " " << (Rm.Dmat).get( 0, i, J ) << " " << (Rm.Dmat).get( 1, i, J )  << endl;
       }
     }
 
