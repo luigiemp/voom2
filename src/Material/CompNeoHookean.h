@@ -43,6 +43,7 @@ namespace voom {
       _mu = LambdaMu[1];
     }
     void setInternalParameters(const vector<Real > & IntParam) {}; // No internal parameters for CompNeoHookean
+    void setRegularizationParameters(const vector<Real > &)    {}; // CompNeoHookean does not have regularization parameters
 
     vector<Real > getMaterialParameters() {
       vector<Real > MatProp(2, 0.0);
@@ -53,6 +54,10 @@ namespace voom {
     vector<Real > getInternalParameters() { // No internal parameters for CompNeoHookean
       vector<Real > IntParam;
       return IntParam;
+    }
+    vector<Real > getRegularizationParameters() { // No regularization parameters for CompNeoHookean
+      vector<Real > RegParam;
+      return RegParam;
     }
 
     

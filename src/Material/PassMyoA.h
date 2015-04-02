@@ -17,7 +17,7 @@ namespace voom {
     // Constructors/destructors:
   PassMyoA(int ID):  MechanicsMaterial(ID), _alpha1(1.0), _alpha2(1.0), _beta(1.0), _gamma(1.0), _a1(1.0), _a2(1.0) {};
   PassMyoA(int ID, Real Alpha1, Real Alpha2, Real Beta, Real Gamma, Real A1, Real A2): MechanicsMaterial(ID), _alpha1(Alpha1), _alpha2(Alpha2), _beta(Beta), _gamma(Gamma), _a1(A1), _a2(A2) {};
-    PassMyoA(PassMyoA* BaseMaterial): 
+  PassMyoA(PassMyoA* BaseMaterial): 
     MechanicsMaterial(BaseMaterial->_matID), _alpha1(BaseMaterial->_alpha1),  _alpha2(BaseMaterial->_alpha2), _beta(BaseMaterial->_beta), _gamma(BaseMaterial->_gamma), _a1(BaseMaterial->_a1), _a2(BaseMaterial->_a2) {};
 
     // Clone
@@ -32,24 +32,24 @@ namespace voom {
     void setMaterialParameters(const vector<Real > & MatPar) {
       _alpha1 = MatPar[0];
       _alpha2 = MatPar[1];
-      _beta   = MatPar[2];
-      _gamma  = MatPar[3];
     }
     void setInternalParameters(const vector<Real > & IntPar) {
       _a1 = IntPar[0];
       _a2 = IntPar[1];
     }
+    void setRegularizationParameters(const vector<Real > & RegPar) { 
+      _beta   = RegPar[0];
+      _gamma  = RegPar[1];
+    };
 
     void setN(const Vector3d & N) {
       _N = N;
     }
 
     vector<Real > getMaterialParameters() {
-      vector<Real > MatProp(4, 0.0);
+      vector<Real > MatProp(2, 0.0);
       MatProp[0] = _alpha1;
       MatProp[1] = _alpha2;
-      MatProp[2] = _beta;
-      MatProp[3] = _gamma;
       return MatProp;
     }
     vector<Real > getInternalParameters() {
@@ -58,6 +58,13 @@ namespace voom {
       IntPar[1] = _a2;
       return IntPar;
     }
+    vector<Real > getRegularizationParameters() {
+      vector<Real > RegProp(2, 0.0);
+      RegProp[0] = _beta;
+      RegProp[1] = _gamma;
+      return RegProp;      
+    };
+
     Vector3d getN() {
       return _N;
     }

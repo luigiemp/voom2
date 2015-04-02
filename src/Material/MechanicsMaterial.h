@@ -47,10 +47,12 @@ namespace voom
     //! SetMaterialParameters function
     virtual void setMaterialParameters(const vector<Real > &) = 0;
     virtual void setInternalParameters(const vector<Real > &) = 0;
+    virtual void setRegularizationParameters(const vector<Real > &) = 0;
 
      //! GetMaterialParameters function
     virtual vector<Real > getMaterialParameters() = 0;
     virtual vector<Real > getInternalParameters() = 0;
+    virtual vector<Real > getRegularizationParameters() = 0;
 
     // Get Material ID
     int getMatID() {

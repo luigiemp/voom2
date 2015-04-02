@@ -27,7 +27,7 @@ namespace voom {
 
     if( R.request & ENERGY )
     {
-      R.W = _alpha1*pow(I1bar - 3.0, _a1) + _alpha2*pow(MCI4, _a2) + _beta*(pow(I3, 2.0) + pow(I3,-2.0) - 2.0) + _gamma*(I1bar - 3.0);
+      R.W = _alpha1*pow(I1bar - 3.0, _a1) + _alpha2*pow(MCI4, _a2) + _beta*(pow(I3, 2.0) + pow(I3,-2.0) - 2.0) + _gamma*_alpha1*(I1bar - 3.0);
       // cout <<  _alpha1*pow(I1bar - 3.0, _a1) << " " <<  _alpha2*(pow(I3, 2.0) + pow(I3,-2.0) - 2.0) << " " <<  _beta*pow(MCI4, _a2) << endl;
       // cout <<  _alpha1*pow(I1bar - 3.0, _a1) << " " << pow(I1bar - 3.0, _a1) << " " << I1bar - 3.0  << endl;
       // cout << _alpha1 << " " << _a1 << endl;
@@ -37,7 +37,7 @@ namespace voom {
       R.P = 2.0*_a1*_alpha1*pow(I1bar - 3.0, _a1-1.0)*( F - (I1/3.0)*invF.transpose() )/I3third + 
       	2.0*_alpha2*_a2*pow(MCI4, _a2-1.0)*FM +
       	4.0*_beta*(I3 - pow(I3,-3.0) )*I3*invF.transpose() +
-	2.0*_gamma*( F - (I1/3.0)*invF.transpose() )/I3third;
+	2.0*_gamma*_alpha1*( F - (I1/3.0)*invF.transpose() )/I3third;
       
       // a1 = 1
       // R.P = 2.0*_a1*_alpha1*( F - (I1/3.0)*invF.transpose() )/I3third + 
@@ -63,7 +63,7 @@ namespace voom {
 	      					  ) +
 	      			2.0*_alpha2*_a2*(pow(MCI4, _a2-2.0)*(_a2-1.0)*FM(i,J)*2.0*FM(k,L) + pow(MCI4, _a2-1.0)*Delta(i,k)*_N(L)*_N(J) ) +
 	      			2.0*_beta*( (I3 - pow(I3,-3.0) )*2.0*I3*( 2.0*invF(J,i)*invF(L,k) - invF(J,k)*invF(L,i) ) + 4.0*(1.0 + 3.0*pow(I3,-4.0) )*pow(I3,2.0)*invF(J,i)*invF(L,k) ) +
-				2.0*_gamma*( (1.0/I3third)*( Delta(i,k)*Delta(J,L) - (1.0/3.0)*(2.0*F(k,L)*invF(J,i) - I1*invF(J,k)*invF(L,i) + 2.0*(F(i,J)-(I1/3.0)*invF(J,i))*invF(L,k)) ) )
+				2.0*_gamma*_alpha1*( (1.0/I3third)*( Delta(i,k)*Delta(J,L) - (1.0/3.0)*(2.0*F(k,L)*invF(J,i) - I1*invF(J,k)*invF(L,i) + 2.0*(F(i,J)-(I1/3.0)*invF(J,i))*invF(L,k)) ) )
 	      			);
 	      // a1 = 1
 	      // R.K.sequentialSet(
@@ -92,19 +92,19 @@ namespace voom {
 
     if( R.request & DMATPROP ) 
     {
-      R.Dmat.resize(4, 3, 3);     // Already initialized to zero
-      R.DDmat.resize(4, 4, 3, 3); // Already initialized to zero 
-      Matrix3d Pa = 2.0*_a1*pow(I1bar - 3.0, _a1-1.0)*( F - (I1/3.0)*invF.transpose() )/I3third;
+      R.Dmat.resize(2, 3, 3);     // Already initialized to zero
+      R.DDmat.resize(2, 2, 3, 3); // Already initialized to zero 
+      Matrix3d Pa = 2.0*_a1*pow(I1bar - 3.0, _a1-1.0)*( F - (I1/3.0)*invF.transpose() )/I3third + 2.0*_gamma*( F - (I1/3.0)*invF.transpose() )/I3third;
       Matrix3d Pb = 2.0*_a2*pow(MCI4, _a2-1.0)*FM;
-      Matrix3d Pc = 4.0*(I3 - pow(I3,-3.0) )*I3*invF.transpose();
-      Matrix3d Pd = 2.0*( F - (I1/3.0)*invF.transpose() )/I3third;
+      // Matrix3d Pc = 4.0*(I3 - pow(I3,-3.0) )*I3*invF.transpose();
+      // Matrix3d Pd = 2.0*( F - (I1/3.0)*invF.transpose() )/I3third;
       
       for (unsigned int i = 0; i<3; i++) {
 	for (unsigned int J = 0; J<3; J++) {
 	  (R.Dmat).set( 0, i, J, Pa(i,J) );
 	  (R.Dmat).set( 1, i, J, Pb(i,J) );
-	  (R.Dmat).set( 2, i, J, Pc(i,J) );
-	  (R.Dmat).set( 3, i, J, Pd(i,J) );
+	  // (R.Dmat).set( 2, i, J, Pc(i,J) );
+	  // (R.Dmat).set( 3, i, J, Pd(i,J) );
 	} // i
       } // J
     } // DMATPROP
