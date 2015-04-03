@@ -36,13 +36,12 @@ int main(int argc, char** argv)
   vector<MechanicsMaterial * > materials;
   materials.reserve(NumMat);
   for (int k = 0; k < NumMat; k++) {
-    // // PassMyoA* Mat = new PassMyoA(30.48, 7.25, 0.1, 1.60, 2.82);
-    // PassMyoA* Mat = new PassMyoA(k, 10.48, 7.25, 100.0, 1.0, 2.60, 2.82);
-    // // Vector3d N; N << sqrt(2.0)/2.0, sqrt(2.0)/2.0, 0.0;
+    PassMyoA* Mat = new PassMyoA(k, 39.02, 7.31, 100.0, 0.01, 2.85, 2.82);
+    Vector3d N; N << 1.0/sqrt(3.0), 1.0/sqrt(3.0), 1.0/sqrt(3.0);
     // Vector3d N; N << 0.0, 0.0, 1.0;
-    // Mat->setN(N);
-    // materials.push_back(Mat);
-    materials.push_back(new CompNeoHookean(k, 10.0, 3.0) );
+    Mat->setN(N);
+    materials.push_back(Mat);
+    // materials.push_back(new CompNeoHookean(k, 10.0, 3.0) );
   }
 
   // Initialize Model

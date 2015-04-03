@@ -20,6 +20,7 @@ int main(int argc, char** argv)
   FEMesh LVmesh("../../Mesh/Test/CoarseLV.node", "../../Mesh/Test/CoarseLV.ele");
   FEMesh LVsurf("../../Mesh/Test/CoarseLV.node", "../../Mesh/Test/CoarseLV.surf");
   string BCfile = "CoarseLV.BaseSurfBC";
+  string DispFile = "CoarseLV.disp";
  
   cout << endl;
   cout << "Number Of Nodes   : " << LVmesh.getNumberOfNodes() << endl;
@@ -30,22 +31,28 @@ int main(int argc, char** argv)
   uint NumMat =  LVmesh.getNumberOfElements();
   vector<MechanicsMaterial * > materials;
   materials.reserve(NumMat);
+
+  string FiberFile = "CoarseLV.fiber";
+  ifstream FiberInp(FiberFile.c_str());
+
+
   for (int k = 0; k < NumMat; k++) {
-    // // PassMyoA* Mat = new PassMyoA(30.48, 7.25, 0.1, 1.60, 2.82);
-    // PassMyoA* Mat = new PassMyoA(10.48, 7.25, 100.0, 1.0, 2.60, 2.82);
-    // // Vector3d N; N << sqrt(2.0)/2.0, sqrt(2.0)/2.0, 0.0;
-    // Vector3d N; N << 0.0, 0.0, 1.0;
-    // Mat->setN(N);
-    // // vector<Real > temp  = Mat->getMaterialParameters();
-    // // cout << temp[0] << " " << temp[1] << " " <<  temp[2] << endl;
-    // materials.push_back(Mat);
-    materials.push_back(new CompNeoHookean(k, 10.0, 10.0) );
+    PassMyoA* Mat = new PassMyoA(k, 35.19, 7.06, 100.0, 0.025, 2.87, 2.82);
+    Vector3d N = Vector3d::Zero();
+    FiberInp >> N(0);
+    FiberInp >> N(1);
+    FiberInp >> N(2);
+    Mat->setN(N);
+    materials.push_back(Mat);
+    // materials.push_back(new CompNeoHookean(k, 10.0, 10.0) );
   }
+
+  // cout << N(0) << " " << N(1) << " " << N(2) << endl;
 
   // Initialize Model
   int NodeDoF = 3;
   int PressureFlag = 1;
-  Real Pressure = 10.0;
+  Real Pressure = 0.05;
   MechanicsModel myModel(&LVmesh, materials, NodeDoF, PressureFlag, Pressure, &LVsurf);
  
   // Initialize Result
@@ -53,7 +60,7 @@ int main(int argc, char** argv)
   EigenEllipticResult myResults(PbDoF, NumMat);
  
   // Print initial configuration
-  myModel.writeOutputVTK("LVpassiveFilling_", 0);
+  myModel.writeOutputVTK("LVpassiveFillingFiber_", 0);
 
   // Check on applied pressure
   int myRequest = 2;
@@ -89,7 +96,7 @@ int main(int argc, char** argv)
   }
   
   // Solver
-  Real NRtol = 1.0e-8;
+  Real NRtol = 1.0e-10;
   uint NRmaxIter = 100;
   EigenNRsolver mySolver(&myModel, DoFid, DoFvalues, CHOL, NRtol, NRmaxIter);
   mySolver.solve(DISP); 
@@ -118,8 +125,60 @@ int main(int argc, char** argv)
   // mySolver.solve();
   
   // Print final configuration
-  myModel.writeOutputVTK("LVpassiveFilling_", 1);
+  myModel.writeOutputVTK("LVpassiveFillingFiber_", 1);
+  myModel.writeField(DispFile);
 
+  // Next recompute material properties using EMFO
+  {
+    ifstream BCinp(DispFile.c_str());
+    int DoF;
+
+    BCinp >> DoF;
+    vector<int > DoFid(DoF, 0);
+    vector<Real > DoFvalues(DoF, 0);
+    for(int i = 0; i < DoF; i++) {
+      DoFid[i] = i;
+      BCinp >> DoFvalues[i];
+      // cout <<  DoFid[i] << " " <<  DoFvalues[i] << endl;
+    }
+   
+    // Change Material properties
+    // Find unique material parameters
+    set<MechanicsMaterial *> UNIQUEmaterials;
+    for (uint i = 0; i < materials.size(); i++) 
+      UNIQUEmaterials.insert(materials[i]);
+
+    srand (time(NULL));
+    for (set<MechanicsMaterial *>::iterator MatIt = UNIQUEmaterials.begin(); MatIt != UNIQUEmaterials.end(); MatIt++) {
+      int MatID = (*MatIt)->getMatID();
+      vector<Real > MatProp = (*MatIt)->getMaterialParameters();
+      int NumPropPerMat = MatProp.size();
+      for (int m = 0; m < NumPropPerMat; m++) {
+    	MatProp[m] *= double(rand())/double(RAND_MAX);
+	cout << MatProp[m] << " ";
+      }
+      cout << endl;
+      (*MatIt)->setMaterialParameters(MatProp);
+    }
+
+    // Solve for correct material properties
+    Real NRtol = 1.0e-12;
+    uint NRmaxIter = 10;
+    EigenNRsolver mySolver(&myModel, DoFid, DoFvalues, CHOL, NRtol, NRmaxIter);
+    mySolver.solve(MAT); 
+ 
+    // Print found material properties
+    for (set<MechanicsMaterial *>::iterator MatIt = UNIQUEmaterials.begin(); MatIt != UNIQUEmaterials.end(); MatIt++) {
+      int MatID = (*MatIt)->getMatID();
+      vector<Real > MatProp = (*MatIt)->getMaterialParameters();
+      int NumPropPerMat = MatProp.size();
+      for (int m = 0; m < NumPropPerMat; m++) {
+	cout << MatProp[m] << " ";
+      }
+      cout << endl;
+    }
+
+  } // End of material properties solution
 
 
   // Timing
