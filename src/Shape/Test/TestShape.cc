@@ -6,6 +6,7 @@
 #include "BarShape.h"
 #include "LMEShape.h"
 #include "MRKPMShape.h"
+#include "LoopShellShape.h"
 
 using namespace voom;
 
@@ -183,6 +184,22 @@ int main()
     MRKPMshp.checkConsistency(Point2D, 1.0e-8, 1.0e-6);
     MRKPMshp.checkPartitionUnity(Point2D);
     MRKPMshp.checkReproducingCondition(Point2D, 1.0e-7);
+
+  }
+
+   // LoopShell testing
+  {
+    Vector2d Point2D = Vector2d::Zero();
+    srand( time(NULL) );
+    Point2D(0) = (Real(rand())/RAND_MAX );
+    Point2D(1) = (Real(rand())/RAND_MAX );
+    Vector3i Valences(6,6,6);
+    
+    cout << "Testing LoopShellShape" << endl;
+    LoopShellShape LpShlShp(12, Valences, Point2D);
+    cout << "Check consistency at Point " << Point2D.transpose() << endl;
+    LpShlShp.checkConsistency(Point2D);
+    LpShlShp.checkPartitionUnity(Point2D);
 
   }
   
