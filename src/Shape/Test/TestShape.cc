@@ -193,10 +193,10 @@ int main()
     srand( time(NULL) );
     Point2D(0) = (Real(rand())/RAND_MAX );
     Point2D(1) = (Real(rand())/RAND_MAX );
-    Vector3i Valences(6,6,6);
+    Vector3i Valences(6,6,5);
     
     cout << "Testing LoopShellShape" << endl;
-    LoopShellShape LpShlShp(12, Valences, Point2D);
+    LoopShellShape LpShlShp(11, Valences, Point2D);
     cout << "Check consistency at Point " << Point2D.transpose() << endl;
     LpShlShp.checkConsistency(Point2D);
     LpShlShp.checkPartitionUnity(Point2D);

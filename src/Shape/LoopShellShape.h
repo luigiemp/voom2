@@ -22,20 +22,16 @@ namespace voom{
     LoopShellShape(int nodes, CornerValences & V, const VectorXd & Point) {
       _nodes = nodes;
       _coords = Point;
+      _Valences = V;
       _N.resize(nodes, 0.0); //12 shape functions
       _DN.resize(nodes, Vector2d::Zero()); //partial derivatives in 'v' and 'w' directions
       _DDN.resize(nodes, Matrix2d::Zero()); //partial deriatives in ['vv', 'vw'; 'wv' 'ww'] directions
-      update(Point, V);
+      update(Point);
     }
 
-    //! Update recomputes N, DN and DDN at new Point
-    void update(const VectorXd & Point, const CornerValences & V);
-
+   
     //! Update recomputes N, DN and DDN at a Point assuming it's in a regular patch
-    void update(const VectorXd & Point){
-      CornerValences V(6,6,6);
-      update(Point,V);
-    }
+    void update(const VectorXd & Point);
 
     //! Get number of shape functions
     uint getShapeFunctionNum() {return _nodes; };
@@ -62,6 +58,7 @@ namespace voom{
     vector<Vector2d > _DN;  //---------- do ------------
     vector<Matrix2d> _DDN;  //---------- do ------------
     Vector2d _coords;
+    CornerValences _Valences;
 
     int _nodes; //Regular patch: 12, Irregular patch: variable
 
@@ -72,18 +69,16 @@ namespace voom{
     void _computeSecondDerivatives( const SubdivisionMatrix & S, bool needSubdivide);
 
     //! compute subdivision Matrix
-    void _computeSubdivisionMatrix( const CornerValences& V, 
-				    SubdivisionMatrix & S, 
+    void _computeSubdivisionMatrix(SubdivisionMatrix & S, 
 				    bool needSubdivide );
     
     void _convertParaCoords();
 
-    void _initialize(const int nodes, const CornerValences & V, 
-		     const VectorXd & paraCoords);
+    void _initialize(const int nodes, const VectorXd & paraCoords);
     
-    void _initialize(const int nodes, const CornerValences & V) {
+    void _initialize(const int nodes) {
       Vector2d paraCoords(1.0/3.0, 1.0/3.0);
-      _initialize(nodes, V, paraCoords);
+      _initialize(nodes, paraCoords);
     };
 
   };

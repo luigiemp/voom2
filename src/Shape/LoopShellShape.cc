@@ -4,18 +4,18 @@ namespace voom{
 
   
   //! constructor function with parrametric coords
-  void LoopShellShape::update( const VectorXd & Point, const CornerValences & V)
+  void LoopShellShape::update( const VectorXd & Point)
   {
     _coords = Point;
-
+    
     // need subdivision
     bool needSubdivide = true;
-    if ( V(0) == 6 && V(1)==6 && V(2) == 6 ) needSubdivide = false;
+    if ( _Valences(0) == 6 && _Valences(1)==6 && _Valences(2) == 6 ) needSubdivide = false;
 
     // sub-division matrix
-    SubdivisionMatrix  S= SubdivisionMatrix::Zero(12, _nodes);
-
-    _computeSubdivisionMatrix(V, S, needSubdivide);
+    SubdivisionMatrix  S(12,_nodes);
+    S = SubdivisionMatrix::Zero(12, _nodes);
+    _computeSubdivisionMatrix(S, needSubdivide);
     //! convert the parametric coords for sub-patch (irregular patches)
     if( needSubdivide ) _convertParaCoords();
 		
@@ -276,8 +276,7 @@ namespace voom{
   }
 
 
-  void LoopShellShape::_computeSubdivisionMatrix( const CornerValences & V, 
-						 SubdivisionMatrix & S, 
+  void LoopShellShape::_computeSubdivisionMatrix(SubdivisionMatrix & S, 
 						 bool needSubdivide)
   {
     //
@@ -285,7 +284,7 @@ namespace voom{
     //  in the document.
     //
     if ( needSubdivide ){
-      int N0 = V(0)-2,  N1 = V(1)-2,  N2 = V(2)-2;
+      int N0 = _Valences(0)-2,  N1 = _Valences(1)-2,  N2 = _Valences(2)-2;
   
       ///////////////////////////////////////////////////////////////////////
       //
