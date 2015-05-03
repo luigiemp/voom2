@@ -15,14 +15,14 @@
 
 namespace voom{
 			    
-  //! Enumeration for requesting computed results 
+  //! Enumerator for requesting computed results 
   enum SolverType {
     CHOL = 0,
     CG   = 1,
     LU   = 2
   };
 
-  //! Enumeration for requesting computed results 
+  //! Enumerator for requesting computed results 
   enum SolveFor {
     DISP = 0,
     MAT  = 1

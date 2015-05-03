@@ -65,7 +65,8 @@ namespace voom
 	      // cg.setTolerance(1.0e-8);
 	      // cg.setMaxIterations(100000);
 	      cg.compute(*(myResults._stiffness));
-	      Deltax; Deltax = cg.solve(*(myResults._residual));
+	      // Deltax; 
+	      Deltax = cg.solve(*(myResults._residual));
 	      // std::cout << "#iterations:     " << cg.iterations() << std::endl;
 	      // std::cout << "estimated error: " << cg.error()      << std::endl;
 	      break;
