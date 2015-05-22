@@ -42,8 +42,11 @@ int main(int argc, char** argv)
   // Initialize Model
   int NodeDoF = 3;
   int PressureFlag = 1;
+  int NodalForcesFlag = 0;
   Real Pressure = 1.0;
-  MechanicsModel myModel(&BodyMesh, materials, NodeDoF, PressureFlag, Pressure, &SurfMesh);
+  MechanicsModel myModel(&BodyMesh, materials, NodeDoF, PressureFlag, &SurfMesh, NodalForcesFlag);
+  myModel.updatePressure(Pressure);
+  
  
   // Initialize Result
   uint PbDoF = (BodyMesh.getNumberOfNodes())*myModel.getDoFperNode();

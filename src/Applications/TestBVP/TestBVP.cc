@@ -57,8 +57,10 @@ int main(int argc, char** argv)
   int NodalForcesFlag = 1;
   vector<int > ForcesID;
   vector<Real > Forces;
-  MechanicsModel myModel(&Cube, materials, NodeDoF, PressureFlag, Pressure, &surfMesh,
-			 NodalForcesFlag, &ForcesID, &Forces);
+  MechanicsModel myModel(&Cube, materials, NodeDoF, PressureFlag, &surfMesh,
+			 NodalForcesFlag);
+  myModel.updatePressure(Pressure);
+  myModel.updateNodalForces(&ForcesID, &Forces);
  
   // Initialize Result
   uint PbDoF = (Cube.getNumberOfNodes())*myModel.getDoFperNode();
