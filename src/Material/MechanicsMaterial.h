@@ -38,10 +38,10 @@ namespace voom
     virtual MechanicsMaterial* clone() const = 0;
 
     //! Compute function
-    virtual void compute(FKresults & R, const Matrix3d & F) = 0;
+    virtual void compute(FKresults & R, const Matrix3d & F, Vector3d * fiber = NULL) = 0;
 
     //! Consistency Check for all Mecahnics Material Classes
-    void checkConsistency(FKresults & R, const Matrix3d & F, 
+    void checkConsistency(FKresults & R, const Matrix3d & F, Vector3d * fiber = NULL,
 			  const Real h = 1.0e-7, const Real tol = 1.0e-6);
 
     //! SetMaterialParameters function
@@ -62,9 +62,6 @@ namespace voom
     //! Tells if material has history variables and needs to be replicated at each quadrature point
     // It is used in the Model derived classes
     virtual bool HasHistoryVariables() = 0;
-
-    // Set N - only implemented for anisotropic materials
-    virtual void setN(Vector3d N) {}; 
 
   protected:
     int _matID;

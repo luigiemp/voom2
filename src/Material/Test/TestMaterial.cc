@@ -60,12 +60,11 @@ int main()
     Vector3d N;
     N << (double(rand())/RAND_MAX), double(rand())/RAND_MAX, double(rand())/RAND_MAX;
     N /= N.norm();
-    MatMech.setN(N);
 
     Real I4 = N.dot((F.transpose()*F)*N);
     cout << "I4 = " << I4 << endl;
 
-    MatMech.compute(Rm, F);
+    MatMech.compute(Rm, F, &N);
 
     cout << "Energy     = " << Rm.W << endl;
     cout << "P(2,2)     = " << Rm.P(2,2) << endl;
@@ -78,7 +77,7 @@ int main()
 
     cout << endl << "Material ID = " << MatMech.getMatID() << endl << endl;
 
-    MatMech.checkConsistency(Rm,F);
+    MatMech.checkConsistency(Rm, F, &N);
   }
 
 

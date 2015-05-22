@@ -3,18 +3,18 @@
 namespace voom {
 
   // Operators
-  void PassMyoA::compute(FKresults & R, const Matrix3d & F)
+  void PassMyoA::compute(FKresults & R, const Matrix3d & F,  Vector3d * Fiber)
   {
     // Needed for all requests
     Matrix3d C, invF, FM, Delta;
     Delta << 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0;;
     C = F.transpose()*F;
     invF = F.inverse();
-    FM = F*(_N*_N.transpose());
+    FM = F*((*Fiber)*(Fiber->transpose()));
 
     Real I1 = C.trace();
     Real I3 = C.determinant(); // cout << "I3 = " << I3 << endl;
-    Real I4 = _N.dot(C*_N);
+    Real I4 = Fiber->dot(C*(*Fiber));
     Real I3third = pow(I3, 1.0/3.0);
    
     Real I1bar = I1/I3third;
@@ -61,7 +61,7 @@ namespace voom {
 	      					 (_a1-1.0)*pow(I1bar - 3.0, _a1-2.0)*2.0*(F(k,L) - (I1/3.0)*invF(L,k) )*( F(i,J) - (I1/3.0)*invF(J,i) )/pow(I3third, 2.0) + 
 	      					pow(I1bar - 3.0, _a1-1.0)*(1.0/I3third)*( Delta(i,k)*Delta(J,L) - (1.0/3.0)*(2.0*F(k,L)*invF(J,i) - I1*invF(J,k)*invF(L,i) + 2.0*(F(i,J)-(I1/3.0)*invF(J,i))*invF(L,k)) )
 	      					  ) +
-	      			2.0*_alpha2*_a2*(pow(MCI4, _a2-2.0)*(_a2-1.0)*FM(i,J)*2.0*FM(k,L) + pow(MCI4, _a2-1.0)*Delta(i,k)*_N(L)*_N(J) ) +
+	      			2.0*_alpha2*_a2*(pow(MCI4, _a2-2.0)*(_a2-1.0)*FM(i,J)*2.0*FM(k,L) + pow(MCI4, _a2-1.0)*Delta(i,k)*((*Fiber)(L))*((*Fiber)(J)) ) +
 	      			2.0*_beta*( (I3 - pow(I3,-3.0) )*2.0*I3*( 2.0*invF(J,i)*invF(L,k) - invF(J,k)*invF(L,i) ) + 4.0*(1.0 + 3.0*pow(I3,-4.0) )*pow(I3,2.0)*invF(J,i)*invF(L,k) ) +
 				2.0*_gamma*_alpha1*( (1.0/I3third)*( Delta(i,k)*Delta(J,L) - (1.0/3.0)*(2.0*F(k,L)*invF(J,i) - I1*invF(J,k)*invF(L,i) + 2.0*(F(i,J)-(I1/3.0)*invF(J,i))*invF(L,k)) ) )
 	      			);

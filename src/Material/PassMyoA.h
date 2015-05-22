@@ -42,10 +42,6 @@ namespace voom {
       _gamma  = RegPar[1];
     };
 
-    void setN(const Vector3d & N) {
-      _N = N;
-    }
-
     vector<Real > getMaterialParameters() {
       vector<Real > MatProp(2, 0.0);
       MatProp[0] = _alpha1;
@@ -65,13 +61,9 @@ namespace voom {
       return RegProp;      
     };
 
-    Vector3d getN() {
-      return _N;
-    }
-
     // Operators
     //! Based on deformation gradient tensor F, calculates state of material
-    void compute(FKresults & R, const Matrix3d & F);
+    void compute(FKresults & R, const Matrix3d & F, Vector3d * Fiber);
 
     //! Tells if material has history variables and needs to be duplicated at each quadrature point
     // It is used in the Model derived classes
@@ -85,8 +77,6 @@ namespace voom {
     Real _gamma;
     Real _a1;
     Real _a2;
-
-    Vector3d _N;
 	
   }; // class PassMyoA
   

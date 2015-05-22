@@ -3,10 +3,10 @@
 namespace voom
 {
 
-void MechanicsMaterial::checkConsistency(FKresults & R, const Matrix3d & F,
-					  const Real h, const Real tol)
+  void MechanicsMaterial::checkConsistency(FKresults & R, const Matrix3d & F, Vector3d * Fiber,
+					   const Real h, const Real tol)
   {
-    this->compute(R,F);
+    this->compute(R,F,Fiber);
     Real Wplus = 0.0, Wminus = 0.0, Pnum = 0.0, Cnum = 0.0, error = 0.0;
     Matrix3d Pan = R.P, Floc = F, Pplus, Pminus;
     Pplus << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
@@ -21,11 +21,11 @@ void MechanicsMaterial::checkConsistency(FKresults & R, const Matrix3d & F,
 	for (unsigned int J = 0; J<3; J++) {
 
 	  Floc(i,J) += h;
-	  this->compute(R,Floc);
+	  this->compute(R,Floc,Fiber);
 	  Wplus = R.W;
 
 	  Floc(i,J) -= 2.0*h;
-	  this->compute(R,Floc);
+	  this->compute(R,Floc,Fiber);
 	  Wminus = R.W;
 
 	  Floc(i,J) += h;
@@ -56,11 +56,11 @@ void MechanicsMaterial::checkConsistency(FKresults & R, const Matrix3d & F,
 	    for (unsigned int L = 0; L<3; L++) {
     
                 Floc(k,L) += h;
-		this->compute(R,Floc);
+		this->compute(R,Floc,Fiber);
 		Pplus = R.P;
 
 		Floc(k,L) -= 2.0*h;
-		this->compute(R,Floc);
+		this->compute(R,Floc,Fiber);
 		Pminus = R.P;
 
 		Floc(k,L) += h;
@@ -94,12 +94,12 @@ void MechanicsMaterial::checkConsistency(FKresults & R, const Matrix3d & F,
       for (unsigned int a = 0; a < NumMat; a++) {
 	MatProp[a] += h;
 	this->setMaterialParameters(MatProp);
-	this->compute(R,Floc);
+	this->compute(R,Floc,Fiber);
 	Pplus = R.P;
 
 	MatProp[a] -= 2.0*h;
 	this->setMaterialParameters(MatProp);
-	this->compute(R,Floc);
+	this->compute(R,Floc,Fiber);
 	Pminus = R.P;
 	
 	MatProp[a] += h;
@@ -123,12 +123,12 @@ void MechanicsMaterial::checkConsistency(FKresults & R, const Matrix3d & F,
 	for (unsigned int b = 0; b < NumMat; b++) {
 	  MatProp[b] += h;
 	  this->setMaterialParameters(MatProp);
-	  this->compute(R,Floc);
+	  this->compute(R,Floc,Fiber);
 	  DmatPlus = R.Dmat;
 
 	  MatProp[b] -= 2.0*h;
 	  this->setMaterialParameters(MatProp);
-	  this->compute(R,Floc);
+	  this->compute(R,Floc,Fiber);
 	  DmatMinus = R.Dmat;
 	
 	  MatProp[b] += h;
