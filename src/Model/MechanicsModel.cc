@@ -5,13 +5,14 @@ namespace voom {
   // Constructor
   MechanicsModel::MechanicsModel(Mesh* aMesh, vector<MechanicsMaterial * > materials, 
 				 const uint NodeDoF,
-				 int PressureFlag, Real Pressure, Mesh* SurfaceMesh,
-				 int NodalForcesFlag, vector<int > * ForcesID, vector<Real > * Forces):
+				 int PressureFlag, Mesh* SurfaceMesh,
+				 int NodalForcesFlag,
+				 int ResetFlag):
     EllipticModel(aMesh, NodeDoF), _materials(materials), 
-    _pressureFlag(PressureFlag), _pressure(Pressure), _surfaceMesh(SurfaceMesh),
-    _nodalForcesFlag(NodalForcesFlag), _forcesID(ForcesID), _forces(Forces)
+    _pressureFlag(PressureFlag), _pressure(0.0), _surfaceMesh(SurfaceMesh),
+    _nodalForcesFlag(NodalForcesFlag), _forcesID(NULL), _forces(NULL), _resetFlag(ResetFlag)
   {
-    // THERE IS ONE MATERIAL PER ELEMENT - CAN BE CHANGEd - DIFFERENT THAN BEFORE
+    // THERE IS ONE MATERIAL PER ELEMENT - CAN BE CHANGED - DIFFERENT THAN BEFORE
     // Resize and initialize (default function) _field vector
     _field.resize(  (_myMesh->getNumberOfNodes() )*_nodeDoF );
     this->initializeField();
@@ -71,9 +72,7 @@ namespace voom {
     int PbDoF = R.getPbDoF();
     int TotNumMatProp = R.getNumMatProp();
     vector<VectorXd > dRdalpha;
-    VectorXd Residual;
     int NumPropPerMat = (_materials[0]->getMaterialParameters()).size(); // Assume all materials have the same number of material properties
-
 
 
     // Reset values in result struct
@@ -87,16 +86,17 @@ namespace voom {
       R.resetStiffnessToZero();
       KtripletList.reserve(dim*dim*NumEl*AvgNodePerEl*AvgNodePerEl);
     }
-    if ( R.getRequest() & DMATPROP ) {
-      Residual = VectorXd::Zero(PbDoF);
-      R.resetGradgToZero();
-      R.resetHgToZero();
-      dRdalpha.assign( TotNumMatProp, VectorXd::Zero(PbDoF) );
-      HgtripletList.reserve(TotNumMatProp*TotNumMatProp);
-    }
- 
     
-
+    if ( R.getRequest() & DMATPROP ) {
+      dRdalpha.assign( TotNumMatProp, VectorXd::Zero(PbDoF) );
+      if ( _resetFlag == 1 ) {
+	R.resetGradgToZero();
+	R.resetHgToZero();
+	HgtripletList.reserve(TotNumMatProp*TotNumMatProp);
+      }
+    }
+    
+    
 
     // Loop through elements, also through material points array, which is unrolled
     // uint index = 0;
@@ -107,6 +107,7 @@ namespace voom {
       GeomElement* geomEl = elements[e];
       const vector<int  >& NodesID = geomEl->getNodesID();
       const int numQP    = geomEl->getNumberOfQuadPoints();
+      Vector3d Fiber = geomEl->getFiber();
       const int numNodes = NodesID.size();
       MatrixXd Kele = MatrixXd::Zero(numNodes*dim, numNodes*dim);
       
@@ -117,7 +118,7 @@ namespace voom {
      
       // Loop over quadrature points
       for(int q = 0; q < numQP; q++) {
-	_materials[e]->compute(FKres, Flist[q]);
+	_materials[e]->compute(FKres, Flist[q], &Fiber);
 
 	// Volume associated with QP q
 	Real Vol = geomEl->getQPweights(q);
@@ -126,9 +127,9 @@ namespace voom {
 	if (R.getRequest() & ENERGY) {
 	  R.addEnergy(FKres.W*Vol);
 	}
-
+ 
 	// Compute Residual
-	if ( (R.getRequest() & FORCE) || (R.getRequest() & DMATPROP) ) {	
+	if ( (R.getRequest() & FORCE) || (R.getRequest() & DMATPROP) ) {
 	  for(uint a = 0; a < numNodes; a++) {
 	    for(uint i = 0; i < dim; i++) {
 	      Real tempResidual = 0.0;
@@ -140,7 +141,7 @@ namespace voom {
 	    } // i loop
 	  } // a loop
 	} // Internal force loop
- 
+
 	// Compute Stiffness
 	if (R.getRequest() & STIFFNESS) {
 	  for(uint a = 0; a < numNodes; a++) {
@@ -181,7 +182,7 @@ namespace voom {
 	} // Compute DMATPROP
 	
       } // QP loop
-      
+
       if ( R.getRequest() & STIFFNESS ) { 
 	// Transform in triplets Kele
 	for(uint a = 0; a < numNodes; a++) {
@@ -203,38 +204,55 @@ namespace voom {
       R.FinalizeGlobalStiffnessAssembly(); 
       // cout << "Stiffness assembled" << endl;
     }
-
+ 
     // Add pressure/external load if any
     if (_pressureFlag == 1) {
       this->applyPressure(R);
     }
-
+ 
     // Add external load if any
-    if (_nodalForcesFlag == 1) {
+    if (_nodalForcesFlag == 1 && (R.getRequest() & FORCE || R.getRequest() & DMATPROP) ) {
       for (int i = 0; i < _forcesID->size(); i++) {
 	R.addResidual( (*_forcesID)[i], (*_forces)[i] );
       }
     }
-    
+ 
     // Compute Gradg and Hg
     if ( R.getRequest() & DMATPROP ) { 
 
       // First extract residual
+      VectorXd Residual = VectorXd::Zero(PbDoF);
       for (int i = 0; i < PbDoF; i++) {
 	Residual(i) = R.getResidual(i); // local copy
       }
 
-      for (uint alpha = 0; alpha < TotNumMatProp; alpha++) {
-	R.addGradg(alpha, 2.0*dRdalpha[alpha].dot(Residual) );
-	for (uint beta = 0; beta < TotNumMatProp; beta++) {
-	  // !!!
-	  // WARNING : assume W is linear in alpha!!!!!
+      if (_resetFlag == 1) {
+	for (uint alpha = 0; alpha < TotNumMatProp; alpha++) {
+	  R.addGradg(alpha, 2.0*dRdalpha[alpha].dot(Residual) );
+	  for (uint beta = 0; beta < TotNumMatProp; beta++) {
 	    // !!!
-	  HgtripletList.push_back( Triplet<Real >( alpha, beta,  2.0*dRdalpha[alpha].dot(dRdalpha[beta]) ) );
-	} // alpha loop
-      } // beta loop
+	    // WARNING : assume W is linear in alpha!!!!!
+	    // !!!
+	    HgtripletList.push_back( Triplet<Real >( alpha, beta,  2.0*dRdalpha[alpha].dot(dRdalpha[beta]) ) );
+	  } // alpha loop
+	} // beta loop
+	R.setHgFromTriplets(HgtripletList);
+      }
+      else {
+	for (uint alpha = 0; alpha < TotNumMatProp; alpha++) {
+	  R.addGradg(alpha, 2.0*dRdalpha[alpha].dot(Residual) );
+	  for (uint beta = 0; beta < TotNumMatProp; beta++) {
+	    // !!!
+	    // WARNING : assume W is linear in alpha!!!!!
+	    // !!!
+	    R.addHg(alpha, beta,  2.0*dRdalpha[alpha].dot(dRdalpha[beta]) );
+	  } // alpha loop
+	} // beta loop
+      }
       
-      R.setHgFromTriplets(HgtripletList);
+
+
+
     } // Compute Gradg and Hg
     
  } // Compute Mechanics Model
@@ -333,7 +351,6 @@ namespace voom {
       UNIQUEmaterials.insert(_materials[i]);
     
     cout << "Number of unique materials = " <<  UNIQUEmaterials.size() << endl;
-    
     R.setRequest(8); // First compute gradg and Hg numerically
     this->compute(R);
 
@@ -344,7 +361,6 @@ namespace voom {
     {
       vector<Real > MatProp = (*itMat)->getMaterialParameters();
       int MatID = (*itMat)->getMatID();
-
       for(int m = 0; m < MatProp.size(); m++) {
 	// Perturb +hM the material property alpha
 	MatProp[m] += hM;
@@ -353,7 +369,6 @@ namespace voom {
 	// Compute R
 	this->compute(R);
 	Real RTRplus = (R._residual)->dot(*R._residual);
-	
 	// Perturb -2hM the material property alpha
 	MatProp[m] -= 2.0*hM;
 	// Reset matProp in the materials with MatProp[m]
@@ -371,8 +386,7 @@ namespace voom {
 		      (*R._Gradg)( MatID*MatProp.size() + m), 2.0 );
 	norm += pow( (*R._Gradg)(  MatID*MatProp.size() + m), 2.0 );
 	
-	// cout << (*R._Gradg)( MatID*MatProp.size() + m) << " " << (RTRplus-RTRminus)/(2.0*hM) << endl;
-
+	// cout << (*R._Gradg)( MatID*MatProp.size() + m) << " " << (RTRplus-RTRminus)/(2.0*hM) << endl; 
       } // Loop over m
     } // Loop over unique materials
     error = sqrt(error);
@@ -524,6 +538,7 @@ namespace voom {
     }  // end of printing conntable
 
     // Point data section
+    // Displacements
     out << endl << "POINT_DATA " << NumNodes << endl
 	<< "VECTORS displacements double" << endl;
   
@@ -534,6 +549,23 @@ namespace voom {
 	x(j) = _field[i*dim + j];
       }
       out << x - _myMesh->getX(i) << endl;
+    }    
+
+    // Residuals
+    out << "VECTORS residual double" << endl;
+  
+    // Compute Residual
+    uint PbDoF = ( _myMesh->getNumberOfNodes())*this->getDoFperNode();
+    EigenEllipticResult myResults(PbDoF, 2);
+    int myRequest = 2;
+    myResults.setRequest(myRequest);
+    this->compute(myResults);
+    VectorXd R = *(myResults._residual);
+    
+    for (int i = 0; i < NumNodes; i++ ) {
+      for (int j = 0; j < dim; j++) {
+	out << R(i*dim + j) << endl;
+      }
     }    
 
     // Close file
