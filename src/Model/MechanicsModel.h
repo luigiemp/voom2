@@ -18,8 +18,9 @@ namespace voom{
      */
     MechanicsModel(Mesh* aMesh, vector<MechanicsMaterial * > _materials, 
 		   const uint NodeDoF,
-		   int PressureFlag = 0, Real Pressure = 0.0, Mesh* SurfaceMesh = NULL,
-		   int NodalForcesFlag = 0, vector<int > * ForcesID = NULL, vector<Real > * Forces = NULL);
+		   int PressureFlag = 0, Mesh* SurfaceMesh = NULL,
+		   int NodalForcesFlag = 0,
+		   int _resetFlag = 1);
 
 		   // const vector<string > & ElMatType, 
 		   // const map<string, MechanicsMaterial* > & ElMaterials);
@@ -56,8 +57,6 @@ namespace voom{
       _field.assign(value, value+_field.size());
     };
 
-
-
     //! Linearized update
     void linearizedUpdate(const Real* localValues, Real fact) {
       const int nLocalDof = (_myMesh->getNumberOfNodes())*_nodeDoF;
@@ -67,9 +66,9 @@ namespace voom{
 
     // One value at the time (Node ID, dof index, value)
     void linearizedUpdate(const int id, const int dof, const Real value) {
-      const uint dim = _myMesh->getDimension();
+      // const uint dim = _myMesh->getDimension();
       // assert( id < _field.size() && dof < dim );
-      _field[id*dim + dof] += value;
+      _field[id*_nodeDoF + dof] += value;
     }
 
     // One value at the time (Node ID, dof index, value)
@@ -94,10 +93,9 @@ namespace voom{
     };
 
     void printField() {
-      // Assume dim = 3 - need to be changed
       int i = 0;
       while (i < _field.size()) {
-	for (uint j = 0; j < 3; j++) {
+	for (uint j = 0; j < _nodeDoF; j++) {
 	  cout << _field[i] << " ";
 	  i++;
 	}
@@ -105,9 +103,13 @@ namespace voom{
       }
     }
 
-    void writeField(string FileName) {
+    void writeField(string OutputFile, int step) {
+      // Create outputFile name
+      stringstream FileNameStream;
+      FileNameStream << OutputFile << step << ".dat";
       ofstream out;
-      out.open( FileName.c_str() );
+      out.open( (FileNameStream.str()).c_str() );
+  
       out << _field.size() << endl;
       for (uint i = 0; i < _field.size(); i++) {
 	out << setprecision(15) << _field[i] << endl;
@@ -134,6 +136,18 @@ namespace voom{
     vector<MechanicsMaterial * > getMaterials() {
       return _materials;
     }
+
+    void setResetFlag(int ResetFlag) {
+      _resetFlag = ResetFlag;
+    }
+
+    void setPressureFlag(int PressureFlag) {
+      _pressureFlag = PressureFlag;
+    }
+
+    void setNodalForcesFlag(int NodalForcesFlag) {
+      _nodalForcesFlag = NodalForcesFlag;
+    }
     
     //! Write output
     void writeOutputVTK(const string OutputFile, int step); 
@@ -143,6 +157,16 @@ namespace voom{
 
     // Apply pressure
     void applyPressure(EllipticResult & R);
+
+    // Update pressure
+    void updatePressure(Real Pressure) {
+      _pressure = Pressure;
+    }
+
+    // Update nodal forces
+    void updateNodalForces(vector<int > * ForcesID, vector<Real > * Forces) {
+      _forcesID = ForcesID; _forces = Forces;
+    }
 
     // Check consistency of gradg and Hg
     void checkDmat(EigenEllipticResult & R, Real perturbationFactor, Real h, Real tol);
@@ -171,6 +195,8 @@ namespace voom{
     vector<Real > * _forces;
     
     vector<Real > _prevField;
+
+    int _resetFlag;
   };
 
 } // namespace voom

@@ -36,13 +36,16 @@ int main(int argc, char** argv) {
     uint NumMat = myFEmesh.getNumberOfElements();
     vector<MechanicsMaterial * > materials;
     materials.reserve(NumMat);
+    vector<Vector3d > Fibers; Fibers.reserve(NumMat);
     for (int k = 0; k < NumMat; k++) {
-      // // PassMyoA* Mat = new PassMyoA(1.0+double(rand())/RAND_MAX, 3.0+double(rand())/RAND_MAX, 1.0+double(rand())/RAND_MAX, 2.0+double(rand())/RAND_MAX, 2.0+double(rand())/RAND_MAX);
-      // PassMyoA* Mat = new PassMyoA(k, 1.0+double(rand())/RAND_MAX, 3.0+double(rand())/RAND_MAX, 1.0+double(rand())/RAND_MAX, 1.0+double(rand())/RAND_MAX,  1.0+double(rand())/RAND_MAX, 2.0+double(rand())/RAND_MAX);
-      // Vector3d N; N << 1.0, 0.0, 0.0;
-      // Mat->setN(N);
-      // materials.push_back(Mat);
-     materials.push_back(new CompNeoHookean(k, 10.0, 3.0) );
+      // PassMyoA* Mat = new PassMyoA(1.0+double(rand())/RAND_MAX, 3.0+double(rand())/RAND_MAX, 1.0+double(rand())/RAND_MAX, 2.0+double(rand())/RAND_MAX, 2.0+double(rand())/RAND_MAX);
+      PassMyoA* Mat = new PassMyoA(k, 1.0+double(rand())/RAND_MAX, 3.0+double(rand())/RAND_MAX, 1.0+double(rand())/RAND_MAX, 1.0+double(rand())/RAND_MAX,  1.0+double(rand())/RAND_MAX, 2.0+double(rand())/RAND_MAX);
+
+      materials.push_back(Mat);
+
+      Vector3d N; N << 1.0, 0.0, 0.0;
+      Fibers.push_back(N);
+      // materials.push_back(new CompNeoHookean(k, 10.0, 3.0) );
     }
     // CompNeoHookean *Mat = new CompNeoHookean(0, 10.0, 3.0);
     // for (int k = 0; k < NumMat; k++) {
@@ -50,6 +53,9 @@ int main(int argc, char** argv) {
     // }
 
   
+    myFEmesh.setFibers(Fibers);
+
+
     int PressureFlag = 1;
     Real Pressure = 1.0;
     MechanicsModel myModel(&myFEmesh, materials, NodeDoF, PressureFlag, Pressure, &surfMesh);

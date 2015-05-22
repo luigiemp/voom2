@@ -84,7 +84,7 @@ namespace voom {
     }
 
     void addHg(int indRow, int indCol, Real value) {
-      _stiffness->coeffRef(indRow, indCol) += value;
+      _Hg->coeffRef(indRow, indCol) += value;
     }
 
     void setHgFromTriplets(vector<Triplet<Real > > & B) {
@@ -93,7 +93,7 @@ namespace voom {
   
 
 
-    //! InterfacesetZero (Accessors)
+    //! Interface (Accessors)
     Real getResidual(int ind) {
       return (*_residual)(ind);
     }

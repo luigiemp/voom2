@@ -4,7 +4,7 @@
 #include "Model.h"
 
 namespace voom {
-  //! Elliptic Result is a class which contain standard elliptic result and define basic interface to access/update them
+  //! Elliptic Result is a class which contains standard elliptic result and define basic interface to access/update them
 
   struct EllipticResult 
   {
