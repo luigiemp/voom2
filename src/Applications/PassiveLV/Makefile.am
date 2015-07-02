@@ -1,4 +1,4 @@
-bin_PROGRAMS = TestLV
+bin_PROGRAMS = TestLV MultiMatLV InfarctLV
 INCLUDES =		-I./ -I./../ -I./../../	-I./../../Mesh -I./../../Solver		\
 	 		-I./../../VoomMath/ -I./../../Shape -I./../../Quadrature	\
 			-I./../../Model -I./../../Material -I./../../Element		\
@@ -12,3 +12,5 @@ LDADD = -lSolver -lModel -lMesh -lElement              \
 	-lgfortran
 
 TestLV_SOURCES = TestLV.cc
+MultiMatLV_SOURCES = MultiMatLV.cc
+InfarctLV_SOURCES = InfarctLV.cc

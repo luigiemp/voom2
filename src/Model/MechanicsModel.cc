@@ -537,6 +537,8 @@ namespace voom {
       out << CellType << " " << endl;
     }  // end of printing conntable
 
+
+
     // Point data section
     // Displacements
     out << endl << "POINT_DATA " << NumNodes << endl
@@ -567,6 +569,26 @@ namespace voom {
 	out << R(i*dim + j) << endl;
       }
     }    
+
+
+
+    // Cell data section
+    // Alpha_1 material property
+    out << endl << "CELL_DATA " << NumEl << endl
+	<< "SCALARS Alpha1 double" << endl
+	<< "LOOKUP_TABLE default" << endl;
+    for ( int e = 0; e < NumEl; e++ ) {
+      vector<Real > MatProp = _materials[e]->getMaterialParameters();
+      out << MatProp[0] << endl;
+    }    
+
+    // Alpha_2 material property
+    out << "SCALARS Alpha2 double" << endl
+	<< "LOOKUP_TABLE default" << endl;
+    for ( int e = 0; e < NumEl; e++ ) {
+      vector<Real > MatProp = _materials[e]->getMaterialParameters();
+      out << MatProp[1] << endl;
+    }
 
     // Close file
     out.close();
