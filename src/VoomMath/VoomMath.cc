@@ -11,6 +11,8 @@ namespace voom {
     return temp;
   };
 
+
+
   Real det(const MatrixXd& A)
   {
     if (A.size() == 4)
@@ -54,6 +56,7 @@ namespace voom {
       return -1;
     }
   };
+
 
 
   void inv(const  MatrixXd & A, MatrixXd & B)
@@ -132,4 +135,19 @@ namespace voom {
       cerr << "** Unknown matrix dimension. Cannot compute inverse " << endl;
     }	
   }
+
+
+
+  Matrix3d VoomExpSymmMatrix(const Matrix3d &A) {
+    SelfAdjointEigenSolver<Matrix3d> SAES;
+    SAES.compute(A);
+    Vector3d v0 = SAES.eigenvectors().col(0);
+    Vector3d v1 = SAES.eigenvectors().col(1);
+    Vector3d v2 = SAES.eigenvectors().col(2);
+
+    return exp(SAES.eigenvalues()[0])*( v0*v0.transpose() ) +
+           exp(SAES.eigenvalues()[1])*( v1*v1.transpose() ) +
+           exp(SAES.eigenvalues()[2])*( v2*v2.transpose() );
+  }
+
 };

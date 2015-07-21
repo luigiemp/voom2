@@ -77,7 +77,52 @@ int main()
       cout << endl;
     }
   }
+
+  // Testing matrix exponential
+  {
+    Matrix3d A;
+    A << 0, -M_PI/4, 0,
+       M_PI/4, 0,     0,
+       0,    0,     0;
+    std::cout << "The matrix A is:\n" << A << "\n\n";
+    std::cout << "The matrix exponential of A is:\n" << A.exp() << "\n\n";
+
+    // With symmetric matrices
+     A << 0, M_PI/4, 0,
+          M_PI/4, 0,     0,
+          0,    0,     0;
+    std::cout << "The matrix A is:\n" << A << "\n\n";
+    std::cout << "The matrix exponential of A is:\n" << A.exp() << "\n\n";
+    std::cout << "OR the matrix exponential of A is:\n" << VoomExpSymmMatrix(A) << "\n\n";
+
+    // Correctness test
+    for (int i = 0; i < 3; i++) {
+      Matrix3d X = Matrix3d::Random();
+      A = X + X.transpose();
+      cout << "Eigen - Voom = " <<  A.exp() - VoomExpSymmMatrix(A) << endl;
+    }
   
+    // Speed test
+    clock_t t;
+    t = clock();
+    for (int i = 0; i < 10000000; i++) {
+      Matrix3d X = Matrix3d::Random();
+      A = X + X.transpose();
+      Matrix3d B = A.exp();
+    }
+    t = clock() - t;
+    std::cout << "Time using Eigen exp = " << ((float)t)/CLOCKS_PER_SEC << endl;
+
+    t = clock();
+    for (int i = 0; i < 10000000; i++) {
+      Matrix3d X = Matrix3d::Random();
+      A = X + X.transpose();
+      Matrix3d B = VoomExpSymmMatrix(A);
+    }
+    t = clock() - t;
+    std::cout << "Time using VoomExpSymmMatrix = " << ((float)t)/CLOCKS_PER_SEC << endl;
+  }
+
   cout << endl << "....................... " << endl;
   cout << "Test of VoomMath class completed" << endl;
   return 0;
