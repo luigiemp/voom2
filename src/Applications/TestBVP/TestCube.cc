@@ -18,8 +18,14 @@ int main(int argc, char** argv)
 
 
   // Initialize Mesh
-  FEMesh Cube("Cube6.node", "Cube6.ele");
-  FEMesh surfMesh("Cube6.node", "Cube6Surf.ele");
+  // Assumptions to use this main as is: strip has a face at z=0; tetrahedral mesh
+  // FEMesh Cube("Cube6.node", "Cube6.ele");
+  // FEMesh surfMesh("Cube6.node", "Cube6Surf.ele");
+  FEMesh Cube("Strip36.node", "Strip36.ele");
+  FEMesh surfMesh("Strip36.node", "Strip36Surf.ele");
+  // FEMesh Cube("Strip144.node", "Strip144.ele");
+  // FEMesh surfMesh("Strip144.node", "Strip144Surf.ele");
+
  
   cout << endl;
   cout << "Number Of Nodes   : " << Cube.getNumberOfNodes() << endl;
@@ -38,7 +44,7 @@ int main(int argc, char** argv)
     CompNeoHookean* Mat = new CompNeoHookean(k, 1.0, 1.0);
     materials.push_back(Mat);
 
-    Vector3d N; N << 1.0/sqrt(3.0), 1.0/sqrt(3.0), 1.0/sqrt(3.0);
+    Vector3d N; N << 0.0, 0.0, 1.0;
     Fibers.push_back(N);
   }
 
@@ -48,7 +54,7 @@ int main(int argc, char** argv)
   // Initialize Model
   int NodeDoF = 3;
   int PressureFlag = 1;
-  Real Pressure = 1.0;
+  Real Pressure = 1.54;
   int NodalForcesFlag = 1;
   vector<int > ForcesID;
   vector<Real > Forces;
@@ -58,23 +64,26 @@ int main(int argc, char** argv)
   myModel.updateNodalForces(&ForcesID, &Forces);
  
   // Initialize Result
+  uint myRequest;
   uint PbDoF = (Cube.getNumberOfNodes())*myModel.getDoFperNode();
   EigenEllipticResult myResults(PbDoF, NumMat*2);
 
   // Run Consistency check
+  /*
   Real perturbationFactor = 0.1;
-  uint myRequest = 7; // Check both Forces and Stiffness
+  myRequest = 7; // Check both Forces and Stiffness
   Real myH = 1e-6;
   Real myTol = 1e-7;
   myModel.checkConsistency(myResults, perturbationFactor, myRequest, myH, myTol);
   myModel.checkDmat(myResults, perturbationFactor, myH, myTol);
-  
+  */
 
 
 
 
     // Print initial configuration
-    myModel.writeOutputVTK("CubeSmall_", 0);
+    // myModel.writeOutputVTK("CubeSmall_", 0);
+    myModel.writeOutputVTK("Strip36_", 0);
 
     // Check on applied pressure
     myRequest = 2;
@@ -90,14 +99,25 @@ int main(int argc, char** argv)
     cout << endl << "Pressure = " << pX << " " << pY << " " << pZ << endl << endl;
      
     // EBC
-    vector<int > DoFid(8,0);
-    vector<Real > DoFvalues(8, 0.0);
-    DoFid[0] = 0;  DoFid[1] = 1;  DoFid[2] = 2;  
-    DoFid[3] = 4;  DoFid[4] = 5;  DoFid[5] = 8;  
-    DoFid[6] = 9;  DoFid[7] = 11;
+    vector<int > DoFid;
+    vector<Real > DoFvalues;
+    for(int i = 0; i < Cube.getNumberOfNodes(); i++) {
+      // All nodes at x = 0
+      if ( Cube.getX(i, 0) < 1.0e-12 ) {
+	DoFid.push_back(i*3);
+	// All nodes at y =0
+	if ( Cube.getX(i, 1) < 1.0e-12 ) {
+	  DoFid.push_back(i*3 + 1);
+	}
+	// All nodes at x = z
+	if ( Cube.getX(i, 2) < 1.0e-12 ) {
+	  DoFid.push_back(i*3 + 2);
+	}
+      }
+    }
  
     for(int i = 0; i < DoFid.size(); i++) {
-      DoFvalues[i] = Cube.getX(floor(double(DoFid[i])/3.0) ,DoFid[i]%3);
+      DoFvalues.push_back( Cube.getX(floor(double(DoFid[i])/3.0) ,DoFid[i]%3) );
       // cout << DoFid[i] << " " <<  DoFvalues[i] << endl;
     }
 
@@ -113,8 +133,9 @@ int main(int argc, char** argv)
     EigenNRsolver mySolver(&myModel, DoFid, DoFvalues, CHOL, NRtol, NRmaxIter);
     mySolver.solve(DISP); 
 
-    myModel.writeOutputVTK("CubeSmall_", 1);
-    myModel.writeField("CubeSmall_", 1);
+    // myModel.writeOutputVTK("CubeSmall_", 1);
+    myModel.writeOutputVTK("Strip36_", 1);
+    
 
     // int m = 5; 
     // double factr = 1.0e+1;
