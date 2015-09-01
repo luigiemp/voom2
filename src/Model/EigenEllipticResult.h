@@ -18,6 +18,7 @@ namespace voom {
       
       _Hg = new SparseMatrix<Real >(NumMatProp, NumMatProp);
       _Gradg = new VectorXd(NumMatProp);
+      _constr = 0;
     };
 
     ~EigenEllipticResult() {
@@ -60,15 +61,28 @@ namespace voom {
       _Hg->setZero();
     }
 
-
-
+    void resetConstraintToZero(){
+      _constr = 0.0;
+    }
+    void addConstraint(Real value) { // ********** Temporary 
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+      _constr = _constr + value;
+    }
     // Add functions
     void addResidual(int ind, Real value) {
-      (*_residual)(ind) += value;
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+      (*_residual)(ind) =  (*_residual)(ind)+ value;
     }
     
     void addStiffness(int indRow, int indCol, Real value) {
-      _stiffness->coeffRef(indRow, indCol) += value;
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+      _stiffness->coeffRef(indRow, indCol) =_stiffness->coeffRef(indRow, indCol)+ value;
     };
 
     void FinalizeGlobalStiffnessAssembly() {
@@ -80,11 +94,17 @@ namespace voom {
     };
 
     void addGradg(int ind, Real value) {
-      (*_Gradg)(ind) += value;
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+      (*_Gradg)(ind) = (*_Gradg)(ind) + value;
     }
 
     void addHg(int indRow, int indCol, Real value) {
-      _stiffness->coeffRef(indRow, indCol) += value;
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+      _stiffness->coeffRef(indRow, indCol) = _stiffness->coeffRef(indRow, indCol) + value;
     }
 
     void setHgFromTriplets(vector<Triplet<Real > > & B) {
@@ -121,6 +141,8 @@ namespace voom {
     
     int _pbDoF;
     int _numMatProp;
+
+    Real _constr;
   }; // EigenEllipticResult 
   
 }; // namespace voom

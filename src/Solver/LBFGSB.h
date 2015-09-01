@@ -37,6 +37,7 @@ namespace voom{
     }      
 
   protected:
+    int _counter; //********************* Temporary *****************
     EllipticModel*  _myModel;
     EigenEllipticResult* _myResults;
 
@@ -59,11 +60,12 @@ namespace voom{
     void _setFieldAndCompute() {
       // Set myModel->_field = _x
       _myModel->setField(_x.data());
-
+      
       // compute energy and residual
-      _myResults->setRequest(3); 
+      _myResults->setRequest(FORCE | ENERGY); 
       _myModel->compute(*_myResults);
-
+      //_myModel->writeOutputVTK("iteration", _counter); //******* Temporary**************************
+      //_counter ++; //******* Temporary**************************
       // extract energy and residual
       _f = _myResults->getEnergy();
       _g = *(_myResults->_residual);  
@@ -77,7 +79,8 @@ namespace voom{
       _l.assign(n, 0.0);
       _u.assign(n, 0.0);
       _nbd.assign(n, 0);
-      _wa.assign(2*_m*n+4*n+12*_m*_m+12*_m, 0.0);
+      //_wa.assign(2*_m*n+4*n+12*_m*_m+12*_m, 0.0); //version 2.0
+      _wa.assign(2*_m*n+5*n+11*_m*_m+8*_m, 0.0); //version 3.0
       _iwa.assign(3*n, 0);
     };
 

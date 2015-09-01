@@ -16,7 +16,7 @@ namespace voom{
 
   public:
     typedef Eigen::Matrix<double,12,Dynamic> SubdivisionMatrix;
-    typedef Eigen::Vector3i CornerValences; //Valences of nodes at three corners
+    typedef vector<int> CornerValences; //Valences of nodes at three corners
 
     //! LoopShellShape constructor fills in N, DN and DDN
     LoopShellShape(int nodes, CornerValences & V, const VectorXd & Point) {
@@ -52,7 +52,71 @@ namespace voom{
       return _DDN[a](i,j);
     };
 	
+    bool checkConsistency2(Vector2d Point, const Real eps, const Real tol)
+  {
+    // Test dimension (1D, 2D, 3D)
+    const uint dim = Point.size();
     
+    const uint NumF = this->getShapeFunctionNum();
+    vector<Vector2d > DN(NumF, Vector2d::Zero());
+    vector<Matrix2d > DDNnumerical(NumF, Matrix2d::Zero());
+   
+    Real error = 0.0, norm = 0.0;
+
+    // Compute numerical derivatives
+    for(uint j = 0; j < 2; j++){
+      for(uint i = 0; i < 2; i++)
+	{
+	  Point(i) += eps;
+	  this->update(Point);
+	  for(uint a = 0; a < NumF; a++) 
+	    DDNnumerical[a](i,j) = this->getDN(a,j);
+	  
+	  Point(i) -= 2*eps;
+	  this->update(Point);
+	  for(uint a = 0; a < NumF; a++)
+	    DDNnumerical[a](i,j)-= this->getDN(a,j);
+	  
+	  Point(i) += eps;
+	  for(uint a = 0; a < NumF; a++) 
+	    DDNnumerical[a](i,j) /= (2.0*eps);    
+	}
+    }
+    // Compute error norm
+    for(uint a = 0; a < NumF; a++) {
+      for(uint j = 0; j < dim; j++) {
+	for(uint i = 0; i < dim; i++) {
+	  error += pow(this->getDDN(a,i,j) - DDNnumerical[a](i,j), 2);
+	  norm  += pow(this->getDDN(a,i,j), 2);
+	}
+      }
+    }
+    norm = sqrt(norm);
+    error = sqrt(error);
+    
+    cout << "Error = " << error << " Norm = " << norm << endl;
+    if ( abs(error) < norm * tol) {
+      cout << "Shape consistency check passed" << endl;
+      return true;
+    }
+    else {
+      cout << "Shape consistency check failed" << endl
+	   << setw(10) << "n"
+	   << setw(24) << "analytical"
+	   << setw(24) << "numerical" << endl;   
+      for(uint a = 0; a < NumF; a++)
+	for(uint i = 0; i < dim; i++){
+	  for(uint j = 0; j < dim; j++){
+	    cout << setw(10) << a << setw(24) << this->getDDN(a,i,j)
+		 << setw(24) << DDNnumerical[a](i,j) ;
+	  }
+	  cout << endl;
+	}
+    }
+
+    return false;
+  } // consistency check
+
   private:
     vector<Real> _N;        //require: vector dim = _nodes
     vector<Vector2d > _DN;  //---------- do ------------

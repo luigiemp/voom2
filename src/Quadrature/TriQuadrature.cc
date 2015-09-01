@@ -15,12 +15,18 @@ namespace voom {
 	break;
 
     case 2 : // 3 points - degree of precision 2
-	_quadWeights.assign(3, 1.0/6.0);
-	_quadPoints.resize(3, tempPoint);
-	_quadPoints[0](0) = 2.0/3.0; _quadPoints[0](1) = 1.0/6.0; 
-	_quadPoints[1](0) = 1.0/6.0; _quadPoints[1](1) = 2.0/3.0; 
-	_quadPoints[2](0) = 1.0/6.0; _quadPoints[2](1) = 1.0/6.0; 
-	break;
+      // _quadWeights.assign(3, 1.0/6.0);
+      // _quadPoints.resize(3, tempPoint);
+      // _quadPoints[0](0) = 2.0/3.0; _quadPoints[0](1) = 1.0/6.0; 
+      // _quadPoints[1](0) = 1.0/6.0; _quadPoints[1](1) = 2.0/3.0; 
+      // _quadPoints[2](0) = 1.0/6.0; _quadPoints[2](1) = 1.0/6.0; 
+      _quadWeights.assign(3, 0.5*1.0/3.0);
+      _quadPoints.resize(3, tempPoint);
+      _quadPoints[0](0) = 0.5; _quadPoints[0](1) = 0.5;
+      _quadPoints[1](0) = 0.0; _quadPoints[1](1) = 0.5; 
+      _quadPoints[2](0) = 0.5; _quadPoints[2](1) = 0.0;
+      
+      break;
 
     case 3 : // 6 points - degree of precision 3
 	_quadWeights.assign(6, 1/12.0);

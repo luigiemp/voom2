@@ -9,6 +9,7 @@
 #define __LoopShellElement_h__
 
 #include "FEgeomElement.h"
+#include "LoopShellShape.h"
 
 namespace voom {
 
@@ -17,7 +18,7 @@ namespace voom {
 
     LoopShellElement(const int elemID, const vector<int > & nodesID, 
 		     const vector<VectorXd > & nodesX,
-		  vector<Shape* > shape, Quadrature* quadrature);
+		  vector<LoopShellShape* > shape, Quadrature* quadrature);
 
     //! Get second derivatives of shape functions at quadrature point
     //! q, node a, direction (i,j)

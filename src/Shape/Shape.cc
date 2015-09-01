@@ -70,7 +70,7 @@ namespace voom
     Real Unity = 0.0;
     VectorXd Zero;
     Zero = VectorXd::Zero( Point.size() );
-   
+    
     // Compute sum of shape functions at Point
     this->update(Point);
     for(uint a = 0; a < NumF; a++)

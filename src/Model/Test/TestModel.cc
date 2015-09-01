@@ -6,7 +6,12 @@
 #include "FEMesh.h"
 #include "PassMyoA.h"
 #include "CompNeoHookean.h"
+
 #include "EigenEllipticResult.h"
+
+#include "LoopShellMesh.h"
+#include "SCElastic.h"
+#include "LoopShellModel.h"
 
 
 using namespace voom;
@@ -15,64 +20,105 @@ int main(int argc, char** argv) {
 
   
   
-  //Test Mechanics model
+  // //Test Mechanics model
+  // {
+  //   cout << " ------------------------------- " << endl;
+  //   cout << " TEST OF MECHANICS MODEL " << endl << endl;
+    
+  //   // FEMesh myFEmesh("../../Solver/Test/QuadTet.node", "../../Solver/Test/QuadTet.ele");
+  //   // FEMesh surfMesh("../../Solver/Test/QuadTet.node", "../../Solver/Test/QuadTet.surf");
+  //   // FEMesh myFEmesh("../../Mesh/Test/CoarseLV.node", "../../Mesh/Test/CoarseLV.ele");
+  //   // FEMesh surfMesh("../../Mesh/Test/CoarseLV.node", "../../Mesh/Test/CoarseLV.surf");
+  //   FEMesh myFEmesh("../../Mesh/Test/CubeQuad.node", "../../Mesh/Test/CubeQuad.ele");
+  //   FEMesh surfMesh("../../Mesh/Test/CubeQuad.node", "../../Mesh/Test/SurfCubeQuad.ele");
+  //   // FEMesh myFEmesh("../../Mesh/Test/Cube.node", "../../Mesh/Test/Cube.ele");
+  //   // FEMesh surfMesh("../../Mesh/Test/Cube.node", "../../Mesh/Test/SurfCube.ele");
+  //   // FEMesh myFEmesh("../../Mesh/Test/NodeFile.dat", "../../Mesh/Test/ElFile.dat");
+    
+  //   // Initialize Model
+  //   uint NodeDoF = 3;
+
+  //   uint NumMat = myFEmesh.getNumberOfElements();
+  //   vector<MechanicsMaterial * > materials;
+  //   materials.reserve(NumMat);
+  //   for (int k = 0; k < NumMat; k++) {
+  //     // // PassMyoA* Mat = new PassMyoA(1.0+double(rand())/RAND_MAX, 3.0+double(rand())/RAND_MAX, 1.0+double(rand())/RAND_MAX, 2.0+double(rand())/RAND_MAX, 2.0+double(rand())/RAND_MAX);
+  //     // PassMyoA* Mat = new PassMyoA(k, 1.0+double(rand())/RAND_MAX, 3.0+double(rand())/RAND_MAX, 1.0+double(rand())/RAND_MAX, 1.0+double(rand())/RAND_MAX,  1.0+double(rand())/RAND_MAX, 2.0+double(rand())/RAND_MAX);
+  //     // Vector3d N; N << 1.0, 0.0, 0.0;
+  //     // Mat->setN(N);
+  //     // materials.push_back(Mat);
+  //    materials.push_back(new CompNeoHookean(k, 10.0, 3.0) );
+  //   }
+  //   // CompNeoHookean *Mat = new CompNeoHookean(0, 10.0, 3.0);
+  //   // for (int k = 0; k < NumMat; k++) {
+  //   //   materials.push_back(Mat);
+  //   // }
+
+  
+  //   int PressureFlag = 1;
+  //   Real Pressure = 1.0;
+  //   MechanicsModel myModel(&myFEmesh, materials, NodeDoF, PressureFlag, Pressure, &surfMesh);
+    
+  //   // Run consistency test
+  //   uint PbDoF = (myFEmesh.getNumberOfNodes())*myModel.getDoFperNode();
+  //   int TotNumMatProp = NumMat*2;
+  //   EigenEllipticResult myResults(PbDoF, TotNumMatProp);
+
+  //   Real perturbationFactor = 0.1;
+  //   uint myRequest = 6; // Check both Forces and Stiffness
+  //   Real myH = 1e-6;
+  //   Real myTol = 1e-7;
+
+  //   myModel.checkConsistency(myResults, perturbationFactor, myRequest, myH, myTol);
+  
+  //   myModel.checkDmat(myResults, perturbationFactor, myH, myTol);
+    
+  //   cout << endl << " END OF TEST OF MECHANICS MODEL " << endl;
+  //   cout << " ------------------------------ " << endl << endl;
+  // }
+
   {
     cout << " ------------------------------- " << endl;
-    cout << " TEST OF MECHANICS MODEL " << endl << endl;
-    
-    // FEMesh myFEmesh("../../Solver/Test/QuadTet.node", "../../Solver/Test/QuadTet.ele");
-    // FEMesh surfMesh("../../Solver/Test/QuadTet.node", "../../Solver/Test/QuadTet.surf");
-    // FEMesh myFEmesh("../../Mesh/Test/CoarseLV.node", "../../Mesh/Test/CoarseLV.ele");
-    // FEMesh surfMesh("../../Mesh/Test/CoarseLV.node", "../../Mesh/Test/CoarseLV.surf");
-    FEMesh myFEmesh("../../Mesh/Test/CubeQuad.node", "../../Mesh/Test/CubeQuad.ele");
-    FEMesh surfMesh("../../Mesh/Test/CubeQuad.node", "../../Mesh/Test/SurfCubeQuad.ele");
-    // FEMesh myFEmesh("../../Mesh/Test/Cube.node", "../../Mesh/Test/Cube.ele");
-    // FEMesh surfMesh("../../Mesh/Test/Cube.node", "../../Mesh/Test/SurfCube.ele");
-    // FEMesh myFEmesh("../../Mesh/Test/NodeFile.dat", "../../Mesh/Test/ElFile.dat");
-    
-    // Initialize Model
+    cout << " Testing Loop Shell Model " << endl << endl;
+    //LoopShellMesh icosa_mesh("sphere_nodes_1SD.dat","sphere_conn_1SD.dat");
+    //LoopShellMesh icosa_mesh("sphere_loop_nodes.dat","sphere_loop_conn.dat");
+    LoopShellMesh icosa_mesh("T5sphere_nodes.dat","T5sphere_conn.dat");
+    //LoopShellMesh icosa_mesh("nonicosa_sphere_nodes.dat","nonicosa_sphere_conn.dat");
+    uint NumMat = icosa_mesh.getNumberOfElements();
     uint NodeDoF = 3;
-
-    uint NumMat = myFEmesh.getNumberOfElements();
-    vector<MechanicsMaterial * > materials;
+    vector<SCElastic *> materials;
     materials.reserve(NumMat);
-    for (int k = 0; k < NumMat; k++) {
-      // // PassMyoA* Mat = new PassMyoA(1.0+double(rand())/RAND_MAX, 3.0+double(rand())/RAND_MAX, 1.0+double(rand())/RAND_MAX, 2.0+double(rand())/RAND_MAX, 2.0+double(rand())/RAND_MAX);
-      // PassMyoA* Mat = new PassMyoA(k, 1.0+double(rand())/RAND_MAX, 3.0+double(rand())/RAND_MAX, 1.0+double(rand())/RAND_MAX, 1.0+double(rand())/RAND_MAX,  1.0+double(rand())/RAND_MAX, 2.0+double(rand())/RAND_MAX);
-      // Vector3d N; N << 1.0, 0.0, 0.0;
-      // Mat->setN(N);
-      // materials.push_back(Mat);
-     materials.push_back(new CompNeoHookean(k, 10.0, 3.0) );
-    }
-    // CompNeoHookean *Mat = new CompNeoHookean(0, 10.0, 3.0);
-    // for (int k = 0; k < NumMat; k++) {
-    //   materials.push_back(Mat);
-    // }
+    for(int k = 0; k < NumMat; k++)
+      materials.push_back(new SCElastic(1,0,0));
 
-  
-    int PressureFlag = 1;
-    Real Pressure = 1.0;
-    MechanicsModel myModel(&myFEmesh, materials, NodeDoF, PressureFlag, Pressure, &surfMesh);
-    
+    LoopShellModel model( &icosa_mesh, materials, NodeDoF);
+
     // Run consistency test
-    uint PbDoF = (myFEmesh.getNumberOfNodes())*myModel.getDoFperNode();
+    uint PbDoF = (icosa_mesh.getNumberOfNodes())*model.getDoFperNode();
     int TotNumMatProp = NumMat*2;
     EigenEllipticResult myResults(PbDoF, TotNumMatProp);
-
-    Real perturbationFactor = 0.1;
-    uint myRequest = 6; // Check both Forces and Stiffness
-    Real myH = 1e-6;
-    Real myTol = 1e-7;
-
-    myModel.checkConsistency(myResults, perturbationFactor, myRequest, myH, myTol);
-  
-    myModel.checkDmat(myResults, perturbationFactor, myH, myTol);
-    
+    ComputeRequest myRequest = FORCE;
+    myResults.setRequest(myRequest);
+    //model.printField();
+    model.compute( myResults);
+    //cout << "Energy : " << myResults.getEnergy()<<endl;
+    //model.checkConsistency(myResults, perturbationFactor, myRequest, myH, myTol);
+    cout << std::scientific;
+    //cout << (*(myResults._residual)).cwiseAbs().colwise().maxCoeff() << endl;
+    cout << (*(myResults._residual)) << endl;
+    int counter = 0;
+    for (int i=0; i< PbDoF; i++ ){
+      if (abs((*(myResults._residual))(i)) > .0001){
+	counter++;
+	//cout << "Detected at " << i << endl;
+      }
+    }
+    //cout << "counter = " << counter << endl;
     cout << endl << " END OF TEST OF MECHANICS MODEL " << endl;
     cout << " ------------------------------ " << endl << endl;
+
+
   }
-
-
 
   // //Test Poisson model
   // {

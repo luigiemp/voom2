@@ -17,25 +17,13 @@ namespace voom {
 
   class FEgeomElement: public GeomElement {    
   public:
-    /*!
-      Specialized constructors that computes shape functions and
-      shape functions derivatives.
-      We need \f$\frac{\partial N}{\partial x} \f$. Using the chain rule
-      we can compute this as
-      \f[
-      \frac{\partial N}{\partial \xi} \frac{\partial \xi}{\partial x}
-      \f]
-      The second term is the inverse of the jacobian. The jacobian is 
-      computed as
-      \f[
-      \frac{\partial x_a}{\partial \xi_b} = \sum_{m=1}^{3} 
-      \frac{\partial N_m}{\partial \xi_j} x_m^a
-      \f]
-    */
 
     FEgeomElement(const int elemID, const vector<int > & nodesID, 
 		  const vector<VectorXd > & nodesX, 
 		  vector<Shape* > shape, Quadrature* quadrature);
+
+    FEgeomElement(const int elemID, const vector<int > & nodesID):
+      GeomElement(elemID, nodesID) {};
 
     //! Get number of quadrature points
     uint getNumberOfQuadPoints() { return _QPweights.size(); }

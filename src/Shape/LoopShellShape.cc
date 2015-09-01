@@ -10,7 +10,7 @@ namespace voom{
     
     // need subdivision
     bool needSubdivide = true;
-    if ( _Valences(0) == 6 && _Valences(1)==6 && _Valences(2) == 6 ) needSubdivide = false;
+    if ( _Valences[0] == 6 && _Valences[1]==6 && _Valences[2] == 6 ) needSubdivide = false;
 
     // sub-division matrix
     SubdivisionMatrix  S(12,_nodes);
@@ -24,6 +24,9 @@ namespace voom{
 
     // compute the 1st derivatives of shape functions
     _computeDerivatives(S, needSubdivide);
+
+    // compute the 2nd derivatives of shape functions
+    _computeSecondDerivatives(S, needSubdivide);
 	
   }
 
@@ -284,7 +287,7 @@ namespace voom{
     //  in the document.
     //
     if ( needSubdivide ){
-      int N0 = _Valences(0)-2,  N1 = _Valences(1)-2,  N2 = _Valences(2)-2;
+      int N0 = _Valences[0]-2,  N1 = _Valences[1]-2,  N2 = _Valences[2]-2;
   
       ///////////////////////////////////////////////////////////////////////
       //
@@ -295,9 +298,9 @@ namespace voom{
       //
       ///////////////////////////////////////////////////////////////////////
 
-      //double w0 = ( 0.625 - sqr( ( 0.375 + 0.25*cos(2.0*M_PI/(N0+2)) ) ) )/(N0+2);
-      //double w1 = ( 0.625 - sqr( ( 0.375 + 0.25*cos(2.0*M_PI/(N1+2)) ) ) )/(N1+2);
-      //double w2 = ( 0.625 - sqr( ( 0.375 + 0.25*cos(2.0*M_PI/(N2+2)) ) ) )/(N2+2);
+      //double w0 = ( 0.625 - pow( ( 0.375 + 0.25*cos(2.0*M_PI/(N0+2)) ) , 2.0) )/(N0+2);
+      //double w1 = ( 0.625 - pow( ( 0.375 + 0.25*cos(2.0*M_PI/(N1+2)) ), 2.0 ) )/(N1+2);
+      //double w2 = ( 0.625 - pow( ( 0.375 + 0.25*cos(2.0*M_PI/(N2+2)) ), 2.0 ) )/(N2+2);
       //
       // warren way
       double w0 = 0.375/(N0+2);

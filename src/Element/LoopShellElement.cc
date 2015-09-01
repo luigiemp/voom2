@@ -7,7 +7,7 @@ namespace voom{
 
   LoopShellElement::LoopShellElement(const int elemID, const vector<int > & nodesID, 
 				     const vector<VectorXd > & nodesX,
-				     vector<Shape* > shape, Quadrature* quadrature): 
+				     vector<LoopShellShape* > shape, Quadrature* quadrature): 
     FEgeomElement(elemID, nodesID)
   {
     
@@ -39,11 +39,12 @@ namespace voom{
 	for(uint a = 0; a < nodePerElem; a++) {
 	  _N[q*nodePerElem + a] = shape[q]->getN(a); // it can be in a different loop, here just for convenience
 	  for(uint i = 0; i < dim; i++) {
-	    _DN[q*nodePerElem + a](i) += shape[q]->getDN(a,i);
+	    _DN[q*nodePerElem + a](i) = shape[q]->getDN(a,i);
 	    for(uint j=0; j < dim; j++) {
 	      //shape[q] is a pointer to Shape class which does not have getDDN. The pointer
 	      // has to be downcast to LoopShellShape* type to be able to access the method
-	      _DDN[q*nodePerElem + a](i,j) += dynamic_cast<LoopShellShape*>(shape[q])->getDDN(a,i,j);
+	      _DDN[q*nodePerElem + a](i,j) = shape[q]->getDDN(a,i,j);
+	      
 	    }//j loop
 	  } // i loop
 	} // a loop

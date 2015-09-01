@@ -27,6 +27,7 @@ namespace voom {
 
     // Force Check
     if ( request & FORCE ) {
+      std::cout << "Checking consistency of forces..." << std::endl;
       Real error = 0.0, norm = 0.0;
 
       R.setRequest(3); // First compute forces numerically
@@ -37,8 +38,11 @@ namespace voom {
 
       cout << "Model energy at test start = " <<  R.getEnergy() << endl;
 
+      cout << "nodeNum  = " << nodeNum << endl;
+      cout << "_nodeDoF = " << _nodeDoF << endl;
       for(int a = 0; a < nodeNum; a++) {
 	for(int i = 0; i < _nodeDoF; i++) {
+	  cout << '(' << a << ',' << i << ')' << endl;
 	  // Perturb +h
 	  this->linearizedUpdate(a, i, h);
 	  this->compute(R);
