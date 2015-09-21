@@ -1,0 +1,54 @@
+\hypertarget{structvoom_1_1_e_p_result}{
+\section{voom::EPResult Struct Reference}
+\label{structvoom_1_1_e_p_result}\index{voom::EPResult@{voom::EPResult}}
+}
+
+
+{\ttfamily \#include $<$EPResult.h$>$}
+
+Inherited by \hyperlink{structvoom_1_1_epetra_e_p_result}{voom::EpetraEPResult}.\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{structvoom_1_1_e_p_result_a39233c0042eba1fccc40806344d599c2}{
+virtual void {\bfseries setRequest} (int request)}
+\label{structvoom_1_1_e_p_result_a39233c0042eba1fccc40806344d599c2}
+
+\item 
+\hypertarget{structvoom_1_1_e_p_result_ab4198fa90af3e30a72757af715b3edac}{
+virtual void {\bfseries addDiffusionLHSMatrix} (const int localRow, const int localCol, const Real value)=0}
+\label{structvoom_1_1_e_p_result_ab4198fa90af3e30a72757af715b3edac}
+
+\item 
+\hypertarget{structvoom_1_1_e_p_result_a38e9fa7ef1fb7f2f06a5ef8985f0440e}{
+virtual void {\bfseries addDiffusionRHSMatrix} (const int localRow, const int localCol, const Real value)=0}
+\label{structvoom_1_1_e_p_result_a38e9fa7ef1fb7f2f06a5ef8985f0440e}
+
+\item 
+\hypertarget{structvoom_1_1_e_p_result_a00b69289a5f6f9599f23d67518792902}{
+virtual void {\bfseries addIonicLHSMatrix} (const int localRow, const int localCol, const Real value)=0}
+\label{structvoom_1_1_e_p_result_a00b69289a5f6f9599f23d67518792902}
+
+\item 
+\hypertarget{structvoom_1_1_e_p_result_a577998fc7a1db4af641a54e146965061}{
+virtual void {\bfseries addIonicRHSMatrix} (const int localRow, const int localCol, const Real value)=0}
+\label{structvoom_1_1_e_p_result_a577998fc7a1db4af641a54e146965061}
+
+\item 
+\hypertarget{structvoom_1_1_e_p_result_a4a6fcb7f460958f84744b4c1bc7a58f5}{
+virtual void {\bfseries addIonicCurrent} (const int localIndex, const Real value)=0}
+\label{structvoom_1_1_e_p_result_a4a6fcb7f460958f84744b4c1bc7a58f5}
+
+\item 
+\hypertarget{structvoom_1_1_e_p_result_aff3e58ad2a02462b5d83bbbcabd949d5}{
+virtual void {\bfseries finalizeMatrixAssembly} ()=0}
+\label{structvoom_1_1_e_p_result_aff3e58ad2a02462b5d83bbbcabd949d5}
+
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Results for Reaction diffusion equation relating to cardiac electrophysiology. Defines a basic interface to access/update the result values 
+
+The documentation for this struct was generated from the following file:\begin{DoxyCompactItemize}
+\item 
+/u/home/a/adityapo/Research/voom2/src/Model/EPResult.h\end{DoxyCompactItemize}

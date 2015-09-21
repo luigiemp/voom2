@@ -1,0 +1,49 @@
+\hypertarget{classvoom_1_1_potential}{
+\section{voom::Potential Class Reference}
+\label{classvoom_1_1_potential}\index{voom::Potential@{voom::Potential}}
+}
+
+
+Inherited by \hyperlink{classvoom_1_1_a_p_force_vel_potential}{voom::APForceVelPotential}, \hyperlink{classvoom_1_1_blank_potential}{voom::BlankPotential}, and \hyperlink{classvoom_1_1_hill_force_vel_potential}{voom::HillForceVelPotential}.\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{classvoom_1_1_potential_a1c820892790fc87023676111a1e6abe0}{
+\hyperlink{classvoom_1_1_potential_a1c820892790fc87023676111a1e6abe0}{$\sim$Potential} ()}
+\label{classvoom_1_1_potential_a1c820892790fc87023676111a1e6abe0}
+
+\begin{DoxyCompactList}\small\item\em Destructor. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_potential_ac437b1b4d2ad0350997a1dbea4fcdeac}{
+virtual double {\bfseries Psi} (Vector3d deltaQ, double deltaT)=0}
+\label{classvoom_1_1_potential_ac437b1b4d2ad0350997a1dbea4fcdeac}
+
+\item 
+\hypertarget{classvoom_1_1_potential_abad2ee6466bc79cbe946fa5955e340c3}{
+virtual Vector3d {\bfseries DPsiDQ} (Vector3d deltaQ, double deltaT)=0}
+\label{classvoom_1_1_potential_abad2ee6466bc79cbe946fa5955e340c3}
+
+\item 
+\hypertarget{classvoom_1_1_potential_ac6ad31074134b9b69f6572d27d007393}{
+virtual Vector3d {\bfseries DPsiDQdot} (Vector3d deltaQ, double deltaT)=0}
+\label{classvoom_1_1_potential_ac6ad31074134b9b69f6572d27d007393}
+
+\item 
+\hypertarget{classvoom_1_1_potential_a6d2db4b0825333ff712edca4f6048069}{
+virtual Matrix3d {\bfseries D2PsiDQDQ} (Vector3d deltaQ, double deltaT)=0}
+\label{classvoom_1_1_potential_a6d2db4b0825333ff712edca4f6048069}
+
+\item 
+\hypertarget{classvoom_1_1_potential_a3b8563ea863a70a9dcbd00f78c9932ca}{
+virtual Matrix3d {\bfseries D2PsiDQDQdot} (Vector3d deltaQ, double deltaT)=0}
+\label{classvoom_1_1_potential_a3b8563ea863a70a9dcbd00f78c9932ca}
+
+\item 
+\hypertarget{classvoom_1_1_potential_a310d44589e6ceea0d01fbe60199a4c6e}{
+virtual Matrix3d {\bfseries D2PsiDQdotDQdot} (Vector3d deltaQ, double deltaT)=0}
+\label{classvoom_1_1_potential_a310d44589e6ceea0d01fbe60199a4c6e}
+
+\end{DoxyCompactItemize}
+
+
+The documentation for this class was generated from the following file:\begin{DoxyCompactItemize}
+\item 
+/u/home/a/adityapo/Research/voom2/src/Potential/Potential.h\end{DoxyCompactItemize}

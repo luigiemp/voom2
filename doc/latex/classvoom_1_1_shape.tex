@@ -1,0 +1,60 @@
+\hypertarget{classvoom_1_1_shape}{
+\section{voom::Shape Class Reference}
+\label{classvoom_1_1_shape}\index{voom::Shape@{voom::Shape}}
+}
+
+
+Inherited by \hyperlink{classvoom_1_1_bar_shape}{voom::BarShape}, \hyperlink{classvoom_1_1_hex_shape}{voom::HexShape}, \hyperlink{classvoom_1_1_lin_tet_shape}{voom::LinTetShape}, \hyperlink{classvoom_1_1_lin_tri_shape}{voom::LinTriShape}, \hyperlink{classvoom_1_1_m_f_shape}{voom::MFShape}, \hyperlink{classvoom_1_1_quad_tet_shape}{voom::QuadTetShape}, and \hyperlink{classvoom_1_1_quad_tri_shape}{voom::QuadTriShape}.\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{classvoom_1_1_shape_af394d29af8e1bedba39a0db73a258d1e}{
+\hyperlink{classvoom_1_1_shape_af394d29af8e1bedba39a0db73a258d1e}{Shape} ()}
+\label{classvoom_1_1_shape_af394d29af8e1bedba39a0db73a258d1e}
+
+\begin{DoxyCompactList}\small\item\em Constructor. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_shape_adf89c69363ceb8c14a8afc5223fc3f44}{
+\hyperlink{classvoom_1_1_shape_adf89c69363ceb8c14a8afc5223fc3f44}{$\sim$Shape} ()}
+\label{classvoom_1_1_shape_adf89c69363ceb8c14a8afc5223fc3f44}
+
+\begin{DoxyCompactList}\small\item\em Destructor. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_shape_a8ded544de12647543b056cec61be9f26}{
+virtual void \hyperlink{classvoom_1_1_shape_a8ded544de12647543b056cec61be9f26}{update} (const VectorXd \&Point)=0}
+\label{classvoom_1_1_shape_a8ded544de12647543b056cec61be9f26}
+
+\begin{DoxyCompactList}\small\item\em Update recomputes N and DN at new Point. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_shape_aa64f4cbc91ac6d7cea4e1bdf94d5054b}{
+virtual uint \hyperlink{classvoom_1_1_shape_aa64f4cbc91ac6d7cea4e1bdf94d5054b}{getShapeFunctionNum} ()=0}
+\label{classvoom_1_1_shape_aa64f4cbc91ac6d7cea4e1bdf94d5054b}
+
+\begin{DoxyCompactList}\small\item\em Get number of shape functions. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_shape_a602b85844c6952def25a4e9f22192e77}{
+virtual Real \hyperlink{classvoom_1_1_shape_a602b85844c6952def25a4e9f22192e77}{getN} (const uint a)=0}
+\label{classvoom_1_1_shape_a602b85844c6952def25a4e9f22192e77}
+
+\begin{DoxyCompactList}\small\item\em getN returns shape function value at a given node a. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_shape_a20d58544fca8f4c8a9360323204c2827}{
+virtual Real \hyperlink{classvoom_1_1_shape_a20d58544fca8f4c8a9360323204c2827}{getDN} (const uint a, const uint i)=0}
+\label{classvoom_1_1_shape_a20d58544fca8f4c8a9360323204c2827}
+
+\begin{DoxyCompactList}\small\item\em GetDN returns shape function derivatives at node a in direction i. \item\end{DoxyCompactList}\item 
+bool \hyperlink{classvoom_1_1_shape_a537587e56cf87b452bbd492261e8f504}{checkConsistency} (VectorXd Point, const Real eps=1.0e-\/8, const Real tol=1.0e-\/7)
+\item 
+\hypertarget{classvoom_1_1_shape_ab4fc3acfc7036908e4d87b58cf15960a}{
+bool {\bfseries checkPartitionUnity} (VectorXd Point, const Real tol=1.0e-\/7)}
+\label{classvoom_1_1_shape_ab4fc3acfc7036908e4d87b58cf15960a}
+
+\end{DoxyCompactItemize}
+
+
+\subsection{Member Function Documentation}
+\hypertarget{classvoom_1_1_shape_a537587e56cf87b452bbd492261e8f504}{
+\index{voom::Shape@{voom::Shape}!checkConsistency@{checkConsistency}}
+\index{checkConsistency@{checkConsistency}!voom::Shape@{voom::Shape}}
+\subsubsection[{checkConsistency}]{\setlength{\rightskip}{0pt plus 5cm}bool voom::Shape::checkConsistency (VectorXd {\em Point}, \/  const Real {\em eps} = {\ttfamily 1.0e-\/8}, \/  const Real {\em tol} = {\ttfamily 1.0e-\/7})}}
+\label{classvoom_1_1_shape_a537587e56cf87b452bbd492261e8f504}
+Consistency check. The shape function derivatives are computed numerically and compared against analytical derivatives. Numerical derivatives are computed as \[ \frac{\partial N(\xi)}{\partial \xi_i} \approx \frac{ N(\xi + \Delta \xi_i) - N(\xi - \Delta \xi_i) }{2\Delta \xi_i} \] The $L_2$ error norm between numerical and analytical derivatives is computed. 
+
+The documentation for this class was generated from the following files:\begin{DoxyCompactItemize}
+\item 
+/u/home/a/adityapo/Research/voom2/src/Shape/\hyperlink{_shape_8h}{Shape.h}\item 
+/u/home/a/adityapo/Research/voom2/src/Shape/Shape.cc\end{DoxyCompactItemize}

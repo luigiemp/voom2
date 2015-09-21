@@ -1,0 +1,73 @@
+\hypertarget{classvoom_1_1_mechanics_node}{
+\section{voom::MechanicsNode Class Reference}
+\label{classvoom_1_1_mechanics_node}\index{voom::MechanicsNode@{voom::MechanicsNode}}
+}
+
+
+Inherits \hyperlink{classvoom_1_1_field_node}{voom::FieldNode}.\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{classvoom_1_1_mechanics_node_a2afd0b3cef7e746c7620d5d90c7b5cff}{
+\hyperlink{classvoom_1_1_mechanics_node_a2afd0b3cef7e746c7620d5d90c7b5cff}{MechanicsNode} (unsigned int id, unsigned int dof, VectorXd \&X)}
+\label{classvoom_1_1_mechanics_node_a2afd0b3cef7e746c7620d5d90c7b5cff}
+
+\begin{DoxyCompactList}\small\item\em Constructor. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_mechanics_node_a9b628862f9b5193c2cff3d0aa8168423}{
+const VectorXd \& \hyperlink{classvoom_1_1_mechanics_node_a9b628862f9b5193c2cff3d0aa8168423}{getu} ()}
+\label{classvoom_1_1_mechanics_node_a9b628862f9b5193c2cff3d0aa8168423}
+
+\begin{DoxyCompactList}\small\item\em Get current position. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_mechanics_node_af20141b233b0dc97cf69f78d78be1845}{
+void \hyperlink{classvoom_1_1_mechanics_node_af20141b233b0dc97cf69f78d78be1845}{setu} (const VectorXd \&u)}
+\label{classvoom_1_1_mechanics_node_af20141b233b0dc97cf69f78d78be1845}
+
+\begin{DoxyCompactList}\small\item\em Set displacement. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_mechanics_node_a280fe5d1ca89fea539acaec37425e574}{
+void \hyperlink{classvoom_1_1_mechanics_node_a280fe5d1ca89fea539acaec37425e574}{setu} (unsigned int id, Real value)}
+\label{classvoom_1_1_mechanics_node_a280fe5d1ca89fea539acaec37425e574}
+
+\begin{DoxyCompactList}\small\item\em Set particular displacement component. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_mechanics_node_ab0b75691ef53b93cee4c8ecad35e1567}{
+vector$<$ string $>$ \hyperlink{classvoom_1_1_mechanics_node_ab0b75691ef53b93cee4c8ecad35e1567}{getPropertyList} ()}
+\label{classvoom_1_1_mechanics_node_ab0b75691ef53b93cee4c8ecad35e1567}
+
+\begin{DoxyCompactList}\small\item\em Get property associated with a node. \item\end{DoxyCompactList}\item 
+virtual void \hyperlink{classvoom_1_1_mechanics_node_a921fd1f238a85727c87f1f2833d222ab}{getProperty} (string propertyName, Real $\ast$$\ast$data, uint \&length)
+\item 
+\hypertarget{classvoom_1_1_mechanics_node_aa533aac405cd9f4b8b024ad070f18aff}{
+virtual void \hyperlink{classvoom_1_1_mechanics_node_aa533aac405cd9f4b8b024ad070f18aff}{linearizedUpdate} (const VectorXd \&data)}
+\label{classvoom_1_1_mechanics_node_aa533aac405cd9f4b8b024ad070f18aff}
+
+\begin{DoxyCompactList}\small\item\em Linear Update. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_mechanics_node_a5d88b444511972760e066843ae0d67f6}{
+virtual void \hyperlink{classvoom_1_1_mechanics_node_a5d88b444511972760e066843ae0d67f6}{linearizedUpdate} (unsigned int dof, Real data)}
+\label{classvoom_1_1_mechanics_node_a5d88b444511972760e066843ae0d67f6}
+
+\begin{DoxyCompactList}\small\item\em Get particular value in the property list. \item\end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{classvoom_1_1_mechanics_node_af2040114c8fa1aa72396e08ddda1cf8e}{
+VectorXd \hyperlink{classvoom_1_1_mechanics_node_af2040114c8fa1aa72396e08ddda1cf8e}{\_\-u}}
+\label{classvoom_1_1_mechanics_node_af2040114c8fa1aa72396e08ddda1cf8e}
+
+\begin{DoxyCompactList}\small\item\em Displacement. \item\end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\subsection{Member Function Documentation}
+\hypertarget{classvoom_1_1_mechanics_node_a921fd1f238a85727c87f1f2833d222ab}{
+\index{voom::MechanicsNode@{voom::MechanicsNode}!getProperty@{getProperty}}
+\index{getProperty@{getProperty}!voom::MechanicsNode@{voom::MechanicsNode}}
+\subsubsection[{getProperty}]{\setlength{\rightskip}{0pt plus 5cm}void voom::MechanicsNode::getProperty (string {\em propertyName}, \/  Real $\ast$$\ast$ {\em data}, \/  uint \& {\em length})\hspace{0.3cm}{\ttfamily  \mbox{[}virtual\mbox{]}}}}
+\label{classvoom_1_1_mechanics_node_a921fd1f238a85727c87f1f2833d222ab}
+Given a propertyName as input the Real data is filled with values and returned to the user. The integer length denotes the number of values stored in the Real array. 
+\begin{DoxyParams}{Parameters}
+\item[{\em propertyName}]String name which defines which property needs to be returned \item[{\em data}]Real array where results are stored. Memory is allocated in this routine. Whatever is stores in data is cleared initially and values are stored in it. \item[{\em length}]Number of entires stored in the array data. \end{DoxyParams}
+
+
+Reimplemented from \hyperlink{classvoom_1_1_base_node_a4d42efec19c4e3f4770828688daa65c5}{voom::BaseNode}.
+
+The documentation for this class was generated from the following files:\begin{DoxyCompactItemize}
+\item 
+/u/home/a/adityapo/Research/voom2/src/Node/\hyperlink{_mechanics_node_8h}{MechanicsNode.h}\item 
+/u/home/a/adityapo/Research/voom2/src/Node/MechanicsNode.cc\end{DoxyCompactItemize}

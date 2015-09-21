@@ -1,0 +1,63 @@
+\hypertarget{classvoom_1_1_r_k_p_mgeom_element}{
+\section{voom::RKPMgeomElement Class Reference}
+\label{classvoom_1_1_r_k_p_mgeom_element}\index{voom::RKPMgeomElement@{voom::RKPMgeomElement}}
+}
+
+
+Inherits \hyperlink{classvoom_1_1_geom_element}{voom::GeomElement}.\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{classvoom_1_1_r_k_p_mgeom_element_a585f05d4a858d32f5f8661aad94d9768}{
+{\bfseries RKPMgeomElement} (int elemID, const vector$<$ int $>$ \&nodesID, const vector$<$ VectorXd $>$ \&NodesX, const vector$<$ VectorXd $>$ \&MaterialPoints, const vector$<$ Real $>$ \&Weights, Real support, Real radius, Real supportHat)}
+\label{classvoom_1_1_r_k_p_mgeom_element_a585f05d4a858d32f5f8661aad94d9768}
+
+\item 
+\hypertarget{classvoom_1_1_r_k_p_mgeom_element_a2c218f8760eca93f764af3d845ad25d3}{
+uint \hyperlink{classvoom_1_1_r_k_p_mgeom_element_a2c218f8760eca93f764af3d845ad25d3}{getNumberOfQuadPoints} ()}
+\label{classvoom_1_1_r_k_p_mgeom_element_a2c218f8760eca93f764af3d845ad25d3}
+
+\begin{DoxyCompactList}\small\item\em Get number of quadrature points. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_r_k_p_mgeom_element_a73e86aa9b2221abe831eaa49e9e6b09a}{
+Real \hyperlink{classvoom_1_1_r_k_p_mgeom_element_a73e86aa9b2221abe831eaa49e9e6b09a}{getQPweights} (uint q)}
+\label{classvoom_1_1_r_k_p_mgeom_element_a73e86aa9b2221abe831eaa49e9e6b09a}
+
+\begin{DoxyCompactList}\small\item\em Get weight for quadrature point q. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_r_k_p_mgeom_element_a8b855415e0d8e86696ac6d717e51af55}{
+Real \hyperlink{classvoom_1_1_r_k_p_mgeom_element_a8b855415e0d8e86696ac6d717e51af55}{getN} (uint q, uint a)}
+\label{classvoom_1_1_r_k_p_mgeom_element_a8b855415e0d8e86696ac6d717e51af55}
+
+\begin{DoxyCompactList}\small\item\em Get shape functions values at quadrature point q, node a. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_r_k_p_mgeom_element_a6a63641a09d891392bd7df1bb60ce777}{
+Real \hyperlink{classvoom_1_1_r_k_p_mgeom_element_a6a63641a09d891392bd7df1bb60ce777}{getDN} (uint q, uint a, uint i)}
+\label{classvoom_1_1_r_k_p_mgeom_element_a6a63641a09d891392bd7df1bb60ce777}
+
+\begin{DoxyCompactList}\small\item\em Get shape functions derivatives at quadrature point q, node a, direction i. \item\end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{classvoom_1_1_r_k_p_mgeom_element_abe43535c61ee4439631a40fc7cd2da08}{
+vector$<$ VectorXd $>$ \hyperlink{classvoom_1_1_r_k_p_mgeom_element_abe43535c61ee4439631a40fc7cd2da08}{\_\-nodesX}}
+\label{classvoom_1_1_r_k_p_mgeom_element_abe43535c61ee4439631a40fc7cd2da08}
+
+\begin{DoxyCompactList}\small\item\em \hyperlink{classvoom_1_1_mesh}{Mesh} Free nodes cluster considered in this element. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_r_k_p_mgeom_element_a63e8ed05887db7e75665ec09b48456c5}{
+vector$<$ Real $>$ \hyperlink{classvoom_1_1_r_k_p_mgeom_element_a63e8ed05887db7e75665ec09b48456c5}{\_\-QPweights}}
+\label{classvoom_1_1_r_k_p_mgeom_element_a63e8ed05887db7e75665ec09b48456c5}
+
+\begin{DoxyCompactList}\small\item\em \hyperlink{classvoom_1_1_quadrature}{Quadrature} weights. \item\end{DoxyCompactList}\item 
+vector$<$ \hyperlink{classvoom_1_1_m_r_k_p_m_shape}{MRKPMShape} $\ast$ $>$ \hyperlink{classvoom_1_1_r_k_p_mgeom_element_a523f9b8a58ef870105d7afc70243d40d}{\_\-RKPMshapes}
+\end{DoxyCompactItemize}
+
+
+\subsection{Member Data Documentation}
+\hypertarget{classvoom_1_1_r_k_p_mgeom_element_a523f9b8a58ef870105d7afc70243d40d}{
+\index{voom::RKPMgeomElement@{voom::RKPMgeomElement}!\_\-RKPMshapes@{\_\-RKPMshapes}}
+\index{\_\-RKPMshapes@{\_\-RKPMshapes}!voom::RKPMgeomElement@{voom::RKPMgeomElement}}
+\subsubsection[{\_\-RKPMshapes}]{\setlength{\rightskip}{0pt plus 5cm}vector$<${\bf MRKPMShape}$\ast$ $>$ {\bf voom::RKPMgeomElement::\_\-RKPMshapes}\hspace{0.3cm}{\ttfamily  \mbox{[}protected\mbox{]}}}}
+\label{classvoom_1_1_r_k_p_mgeom_element_a523f9b8a58ef870105d7afc70243d40d}
+\hyperlink{classvoom_1_1_shape}{Shape} functions objects evaluated at quadrature points 
+
+The documentation for this class was generated from the following files:\begin{DoxyCompactItemize}
+\item 
+/u/home/a/adityapo/Research/voom2/src/Element/\hyperlink{_r_k_p_mgeom_element_8h}{RKPMgeomElement.h}\item 
+/u/home/a/adityapo/Research/voom2/src/Element/RKPMgeomElement.cc\end{DoxyCompactItemize}

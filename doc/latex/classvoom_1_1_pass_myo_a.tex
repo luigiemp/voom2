@@ -1,0 +1,80 @@
+\hypertarget{classvoom_1_1_pass_myo_a}{
+\section{voom::PassMyoA Class Reference}
+\label{classvoom_1_1_pass_myo_a}\index{voom::PassMyoA@{voom::PassMyoA}}
+}
+
+
+Inherits \hyperlink{classvoom_1_1_mechanics_material}{voom::MechanicsMaterial}.\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{classvoom_1_1_pass_myo_a_a8fd8bc56c5905aa4900e0b86f834d82e}{
+{\bfseries PassMyoA} (int ID)}
+\label{classvoom_1_1_pass_myo_a_a8fd8bc56c5905aa4900e0b86f834d82e}
+
+\item 
+\hypertarget{classvoom_1_1_pass_myo_a_a5308e96dc64aacf0146b5e5df7184bfa}{
+{\bfseries PassMyoA} (int ID, Real Alpha1, Real Alpha2, Real Beta, Real Gamma, Real A1, Real A2)}
+\label{classvoom_1_1_pass_myo_a_a5308e96dc64aacf0146b5e5df7184bfa}
+
+\item 
+\hypertarget{classvoom_1_1_pass_myo_a_a8577f3aeea3cd0bd897e38b9f8ee34e4}{
+{\bfseries PassMyoA} (\hyperlink{classvoom_1_1_pass_myo_a}{PassMyoA} $\ast$BaseMaterial)}
+\label{classvoom_1_1_pass_myo_a_a8577f3aeea3cd0bd897e38b9f8ee34e4}
+
+\item 
+\hypertarget{classvoom_1_1_pass_myo_a_afb1197905decf2727cd8b4270e9bbc92}{
+virtual \hyperlink{classvoom_1_1_pass_myo_a}{PassMyoA} $\ast$ \hyperlink{classvoom_1_1_pass_myo_a_afb1197905decf2727cd8b4270e9bbc92}{clone} () const }
+\label{classvoom_1_1_pass_myo_a_afb1197905decf2727cd8b4270e9bbc92}
+
+\begin{DoxyCompactList}\small\item\em Clone. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_pass_myo_a_a3596d5cad17933f7370a32708cdd4e20}{
+{\bfseries PassMyoA} (const \hyperlink{classvoom_1_1_pass_myo_a}{PassMyoA} \&Old)}
+\label{classvoom_1_1_pass_myo_a_a3596d5cad17933f7370a32708cdd4e20}
+
+\item 
+\hypertarget{classvoom_1_1_pass_myo_a_aed01249dfdcb6fb10df34160872addf6}{
+void \hyperlink{classvoom_1_1_pass_myo_a_aed01249dfdcb6fb10df34160872addf6}{setMaterialParameters} (const vector$<$ Real $>$ \&MatPar)}
+\label{classvoom_1_1_pass_myo_a_aed01249dfdcb6fb10df34160872addf6}
+
+\begin{DoxyCompactList}\small\item\em SetMaterialParameters function. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_pass_myo_a_a413a68f64bd4b31f7f31762b371ce168}{
+void {\bfseries setInternalParameters} (const vector$<$ Real $>$ \&IntPar)}
+\label{classvoom_1_1_pass_myo_a_a413a68f64bd4b31f7f31762b371ce168}
+
+\item 
+\hypertarget{classvoom_1_1_pass_myo_a_afd21cbc27fb5bdb9c13b476fb9d31e71}{
+void {\bfseries setRegularizationParameters} (const vector$<$ Real $>$ \&RegPar)}
+\label{classvoom_1_1_pass_myo_a_afd21cbc27fb5bdb9c13b476fb9d31e71}
+
+\item 
+\hypertarget{classvoom_1_1_pass_myo_a_a63cdaa267f12644f0bfb370e8edb437a}{
+vector$<$ Real $>$ \hyperlink{classvoom_1_1_pass_myo_a_a63cdaa267f12644f0bfb370e8edb437a}{getMaterialParameters} ()}
+\label{classvoom_1_1_pass_myo_a_a63cdaa267f12644f0bfb370e8edb437a}
+
+\begin{DoxyCompactList}\small\item\em GetMaterialParameters function. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_pass_myo_a_a8c64a85541b9b3d7ddfbc2af457c6f7d}{
+vector$<$ Real $>$ {\bfseries getInternalParameters} ()}
+\label{classvoom_1_1_pass_myo_a_a8c64a85541b9b3d7ddfbc2af457c6f7d}
+
+\item 
+\hypertarget{classvoom_1_1_pass_myo_a_a21875f4e7fcc512d2a7d1e82d9528d02}{
+vector$<$ Real $>$ {\bfseries getRegularizationParameters} ()}
+\label{classvoom_1_1_pass_myo_a_a21875f4e7fcc512d2a7d1e82d9528d02}
+
+\item 
+\hypertarget{classvoom_1_1_pass_myo_a_a84ba0b39e64dd29fbb3790c3857fcb2d}{
+void \hyperlink{classvoom_1_1_pass_myo_a_a84ba0b39e64dd29fbb3790c3857fcb2d}{compute} (\hyperlink{structvoom_1_1_mechanics_material_1_1_f_kresults}{FKresults} \&R, const Matrix3d \&F, Vector3d $\ast$Fiber)}
+\label{classvoom_1_1_pass_myo_a_a84ba0b39e64dd29fbb3790c3857fcb2d}
+
+\begin{DoxyCompactList}\small\item\em Based on deformation gradient tensor F, calculates state of material. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_pass_myo_a_a06cf31fdeb3e84c3aa7553928bcf3b01}{
+bool \hyperlink{classvoom_1_1_pass_myo_a_a06cf31fdeb3e84c3aa7553928bcf3b01}{HasHistoryVariables} ()}
+\label{classvoom_1_1_pass_myo_a_a06cf31fdeb3e84c3aa7553928bcf3b01}
+
+\begin{DoxyCompactList}\small\item\em Tells if material has history variables and needs to be duplicated at each quadrature point. \item\end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+The documentation for this class was generated from the following files:\begin{DoxyCompactItemize}
+\item 
+/u/home/a/adityapo/Research/voom2/src/Material/\hyperlink{_pass_myo_a_8h}{PassMyoA.h}\item 
+/u/home/a/adityapo/Research/voom2/src/Material/PassMyoA.cc\end{DoxyCompactItemize}

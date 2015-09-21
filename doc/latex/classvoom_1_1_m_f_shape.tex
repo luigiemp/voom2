@@ -1,0 +1,75 @@
+\hypertarget{classvoom_1_1_m_f_shape}{
+\section{voom::MFShape Class Reference}
+\label{classvoom_1_1_m_f_shape}\index{voom::MFShape@{voom::MFShape}}
+}
+
+
+Inherits \hyperlink{classvoom_1_1_shape}{voom::Shape}.
+
+Inherited by \hyperlink{classvoom_1_1_l_m_e_shape}{voom::LMEShape}, and \hyperlink{classvoom_1_1_m_r_k_p_m_shape}{voom::MRKPMShape}.\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{classvoom_1_1_m_f_shape_a5a2ba3392f4c0f3b5a7c862588ac5833}{
+\hyperlink{classvoom_1_1_m_f_shape_a5a2ba3392f4c0f3b5a7c862588ac5833}{MFShape} (const vector$<$ VectorXd $>$ \&nodes)}
+\label{classvoom_1_1_m_f_shape_a5a2ba3392f4c0f3b5a7c862588ac5833}
+
+\begin{DoxyCompactList}\small\item\em Default Constructor. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_m_f_shape_a9f471ab24d45af8aa973bdd008254050}{
+\hyperlink{classvoom_1_1_m_f_shape_a9f471ab24d45af8aa973bdd008254050}{$\sim$MFShape} ()}
+\label{classvoom_1_1_m_f_shape_a9f471ab24d45af8aa973bdd008254050}
+
+\begin{DoxyCompactList}\small\item\em Default Destructor. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_m_f_shape_ad731e4d7d6c2f17f659e3172d06123e7}{
+uint \hyperlink{classvoom_1_1_m_f_shape_ad731e4d7d6c2f17f659e3172d06123e7}{getShapeFunctionNum} ()}
+\label{classvoom_1_1_m_f_shape_ad731e4d7d6c2f17f659e3172d06123e7}
+
+\begin{DoxyCompactList}\small\item\em Get number of shape functions. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_m_f_shape_a3541f676547c60640c38325856e4cc27}{
+Real \hyperlink{classvoom_1_1_m_f_shape_a3541f676547c60640c38325856e4cc27}{getN} (const uint a)}
+\label{classvoom_1_1_m_f_shape_a3541f676547c60640c38325856e4cc27}
+
+\begin{DoxyCompactList}\small\item\em getN returns shape function values at a given node a. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_m_f_shape_aaf08c83e834d1029ba5d79aafddf04b7}{
+Real \hyperlink{classvoom_1_1_m_f_shape_aaf08c83e834d1029ba5d79aafddf04b7}{getDN} (const uint a, const uint i)}
+\label{classvoom_1_1_m_f_shape_aaf08c83e834d1029ba5d79aafddf04b7}
+
+\begin{DoxyCompactList}\small\item\em GetDN returns shape function derivatives at node a, in direction i. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_m_f_shape_ac28a00ce0362f60185eab72f5cc0e1b3}{
+virtual void \hyperlink{classvoom_1_1_m_f_shape_ac28a00ce0362f60185eab72f5cc0e1b3}{update} (const VectorXd \&Point)=0}
+\label{classvoom_1_1_m_f_shape_ac28a00ce0362f60185eab72f5cc0e1b3}
+
+\begin{DoxyCompactList}\small\item\em Update recomputes N and DN at new Point. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_m_f_shape_a79031a3dd48b794e838f8bf26fc22300}{
+bool \hyperlink{classvoom_1_1_m_f_shape_a79031a3dd48b794e838f8bf26fc22300}{checkReproducingCondition} (VectorXd Point, const Real tol=1e-\/7)}
+\label{classvoom_1_1_m_f_shape_a79031a3dd48b794e838f8bf26fc22300}
+
+\begin{DoxyCompactList}\small\item\em Overloaded chech partition of unity function. \item\end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{classvoom_1_1_m_f_shape_a4619a9546595c6b145cf392af4c3db84}{
+const vector$<$ VectorXd $>$ \& \hyperlink{classvoom_1_1_m_f_shape_a4619a9546595c6b145cf392af4c3db84}{\_\-nodes}}
+\label{classvoom_1_1_m_f_shape_a4619a9546595c6b145cf392af4c3db84}
+
+\begin{DoxyCompactList}\small\item\em Nodes which lay withing support radius. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_m_f_shape_a01e0c0a865df4a28dba1cb6090b378d1}{
+vector$<$ Real $>$ \hyperlink{classvoom_1_1_m_f_shape_a01e0c0a865df4a28dba1cb6090b378d1}{\_\-N}}
+\label{classvoom_1_1_m_f_shape_a01e0c0a865df4a28dba1cb6090b378d1}
+
+\begin{DoxyCompactList}\small\item\em \hyperlink{classvoom_1_1_shape}{Shape} functions. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_m_f_shape_a32c93d0524d948aea780f47f04e52031}{
+vector$<$ VectorXd $>$ \hyperlink{classvoom_1_1_m_f_shape_a32c93d0524d948aea780f47f04e52031}{\_\-DN}}
+\label{classvoom_1_1_m_f_shape_a32c93d0524d948aea780f47f04e52031}
+
+\begin{DoxyCompactList}\small\item\em Shapefunction derivatives. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_m_f_shape_a1ac2531795f772861be14e5c63365ab5}{
+uint \hyperlink{classvoom_1_1_m_f_shape_a1ac2531795f772861be14e5c63365ab5}{\_\-shapeNum}}
+\label{classvoom_1_1_m_f_shape_a1ac2531795f772861be14e5c63365ab5}
+
+\begin{DoxyCompactList}\small\item\em Number of shape functions. \item\end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+The documentation for this class was generated from the following files:\begin{DoxyCompactItemize}
+\item 
+/u/home/a/adityapo/Research/voom2/src/Shape/\hyperlink{_m_f_shape_8h}{MFShape.h}\item 
+/u/home/a/adityapo/Research/voom2/src/Shape/MFShape.cc\end{DoxyCompactItemize}

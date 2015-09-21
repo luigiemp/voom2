@@ -1,0 +1,49 @@
+\hypertarget{classvoom_1_1_lin_tri_shape}{
+\section{voom::LinTriShape Class Reference}
+\label{classvoom_1_1_lin_tri_shape}\index{voom::LinTriShape@{voom::LinTriShape}}
+}
+
+
+Inherits \hyperlink{classvoom_1_1_shape}{voom::Shape}.\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{classvoom_1_1_lin_tri_shape_a740279ed3bb681319609d34ce2a3a466}{
+\hyperlink{classvoom_1_1_lin_tri_shape_a740279ed3bb681319609d34ce2a3a466}{LinTriShape} (const Vector2d \&Point)}
+\label{classvoom_1_1_lin_tri_shape_a740279ed3bb681319609d34ce2a3a466}
+
+\begin{DoxyCompactList}\small\item\em \hyperlink{classvoom_1_1_lin_tri_shape}{LinTriShape} constructor fills in N and DN. \item\end{DoxyCompactList}\item 
+void \hyperlink{classvoom_1_1_lin_tri_shape_a3802bf83a7e1ee9310bdb6d6558bd7ad}{update} (const VectorXd \&Point)
+\begin{DoxyCompactList}\small\item\em Update recomputes N and DN at new Point. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_lin_tri_shape_a70e28bcfeeb2e7112b19367ab4515624}{
+uint \hyperlink{classvoom_1_1_lin_tri_shape_a70e28bcfeeb2e7112b19367ab4515624}{getShapeFunctionNum} ()}
+\label{classvoom_1_1_lin_tri_shape_a70e28bcfeeb2e7112b19367ab4515624}
+
+\begin{DoxyCompactList}\small\item\em Get number of shape functions. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_lin_tri_shape_a75eecf97b645e1993d896000c8c63589}{
+Real \hyperlink{classvoom_1_1_lin_tri_shape_a75eecf97b645e1993d896000c8c63589}{getN} (const uint a)}
+\label{classvoom_1_1_lin_tri_shape_a75eecf97b645e1993d896000c8c63589}
+
+\begin{DoxyCompactList}\small\item\em getN returns shape function values at a given node a. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_lin_tri_shape_a418e9f637c1178859d422308ef881df7}{
+Real \hyperlink{classvoom_1_1_lin_tri_shape_a418e9f637c1178859d422308ef881df7}{getDN} (const uint a, const uint i)}
+\label{classvoom_1_1_lin_tri_shape_a418e9f637c1178859d422308ef881df7}
+
+\begin{DoxyCompactList}\small\item\em GetDN returns shape function derivatives at node a, in direction i. \item\end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\subsection{Member Function Documentation}
+\hypertarget{classvoom_1_1_lin_tri_shape_a3802bf83a7e1ee9310bdb6d6558bd7ad}{
+\index{voom::LinTriShape@{voom::LinTriShape}!update@{update}}
+\index{update@{update}!voom::LinTriShape@{voom::LinTriShape}}
+\subsubsection[{update}]{\setlength{\rightskip}{0pt plus 5cm}void voom::LinTriShape::update (const VectorXd \& {\em Point})\hspace{0.3cm}{\ttfamily  \mbox{[}virtual\mbox{]}}}}
+\label{classvoom_1_1_lin_tri_shape_a3802bf83a7e1ee9310bdb6d6558bd7ad}
+
+
+Update recomputes N and DN at new Point. Update recomputes N and DN at a new Point. 
+
+Implements \hyperlink{classvoom_1_1_shape_a8ded544de12647543b056cec61be9f26}{voom::Shape}.
+
+The documentation for this class was generated from the following files:\begin{DoxyCompactItemize}
+\item 
+/u/home/a/adityapo/Research/voom2/src/Shape/\hyperlink{_lin_tri_shape_8h}{LinTriShape.h}\item 
+/u/home/a/adityapo/Research/voom2/src/Shape/LinTriShape.cc\end{DoxyCompactItemize}

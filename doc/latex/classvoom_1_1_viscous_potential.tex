@@ -1,0 +1,34 @@
+\hypertarget{classvoom_1_1_viscous_potential}{
+\section{voom::ViscousPotential Class Reference}
+\label{classvoom_1_1_viscous_potential}\index{voom::ViscousPotential@{voom::ViscousPotential}}
+}
+
+
+Inherited by \hyperlink{classvoom_1_1_blank_viscous_potential}{voom::BlankViscousPotential}, and \hyperlink{classvoom_1_1_newtonian_viscous_potential}{voom::NewtonianViscousPotential}.\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{classvoom_1_1_viscous_potential_aba85c75a536cc0cf6affc5cc731cfde4}{
+\hyperlink{classvoom_1_1_viscous_potential_aba85c75a536cc0cf6affc5cc731cfde4}{$\sim$ViscousPotential} ()}
+\label{classvoom_1_1_viscous_potential_aba85c75a536cc0cf6affc5cc731cfde4}
+
+\begin{DoxyCompactList}\small\item\em Destructor. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_viscous_potential_a78e49130cc85eb0432e67498f00c0213}{
+virtual double {\bfseries phi} (Matrix3d Fn, Matrix3d Fnp1, double deltaT)=0}
+\label{classvoom_1_1_viscous_potential_a78e49130cc85eb0432e67498f00c0213}
+
+\item 
+\hypertarget{classvoom_1_1_viscous_potential_af1f930b4408e784dea155813d751ffb7}{
+virtual Matrix3d {\bfseries dphidF} (Matrix3d Fn, Matrix3d Fnp1, double deltaT)=0}
+\label{classvoom_1_1_viscous_potential_af1f930b4408e784dea155813d751ffb7}
+
+\item 
+\hypertarget{classvoom_1_1_viscous_potential_a2151290d9ae261d22dab19bbf0c84b67}{
+virtual \hyperlink{classvoom_1_1_fourth_order_tensor}{FourthOrderTensor} {\bfseries d2phidF2} (Matrix3d Fn, Matrix3d Fnp1, double deltaT)=0}
+\label{classvoom_1_1_viscous_potential_a2151290d9ae261d22dab19bbf0c84b67}
+
+\end{DoxyCompactItemize}
+
+
+The documentation for this class was generated from the following file:\begin{DoxyCompactItemize}
+\item 
+/u/home/a/adityapo/Research/voom2/src/Potential/ViscousPotential.h\end{DoxyCompactItemize}

@@ -1,0 +1,150 @@
+\hypertarget{structvoom_1_1_eigen_elliptic_result}{
+\section{voom::EigenEllipticResult Struct Reference}
+\label{structvoom_1_1_eigen_elliptic_result}\index{voom::EigenEllipticResult@{voom::EigenEllipticResult}}
+}
+
+
+Eigen Elliptic Result is derived from the general \hyperlink{structvoom_1_1_elliptic_result}{EllipticResult} class and contains Eigen storage objects. Will be used by Eigen solver class.  
+
+
+{\ttfamily \#include $<$EigenEllipticResult.h$>$}
+
+Inherits \hyperlink{structvoom_1_1_elliptic_result}{voom::EllipticResult}.\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{structvoom_1_1_eigen_elliptic_result_a5e57c94363d5ab7dd0afc4e348cae83b}{
+\hyperlink{structvoom_1_1_eigen_elliptic_result_a5e57c94363d5ab7dd0afc4e348cae83b}{EigenEllipticResult} (int PbDoF, int NumMatProp)}
+\label{structvoom_1_1_eigen_elliptic_result_a5e57c94363d5ab7dd0afc4e348cae83b}
+
+\begin{DoxyCompactList}\small\item\em Constructor and destructor. \item\end{DoxyCompactList}\item 
+\hypertarget{structvoom_1_1_eigen_elliptic_result_a7b71355b8ec847963c68e0355369075a}{
+int {\bfseries getNumMatProp} ()}
+\label{structvoom_1_1_eigen_elliptic_result_a7b71355b8ec847963c68e0355369075a}
+
+\item 
+\hypertarget{structvoom_1_1_eigen_elliptic_result_a9287682b7a66cabbf9465f987d80df92}{
+int {\bfseries getPbDoF} ()}
+\label{structvoom_1_1_eigen_elliptic_result_a9287682b7a66cabbf9465f987d80df92}
+
+\item 
+\hypertarget{structvoom_1_1_eigen_elliptic_result_a135890b43c0f9c3a338ca17f743d8966}{
+void \hyperlink{structvoom_1_1_eigen_elliptic_result_a135890b43c0f9c3a338ca17f743d8966}{setResidual} (int ind, Real value)}
+\label{structvoom_1_1_eigen_elliptic_result_a135890b43c0f9c3a338ca17f743d8966}
+
+\begin{DoxyCompactList}\small\item\em Interface (Mutators). \item\end{DoxyCompactList}\item 
+\hypertarget{structvoom_1_1_eigen_elliptic_result_a053d30937d912aa12ebfe2f5af6c0f0a}{
+void {\bfseries resetResidualToZero} ()}
+\label{structvoom_1_1_eigen_elliptic_result_a053d30937d912aa12ebfe2f5af6c0f0a}
+
+\item 
+\hypertarget{structvoom_1_1_eigen_elliptic_result_a0615af62599f9ec17b4fe0b750e7d023}{
+void {\bfseries resetStiffnessToZero} ()}
+\label{structvoom_1_1_eigen_elliptic_result_a0615af62599f9ec17b4fe0b750e7d023}
+
+\item 
+\hypertarget{structvoom_1_1_eigen_elliptic_result_ad5748cf0d95b7c5b1fe8795892884adc}{
+void {\bfseries resetGradgToZero} ()}
+\label{structvoom_1_1_eigen_elliptic_result_ad5748cf0d95b7c5b1fe8795892884adc}
+
+\item 
+\hypertarget{structvoom_1_1_eigen_elliptic_result_a429390f29e989f82af78c6ffe89d41f4}{
+void {\bfseries resetHgToZero} ()}
+\label{structvoom_1_1_eigen_elliptic_result_a429390f29e989f82af78c6ffe89d41f4}
+
+\item 
+\hypertarget{structvoom_1_1_eigen_elliptic_result_ac9b2d06f65ddb235e550078bc9f5a0d0}{
+void {\bfseries addResidual} (int ind, Real value)}
+\label{structvoom_1_1_eigen_elliptic_result_ac9b2d06f65ddb235e550078bc9f5a0d0}
+
+\item 
+\hypertarget{structvoom_1_1_eigen_elliptic_result_ab9cafe285c4d4abc4dccce3a1ed034a0}{
+void {\bfseries addStiffness} (int indRow, int indCol, Real value)}
+\label{structvoom_1_1_eigen_elliptic_result_ab9cafe285c4d4abc4dccce3a1ed034a0}
+
+\item 
+\hypertarget{structvoom_1_1_eigen_elliptic_result_a9cdefa63c233eda1136b25f278307fff}{
+void {\bfseries FinalizeGlobalStiffnessAssembly} ()}
+\label{structvoom_1_1_eigen_elliptic_result_a9cdefa63c233eda1136b25f278307fff}
+
+\item 
+\hypertarget{structvoom_1_1_eigen_elliptic_result_aeafd057e2864192ef851522f3455da3e}{
+void {\bfseries setStiffnessFromTriplets} (vector$<$ Triplet$<$ Real $>$ $>$ \&B)}
+\label{structvoom_1_1_eigen_elliptic_result_aeafd057e2864192ef851522f3455da3e}
+
+\item 
+\hypertarget{structvoom_1_1_eigen_elliptic_result_a7f0038dfd5e5add819ff312543c56e4a}{
+void {\bfseries addGradg} (int ind, Real value)}
+\label{structvoom_1_1_eigen_elliptic_result_a7f0038dfd5e5add819ff312543c56e4a}
+
+\item 
+\hypertarget{structvoom_1_1_eigen_elliptic_result_a4aef4d218df7228df8c812f027496fd7}{
+void {\bfseries addHg} (int indRow, int indCol, Real value)}
+\label{structvoom_1_1_eigen_elliptic_result_a4aef4d218df7228df8c812f027496fd7}
+
+\item 
+\hypertarget{structvoom_1_1_eigen_elliptic_result_a50c77f1b26e45ce4627ac1060b83a456}{
+void {\bfseries setHgFromTriplets} (vector$<$ Triplet$<$ Real $>$ $>$ \&B)}
+\label{structvoom_1_1_eigen_elliptic_result_a50c77f1b26e45ce4627ac1060b83a456}
+
+\item 
+\hypertarget{structvoom_1_1_eigen_elliptic_result_a45599f5067cc01cb09b56ceb348a3788}{
+Real \hyperlink{structvoom_1_1_eigen_elliptic_result_a45599f5067cc01cb09b56ceb348a3788}{getResidual} (int ind)}
+\label{structvoom_1_1_eigen_elliptic_result_a45599f5067cc01cb09b56ceb348a3788}
+
+\begin{DoxyCompactList}\small\item\em Interface (Accessors). \item\end{DoxyCompactList}\item 
+\hypertarget{structvoom_1_1_eigen_elliptic_result_abb3450dd9bb60bf661f4710324085b10}{
+Real {\bfseries getStiffness} (int indRow, int indCol)}
+\label{structvoom_1_1_eigen_elliptic_result_abb3450dd9bb60bf661f4710324085b10}
+
+\item 
+\hypertarget{structvoom_1_1_eigen_elliptic_result_a3f9cd0fed3c20c7eb638659f882377f6}{
+Real {\bfseries getGradg} (int ind)}
+\label{structvoom_1_1_eigen_elliptic_result_a3f9cd0fed3c20c7eb638659f882377f6}
+
+\item 
+\hypertarget{structvoom_1_1_eigen_elliptic_result_a2dd2e46086c7ab0032909137acb93f26}{
+Real {\bfseries getHg} (int indRow, int indCol)}
+\label{structvoom_1_1_eigen_elliptic_result_a2dd2e46086c7ab0032909137acb93f26}
+
+\end{DoxyCompactItemize}
+\subsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{structvoom_1_1_eigen_elliptic_result_aaba0125035e86c4baed44f66b9bfa6d1}{
+SparseMatrix$<$ Real $>$ $\ast$ {\bfseries \_\-stiffness}}
+\label{structvoom_1_1_eigen_elliptic_result_aaba0125035e86c4baed44f66b9bfa6d1}
+
+\item 
+\hypertarget{structvoom_1_1_eigen_elliptic_result_a3d9f5cffe2edee3c1f2a0a7521de5232}{
+VectorXd $\ast$ {\bfseries \_\-residual}}
+\label{structvoom_1_1_eigen_elliptic_result_a3d9f5cffe2edee3c1f2a0a7521de5232}
+
+\item 
+\hypertarget{structvoom_1_1_eigen_elliptic_result_a84d0ee3ba7576b0fb47d7178468ce278}{
+SparseMatrix$<$ Real $>$ $\ast$ {\bfseries \_\-Hg}}
+\label{structvoom_1_1_eigen_elliptic_result_a84d0ee3ba7576b0fb47d7178468ce278}
+
+\item 
+\hypertarget{structvoom_1_1_eigen_elliptic_result_af4744cf8a5b94c2a0f181e028584597a}{
+VectorXd $\ast$ {\bfseries \_\-Gradg}}
+\label{structvoom_1_1_eigen_elliptic_result_af4744cf8a5b94c2a0f181e028584597a}
+
+\item 
+\hypertarget{structvoom_1_1_eigen_elliptic_result_afbe730f7ab5c8d36f1cb20c06e509d4a}{
+int {\bfseries \_\-pbDoF}}
+\label{structvoom_1_1_eigen_elliptic_result_afbe730f7ab5c8d36f1cb20c06e509d4a}
+
+\item 
+\hypertarget{structvoom_1_1_eigen_elliptic_result_a5bb9f9b78c3f5e7ae4f5323252cffb67}{
+int {\bfseries \_\-numMatProp}}
+\label{structvoom_1_1_eigen_elliptic_result_a5bb9f9b78c3f5e7ae4f5323252cffb67}
+
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Eigen Elliptic Result is derived from the general \hyperlink{structvoom_1_1_elliptic_result}{EllipticResult} class and contains Eigen storage objects. Will be used by Eigen solver class. 
+
+The documentation for this struct was generated from the following file:\begin{DoxyCompactItemize}
+\item 
+/u/home/a/adityapo/Research/voom2/src/Model/EigenEllipticResult.h\end{DoxyCompactItemize}

@@ -1,0 +1,273 @@
+\hypertarget{namespacevoom}{
+\section{voom Namespace Reference}
+\label{namespacevoom}\index{voom@{voom}}
+}
+
+
+Ionic model for Rabbit \hyperlink{classvoom_1_1_purkinje}{Purkinje} structure. Developed based on the paper by Corrias et al titled \char`\"{}Ionic mechanisms of electrophysiological properties 
+  and repolarization abnormalities in rabbit Purkinje fibers\char`\"{}, American Journal of HeartCirculation Physiology, Feb 2011
+\begin{DoxyItemize}
+\item Added Faster computation as suggested by Whiteley. We do Explicit update on Linear ODE and Newton-\/Raphson on Non-\/Linear ODE's. 
+\end{DoxyItemize} 
+\subsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \hyperlink{classvoom_1_1_f_egeom_element}{FEgeomElement}
+\item 
+class \hyperlink{classvoom_1_1_f_egeom_element1_d}{FEgeomElement1D}
+\item 
+class \hyperlink{classvoom_1_1_geom_element}{GeomElement}
+\item 
+class \hyperlink{classvoom_1_1_l_m_egeom_element}{LMEgeomElement}
+\item 
+class \hyperlink{classvoom_1_1_r_k_p_mgeom_element}{RKPMgeomElement}
+\item 
+class \hyperlink{classvoom_1_1_comp_neo_hookean}{CompNeoHookean}
+\item 
+class \hyperlink{classvoom_1_1_diffusion_material}{DiffusionMaterial}
+\item 
+class \hyperlink{classvoom_1_1_isotropic_diffusion}{IsotropicDiffusion}
+\item 
+class \hyperlink{classvoom_1_1_mechanics_material}{MechanicsMaterial}
+\item 
+class \hyperlink{classvoom_1_1_pass_myo_a}{PassMyoA}
+\item 
+class \hyperlink{classvoom_1_1_plastic_material}{PlasticMaterial}
+\item 
+class \hyperlink{classvoom_1_1_f_e_mesh}{FEMesh}
+\item 
+class \hyperlink{classvoom_1_1_mesh}{Mesh}
+\begin{DoxyCompactList}\small\item\em A mesh base class, defining node positions and element connectivities. \item\end{DoxyCompactList}\item 
+struct \hyperlink{structvoom_1_1_eigen_elliptic_result}{EigenEllipticResult}
+\begin{DoxyCompactList}\small\item\em Eigen Elliptic Result is derived from the general \hyperlink{structvoom_1_1_elliptic_result}{EllipticResult} class and contains Eigen storage objects. Will be used by Eigen solver class. \item\end{DoxyCompactList}\item 
+class \hyperlink{classvoom_1_1_elliptic_model}{EllipticModel}
+\begin{DoxyCompactList}\small\item\em Elliptic model is the parent class for FiniteMechanics, LinearizedMechanics, Poisson. \item\end{DoxyCompactList}\item 
+struct \hyperlink{structvoom_1_1_elliptic_result}{EllipticResult}
+\begin{DoxyCompactList}\small\item\em Elliptic Result is a class which contains standard elliptic result and define basic interface to access/update them. \item\end{DoxyCompactList}\item 
+struct \hyperlink{structvoom_1_1_epetra_elliptic_result}{EpetraEllipticResult}
+\begin{DoxyCompactList}\small\item\em Epetra Elliptic Result is derived from the general \hyperlink{structvoom_1_1_elliptic_result}{EllipticResult} class and contains Epetra storage objects. Will be used by Epetra solver class. \item\end{DoxyCompactList}\item 
+struct \hyperlink{structvoom_1_1_epetra_e_p_result}{EpetraEPResult}
+\item 
+class \hyperlink{classvoom_1_1_e_p_model}{EPModel}
+\item 
+struct \hyperlink{structvoom_1_1_e_p_result}{EPResult}
+\item 
+class \hyperlink{classvoom_1_1_mechanics_model}{MechanicsModel}
+\item 
+class \hyperlink{classvoom_1_1_model}{Model}
+\item 
+class \hyperlink{classvoom_1_1_poisson_model}{PoissonModel}
+\item 
+class \hyperlink{classvoom_1_1_base_node}{BaseNode}
+\begin{DoxyCompactList}\small\item\em A node base class holds id, dof, property values. \item\end{DoxyCompactList}\item 
+class \hyperlink{classvoom_1_1_field_node}{FieldNode}
+\item 
+class \hyperlink{classvoom_1_1_mechanics_node}{MechanicsNode}
+\item 
+class \hyperlink{classvoom_1_1_a_p_force_vel_potential}{APForceVelPotential}
+\item 
+class \hyperlink{classvoom_1_1_blank_potential}{BlankPotential}
+\item 
+class \hyperlink{classvoom_1_1_blank_viscous_potential}{BlankViscousPotential}
+\item 
+class \hyperlink{classvoom_1_1_hill_force_vel_potential}{HillForceVelPotential}
+\item 
+class \hyperlink{classvoom_1_1_newtonian_viscous_potential}{NewtonianViscousPotential}
+\item 
+class \hyperlink{classvoom_1_1_potential}{Potential}
+\item 
+class \hyperlink{classvoom_1_1_viscous_potential}{ViscousPotential}
+\item 
+class \hyperlink{classvoom_1_1_hex_quadrature}{HexQuadrature}
+\item 
+class \hyperlink{classvoom_1_1_line_quadrature}{LineQuadrature}
+\item 
+class \hyperlink{classvoom_1_1_quad_quadrature}{QuadQuadrature}
+\item 
+class \hyperlink{classvoom_1_1_quadrature}{Quadrature}
+\item 
+class \hyperlink{classvoom_1_1_tet_quadrature}{TetQuadrature}
+\item 
+class \hyperlink{classvoom_1_1_tri_quadrature}{TriQuadrature}
+\item 
+class \hyperlink{classvoom_1_1_bar_shape}{BarShape}
+\item 
+class \hyperlink{classvoom_1_1_hex_shape}{HexShape}
+\item 
+class \hyperlink{classvoom_1_1_lin_tet_shape}{LinTetShape}
+\item 
+class \hyperlink{classvoom_1_1_lin_tri_shape}{LinTriShape}
+\item 
+class \hyperlink{classvoom_1_1_l_m_e_shape}{LMEShape}
+\item 
+class \hyperlink{classvoom_1_1_m_f_shape}{MFShape}
+\item 
+class \hyperlink{classvoom_1_1_m_r_k_p_m_shape}{MRKPMShape}
+\item 
+class \hyperlink{classvoom_1_1_quad_tet_shape}{QuadTetShape}
+\item 
+class \hyperlink{classvoom_1_1_quad_tri_shape}{QuadTriShape}
+\item 
+class \hyperlink{classvoom_1_1_shape}{Shape}
+\item 
+class \hyperlink{classvoom_1_1_eigen_n_rsolver}{EigenNRsolver}
+\item 
+class \hyperlink{classvoom_1_1_e_p___crank_nicholson}{EP\_\-CrankNicholson}
+\item 
+class \hyperlink{classvoom_1_1_epetra_n_rsolver}{EpetraNRsolver}
+\item 
+class \hyperlink{classvoom_1_1_e_p_solver}{EPSolver}
+\item 
+class \hyperlink{classvoom_1_1_l_b_f_g_s_b}{LBFGSB}
+\item 
+class \hyperlink{classvoom_1_1_mechanics_solver}{MechanicsSolver}
+\item 
+class \hyperlink{classvoom_1_1_solver}{Solver}
+\item 
+class \hyperlink{classvoom_1_1_ionic_material}{IonicMaterial}
+\item 
+class \hyperlink{classvoom_1_1_luo_rudy}{LuoRudy}
+\item 
+class \hyperlink{classvoom_1_1_mahajan}{Mahajan}
+\item 
+class \hyperlink{classvoom_1_1_purkinje}{Purkinje}
+\item 
+class \hyperlink{classvoom_1_1_tusscher}{Tusscher}
+\item 
+class \hyperlink{classvoom_1_1_mechanics_load}{MechanicsLoad}
+\item 
+class \hyperlink{classvoom_1_1_point_load}{PointLoad}
+\item 
+class \hyperlink{classvoom_1_1_fourth_order_tensor}{FourthOrderTensor}
+\item 
+class \hyperlink{classvoom_1_1_third_order_tensor}{ThirdOrderTensor}
+\end{DoxyCompactItemize}
+\subsection*{Typedefs}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{namespacevoom_aedfa692843b69f9b9dca12ef77388d57}{
+typedef double {\bfseries Real}}
+\label{namespacevoom_aedfa692843b69f9b9dca12ef77388d57}
+
+\end{DoxyCompactItemize}
+\subsection*{Enumerations}
+\begin{DoxyCompactItemize}
+\item 
+enum {\bfseries kernelType} \{ \par
+{\bfseries CONSTANT}, 
+{\bfseries LINEAR}, 
+{\bfseries CUBIC}, 
+{\bfseries QUARTIC}, 
+\par
+{\bfseries EXPONENTIAL}
+ \}
+\item 
+enum \hyperlink{namespacevoom_a2874640a1124292b983171d745088fef}{SolverType} \{ {\bfseries CHOL} =  0, 
+{\bfseries CG} =  1, 
+{\bfseries LU} =  2
+ \}
+\begin{DoxyCompactList}\small\item\em Enumerator for requesting computed results. \item\end{DoxyCompactList}\item 
+enum \hyperlink{namespacevoom_a6dc64c378b8a785d6a835fe4d27b5588}{SolveFor} \{ {\bfseries DISP} =  0, 
+{\bfseries MAT} =  1
+ \}
+\begin{DoxyCompactList}\small\item\em Enumerator for requesting computed results. \item\end{DoxyCompactList}\item 
+enum \hyperlink{namespacevoom_aa7998516d4918c6d10beb11401158a43}{Method} \{ {\bfseries EXPLICIT}, 
+{\bfseries BACKWARDEULER}, 
+{\bfseries CRANKNICHOLSON}
+ \}
+\begin{DoxyCompactList}\small\item\em Specify the Solution technique to be used. \item\end{DoxyCompactList}\item 
+enum \hyperlink{namespacevoom_aad2b72d6024982ad6a82eccb9698964e}{LumpingScheme} \{ \par
+{\bfseries CCC}, 
+{\bfseries CCL}, 
+{\bfseries CLC}, 
+{\bfseries CLL}, 
+\par
+{\bfseries LCC}, 
+{\bfseries LCL}, 
+{\bfseries LLC}, 
+{\bfseries LLL}
+ \}
+\begin{DoxyCompactList}\small\item\em Specify the Lumping Scheme to be used (C = Consistent, L = Lumped). \item\end{DoxyCompactList}\item 
+enum \hyperlink{namespacevoom_a449acd18e685696f17351ba84a9ac7fb}{ComputeRequest} \{ \par
+{\bfseries NOTHING} =  0, 
+{\bfseries ENERGY} =  1, 
+{\bfseries FORCE} =  2, 
+{\bfseries STIFFNESS} =  4, 
+\par
+{\bfseries DMATPROP} =  8
+ \}
+\begin{DoxyCompactList}\small\item\em Enumeration for requesting computed results. \item\end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{namespacevoom_af2702eef77261bb83ce6aa820c102d1a}{
+{\bfseries EP\_\-CrankNicholson} (Epetra\_\-MpiComm $\ast$comm, const \hyperlink{classvoom_1_1_model}{Model} \&model, EPetraEPResult \&result)}
+\label{namespacevoom_af2702eef77261bb83ce6aa820c102d1a}
+
+\item 
+\hypertarget{namespacevoom_af0e86d2e771c9c29467a049181e64ccd}{
+void \hyperlink{namespacevoom_af0e86d2e771c9c29467a049181e64ccd}{SetUpPurkinjeParameters} (Real $\ast$$\ast$constants)}
+\label{namespacevoom_af0e86d2e771c9c29467a049181e64ccd}
+
+\begin{DoxyCompactList}\small\item\em Set up the Constants for \hyperlink{classvoom_1_1_purkinje}{Purkinje} \hyperlink{classvoom_1_1_model}{Model}. For info check IonicModel class. \item\end{DoxyCompactList}\item 
+\hypertarget{namespacevoom_a4889fa799c04dc67ff9ea0c72cd3885b}{
+void \hyperlink{namespacevoom_a4889fa799c04dc67ff9ea0c72cd3885b}{SetUpTusscherParameters} (Real $\ast$$\ast$constants)}
+\label{namespacevoom_a4889fa799c04dc67ff9ea0c72cd3885b}
+
+\begin{DoxyCompactList}\small\item\em Constants for \hyperlink{classvoom_1_1_tusscher}{Tusscher} \hyperlink{classvoom_1_1_model}{Model}. \item\end{DoxyCompactList}\item 
+void \hyperlink{namespacevoom_a72a608e668a052d7b2a6f26a6e286702}{SetUpMahajanParameters} (Real $\ast$$\ast$constants, int pos)
+\item 
+\hypertarget{namespacevoom_a577e52aca11c2b782ad730edf75ba2a2}{
+vector$<$ string $>$ {\bfseries splitString} (string line, string delim)}
+\label{namespacevoom_a577e52aca11c2b782ad730edf75ba2a2}
+
+\item 
+\hypertarget{namespacevoom_a00cddb89f6ad03be4ca8db5515fa5615}{
+unsigned int \hyperlink{namespacevoom_a00cddb89f6ad03be4ca8db5515fa5615}{factorial} (unsigned int n)}
+\label{namespacevoom_a00cddb89f6ad03be4ca8db5515fa5615}
+
+\begin{DoxyCompactList}\small\item\em recursive funtion to compute factorial \item\end{DoxyCompactList}\item 
+\hypertarget{namespacevoom_a402e7c86d4406c26e19717211a78f9af}{
+Real {\bfseries det} (const MatrixXd \&A)}
+\label{namespacevoom_a402e7c86d4406c26e19717211a78f9af}
+
+\item 
+\hypertarget{namespacevoom_a706ccce499faf4d752ef32a1607f1973}{
+void {\bfseries inv} (const MatrixXd \&A, MatrixXd \&B)}
+\label{namespacevoom_a706ccce499faf4d752ef32a1607f1973}
+
+\item 
+\hypertarget{namespacevoom_a21bda4dc298c1ce21afc90ac8b7ff617}{
+Matrix3d {\bfseries VoomExpSymmMatrix} (const Matrix3d \&A)}
+\label{namespacevoom_a21bda4dc298c1ce21afc90ac8b7ff617}
+
+\item 
+\hypertarget{namespacevoom_ad79c23f3d8d827d5b671afa1c5f8c028}{
+Real {\bfseries square} (Real a)}
+\label{namespacevoom_ad79c23f3d8d827d5b671afa1c5f8c028}
+
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Ionic model for Rabbit \hyperlink{classvoom_1_1_purkinje}{Purkinje} structure. Developed based on the paper by Corrias et al titled \char`\"{}Ionic mechanisms of electrophysiological properties 
+  and repolarization abnormalities in rabbit Purkinje fibers\char`\"{}, American Journal of HeartCirculation Physiology, Feb 2011
+\begin{DoxyItemize}
+\item Added Faster computation as suggested by Whiteley. We do Explicit update on Linear ODE and Newton-\/Raphson on Non-\/Linear ODE's. 
+\end{DoxyItemize}\hyperlink{classvoom_1_1_tusscher}{Tusscher} el ionic model for human ventricular tissue. Developed based on the paper \char`\"{}Alternans and spiral breakup in a human ventricular tissue model\char`\"{} by K. H. W. J. ten \hyperlink{classvoom_1_1_tusscher}{Tusscher} and A. V. Panfilov, Am J Physiol Heart Circ Physiol 291:H1088-\/H1100, 2006. First published 24 March 2006
+\begin{DoxyItemize}
+\item Implemented methods described in \char`\"{}Efficient Numerical Technique for the 
+  solution of the monodomain and Bidomain Equations\char`\"{} by Whiteleley. We can take larger time steps for Ionic Solve.
+\end{DoxyItemize}
+
+Set up parameters for Ionic model. We will pass these value to the Ionic \hyperlink{classvoom_1_1_model}{Model} Class. Enought to Create it once and pass a pointer to all Ionic Class objects. Makes it memory efficient. Used by Body Class For consistency this resides in the Ionic Class directory.
+
+Purkine \hyperlink{classvoom_1_1_model}{Model} \hyperlink{classvoom_1_1_tusscher}{Tusscher} \hyperlink{classvoom_1_1_model}{Model} \hyperlink{classvoom_1_1_mahajan}{Mahajan} (UCLA) \hyperlink{classvoom_1_1_model}{Model} 
+
+\subsection{Function Documentation}
+\hypertarget{namespacevoom_a72a608e668a052d7b2a6f26a6e286702}{
+\index{voom@{voom}!SetUpMahajanParameters@{SetUpMahajanParameters}}
+\index{SetUpMahajanParameters@{SetUpMahajanParameters}!voom@{voom}}
+\subsubsection[{SetUpMahajanParameters}]{\setlength{\rightskip}{0pt plus 5cm}void voom::SetUpMahajanParameters (Real $\ast$$\ast$ {\em constants}, \/  int {\em pos})}}
+\label{namespacevoom_a72a608e668a052d7b2a6f26a6e286702}
+Set up constants for UCLA Cell \hyperlink{classvoom_1_1_model}{Model}. Refer to \hyperlink{_mahajan_8h_source}{Mahajan.h} for description of the constants in the model.The pos value determines which location we need Apex Center Base ======================= Epi 0 1 2 Myo 3 4 5 Endo 6 7 8 

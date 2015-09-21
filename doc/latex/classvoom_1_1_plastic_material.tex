@@ -1,0 +1,156 @@
+\hypertarget{classvoom_1_1_plastic_material}{
+\section{voom::PlasticMaterial Class Reference}
+\label{classvoom_1_1_plastic_material}\index{voom::PlasticMaterial@{voom::PlasticMaterial}}
+}
+
+
+Inherits \hyperlink{classvoom_1_1_mechanics_material}{voom::MechanicsMaterial}.\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{classvoom_1_1_plastic_material_a20d47c770be354c31d296e0739045619}{
+{\bfseries PlasticMaterial} (int MatID, \hyperlink{classvoom_1_1_mechanics_material}{MechanicsMaterial} $\ast$ActiveMaterial, \hyperlink{classvoom_1_1_mechanics_material}{MechanicsMaterial} $\ast$PassiveMaterial, \hyperlink{classvoom_1_1_potential}{Potential} $\ast$KineticPotential, \hyperlink{classvoom_1_1_viscous_potential}{ViscousPotential} $\ast$ViscPotential)}
+\label{classvoom_1_1_plastic_material_a20d47c770be354c31d296e0739045619}
+
+\item 
+\hypertarget{classvoom_1_1_plastic_material_af26654bca102e9ac426e5a01d11dd485}{
+\hyperlink{classvoom_1_1_plastic_material_af26654bca102e9ac426e5a01d11dd485}{$\sim$PlasticMaterial} ()}
+\label{classvoom_1_1_plastic_material_af26654bca102e9ac426e5a01d11dd485}
+
+\begin{DoxyCompactList}\small\item\em Destructor. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_plastic_material_af6b63ab69c8a8b8b919014bf3fce0807}{
+void \hyperlink{classvoom_1_1_plastic_material_af6b63ab69c8a8b8b919014bf3fce0807}{compute} (\hyperlink{structvoom_1_1_mechanics_material_1_1_f_kresults}{FKresults} \&R, const Matrix3d \&F, Vector3d $\ast$fiber=NULL)}
+\label{classvoom_1_1_plastic_material_af6b63ab69c8a8b8b919014bf3fce0807}
+
+\begin{DoxyCompactList}\small\item\em Compute function. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_plastic_material_af0a7c1b596b35566107c86e9aa0d11c6}{
+Vector3d \hyperlink{classvoom_1_1_plastic_material_af0a7c1b596b35566107c86e9aa0d11c6}{computedWdQ} ()}
+\label{classvoom_1_1_plastic_material_af0a7c1b596b35566107c86e9aa0d11c6}
+
+\begin{DoxyCompactList}\small\item\em Functions for Internal Variable Optimization. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_plastic_material_a6d7d1909051ac206dbb8ab1b8386fd0c}{
+Matrix3d {\bfseries computed2WdQ2} ()}
+\label{classvoom_1_1_plastic_material_a6d7d1909051ac206dbb8ab1b8386fd0c}
+
+\item 
+\hypertarget{classvoom_1_1_plastic_material_a3dc595751b99c5acaa7f1426c5a16b00}{
+void \hyperlink{classvoom_1_1_plastic_material_a3dc595751b99c5acaa7f1426c5a16b00}{optimizeInternalVariables} ()}
+\label{classvoom_1_1_plastic_material_a3dc595751b99c5acaa7f1426c5a16b00}
+
+\begin{DoxyCompactList}\small\item\em Optimize Internal Variables. \item\end{DoxyCompactList}\item 
+void \hyperlink{classvoom_1_1_plastic_material_adeed31ed97955b441efa8beeb56ce7e1}{setDirectionVectors} (vector$<$ Vector3d $>$ dirVec)
+\begin{DoxyCompactList}\small\item\em Update Variables from n+1-\/$>$n. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_plastic_material_af56f4b905533dcb96d4b736f1c666c75}{
+Matrix3d \hyperlink{classvoom_1_1_plastic_material_af56f4b905533dcb96d4b736f1c666c75}{getActiveDeformationGradient} ()}
+\label{classvoom_1_1_plastic_material_af56f4b905533dcb96d4b736f1c666c75}
+
+\begin{DoxyCompactList}\small\item\em Get active deformation gradient at previous timestep. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_plastic_material_a6eac10e3913ba07e893a05cbe263eb50}{
+void \hyperlink{classvoom_1_1_plastic_material_a6eac10e3913ba07e893a05cbe263eb50}{setActiveDeformationGradient} (Matrix3d Fa)}
+\label{classvoom_1_1_plastic_material_a6eac10e3913ba07e893a05cbe263eb50}
+
+\begin{DoxyCompactList}\small\item\em Set active deformation gradient at previous timestep. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_plastic_material_a3e04cd975694b821f8003376d884cc6b}{
+Matrix3d \hyperlink{classvoom_1_1_plastic_material_a3e04cd975694b821f8003376d884cc6b}{getTotalDeformationGradient} ()}
+\label{classvoom_1_1_plastic_material_a3e04cd975694b821f8003376d884cc6b}
+
+\begin{DoxyCompactList}\small\item\em Get total deformation gradient at previous timestep. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_plastic_material_a0f9289951fce0ea5f41905aa2ee86a10}{
+void \hyperlink{classvoom_1_1_plastic_material_a0f9289951fce0ea5f41905aa2ee86a10}{setTotalDeformationGradient} (Matrix3d F)}
+\label{classvoom_1_1_plastic_material_a0f9289951fce0ea5f41905aa2ee86a10}
+
+\begin{DoxyCompactList}\small\item\em Set total deformation gradient at previous timestep. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_plastic_material_a27e2d88950266103e0056a2d05dfa42c}{
+Vector3d \hyperlink{classvoom_1_1_plastic_material_a27e2d88950266103e0056a2d05dfa42c}{getHardeningParameters} ()}
+\label{classvoom_1_1_plastic_material_a27e2d88950266103e0056a2d05dfa42c}
+
+\begin{DoxyCompactList}\small\item\em Get Hardening Parameters. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_plastic_material_ab958d2ac32859e9ffab6e196e09fd5cd}{
+void \hyperlink{classvoom_1_1_plastic_material_ab958d2ac32859e9ffab6e196e09fd5cd}{setHardeningParameters} (Vector3d Q)}
+\label{classvoom_1_1_plastic_material_ab958d2ac32859e9ffab6e196e09fd5cd}
+
+\begin{DoxyCompactList}\small\item\em Set Hardening Parameters. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_plastic_material_afd05c2a128ff5ce53b317d433814c369}{
+void \hyperlink{classvoom_1_1_plastic_material_afd05c2a128ff5ce53b317d433814c369}{computeKinematicParameters} ()}
+\label{classvoom_1_1_plastic_material_afd05c2a128ff5ce53b317d433814c369}
+
+\begin{DoxyCompactList}\small\item\em Compute Kinematic Parameters. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_plastic_material_ab8352c88bb9d004fed0d56dcab8cbe81}{
+void \hyperlink{classvoom_1_1_plastic_material_ab8352c88bb9d004fed0d56dcab8cbe81}{setTimestep} (double deltaT)}
+\label{classvoom_1_1_plastic_material_ab8352c88bb9d004fed0d56dcab8cbe81}
+
+\begin{DoxyCompactList}\small\item\em Set Timestep. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_plastic_material_a14d8dab44995db7899769b582d0e7cc6}{
+void \hyperlink{classvoom_1_1_plastic_material_a14d8dab44995db7899769b582d0e7cc6}{setActivationMultiplier} (double activation)}
+\label{classvoom_1_1_plastic_material_a14d8dab44995db7899769b582d0e7cc6}
+
+\begin{DoxyCompactList}\small\item\em Set Activation Multiplier for Kinetic \hyperlink{classvoom_1_1_potential}{Potential}. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_plastic_material_a3cdf4c723b3b7ef40efaa593166042e9}{
+void \hyperlink{classvoom_1_1_plastic_material_a3cdf4c723b3b7ef40efaa593166042e9}{updateStateVariables} ()}
+\label{classvoom_1_1_plastic_material_a3cdf4c723b3b7ef40efaa593166042e9}
+
+\begin{DoxyCompactList}\small\item\em Update State from n+1 -\/$>$ n. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_plastic_material_a60d026dd249bc8161a903d5fbb10f293}{
+virtual \hyperlink{classvoom_1_1_mechanics_material}{MechanicsMaterial} $\ast$ \hyperlink{classvoom_1_1_plastic_material_a60d026dd249bc8161a903d5fbb10f293}{clone} () const }
+\label{classvoom_1_1_plastic_material_a60d026dd249bc8161a903d5fbb10f293}
+
+\begin{DoxyCompactList}\small\item\em Clone. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_plastic_material_aaa65a7b7dc8aac8078ba6f4e18c2ded4}{
+virtual void \hyperlink{classvoom_1_1_plastic_material_aaa65a7b7dc8aac8078ba6f4e18c2ded4}{setMaterialParameters} (const vector$<$ Real $>$ \&)}
+\label{classvoom_1_1_plastic_material_aaa65a7b7dc8aac8078ba6f4e18c2ded4}
+
+\begin{DoxyCompactList}\small\item\em SetMaterialParameters function. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_plastic_material_a471448c87a4c9014a26a66bf8973fe1c}{
+virtual void {\bfseries setInternalParameters} (const vector$<$ Real $>$ \&)}
+\label{classvoom_1_1_plastic_material_a471448c87a4c9014a26a66bf8973fe1c}
+
+\item 
+\hypertarget{classvoom_1_1_plastic_material_a9e01ac94dbe93ec528d23cf394f4114d}{
+virtual void {\bfseries setRegularizationParameters} (const vector$<$ Real $>$ \&)}
+\label{classvoom_1_1_plastic_material_a9e01ac94dbe93ec528d23cf394f4114d}
+
+\item 
+\hypertarget{classvoom_1_1_plastic_material_a973a04a611a169326e14c10e0f8c9012}{
+virtual vector$<$ Real $>$ \hyperlink{classvoom_1_1_plastic_material_a973a04a611a169326e14c10e0f8c9012}{getMaterialParameters} ()}
+\label{classvoom_1_1_plastic_material_a973a04a611a169326e14c10e0f8c9012}
+
+\begin{DoxyCompactList}\small\item\em GetMaterialParameters function. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_plastic_material_aa2b26fddc29c31872d6f6d1780ec1d86}{
+virtual vector$<$ Real $>$ {\bfseries getInternalParameters} ()}
+\label{classvoom_1_1_plastic_material_aa2b26fddc29c31872d6f6d1780ec1d86}
+
+\item 
+\hypertarget{classvoom_1_1_plastic_material_a3222f480e3b5eac25befc29043d9c726}{
+virtual vector$<$ Real $>$ {\bfseries getRegularizationParameters} ()}
+\label{classvoom_1_1_plastic_material_a3222f480e3b5eac25befc29043d9c726}
+
+\item 
+\hypertarget{classvoom_1_1_plastic_material_a3a310aaf70a477f76dc39fc741183321}{
+virtual bool \hyperlink{classvoom_1_1_plastic_material_a3a310aaf70a477f76dc39fc741183321}{HasHistoryVariables} ()}
+\label{classvoom_1_1_plastic_material_a3a310aaf70a477f76dc39fc741183321}
+
+\begin{DoxyCompactList}\small\item\em Tells if material has history variables and needs to be replicated at each quadrature point. \item\end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{classvoom_1_1_plastic_material_a60a9f68ef337b748c6e147b7259d3740}{
+int {\bfseries \_\-matID}}
+\label{classvoom_1_1_plastic_material_a60a9f68ef337b748c6e147b7259d3740}
+
+\end{DoxyCompactItemize}
+
+
+\subsection{Member Function Documentation}
+\hypertarget{classvoom_1_1_plastic_material_adeed31ed97955b441efa8beeb56ce7e1}{
+\index{voom::PlasticMaterial@{voom::PlasticMaterial}!setDirectionVectors@{setDirectionVectors}}
+\index{setDirectionVectors@{setDirectionVectors}!voom::PlasticMaterial@{voom::PlasticMaterial}}
+\subsubsection[{setDirectionVectors}]{\setlength{\rightskip}{0pt plus 5cm}void voom::PlasticMaterial::setDirectionVectors (vector$<$ Vector3d $>$ {\em dirVec})\hspace{0.3cm}{\ttfamily  \mbox{[}inline\mbox{]}}}}
+\label{classvoom_1_1_plastic_material_adeed31ed97955b441efa8beeb56ce7e1}
+
+
+Update Variables from n+1-\/$>$n. Set Direction Vectors 
+
+The documentation for this class was generated from the following files:\begin{DoxyCompactItemize}
+\item 
+/u/home/a/adityapo/Research/voom2/src/Material/PlasticMaterial.h\item 
+/u/home/a/adityapo/Research/voom2/src/Material/PlasticMaterial.cc\item 
+/u/home/a/adityapo/Research/voom2/src/Material/PlasticMaterial\_\-NOMATRIXEXPONENTIAL.cc\end{DoxyCompactItemize}

@@ -1,0 +1,68 @@
+\hypertarget{classvoom_1_1_tusscher}{
+\section{voom::Tusscher Class Reference}
+\label{classvoom_1_1_tusscher}\index{voom::Tusscher@{voom::Tusscher}}
+}
+
+
+Inherits \hyperlink{classvoom_1_1_ionic_material}{voom::IonicMaterial}.\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hyperlink{classvoom_1_1_tusscher_a8ee053f384729caad43bea1f9b2fcd94}{Tusscher} (Real $\ast$constants)
+\begin{DoxyCompactList}\small\item\em Constructor. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_tusscher_a686f9c8869ba6aaa021cfe3a3e8cac17}{
+\hyperlink{classvoom_1_1_tusscher_a686f9c8869ba6aaa021cfe3a3e8cac17}{$\sim$Tusscher} ()}
+\label{classvoom_1_1_tusscher_a686f9c8869ba6aaa021cfe3a3e8cac17}
+
+\begin{DoxyCompactList}\small\item\em Destructor. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_tusscher_a37dc866b19306f6360fba588fb503448}{
+void \hyperlink{classvoom_1_1_tusscher_a37dc866b19306f6360fba588fb503448}{ComputeRates} ()}
+\label{classvoom_1_1_tusscher_a37dc866b19306f6360fba588fb503448}
+
+\begin{DoxyCompactList}\small\item\em Compute Rates. \item\end{DoxyCompactList}\item 
+Real \hyperlink{classvoom_1_1_tusscher_a6ca3b7ba35dc82631a371d248fe5749b}{compute} (Real Xi, Real C\_\-m, Real dt, Real volt, Real istim)
+\begin{DoxyCompactList}\small\item\em Compute Ionic Current. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_tusscher_a1c3c2dd28860736ebeb0f602a6b8caa8}{
+Real \hyperlink{classvoom_1_1_tusscher_a1c3c2dd28860736ebeb0f602a6b8caa8}{getGamma} ()}
+\label{classvoom_1_1_tusscher_a1c3c2dd28860736ebeb0f602a6b8caa8}
+
+\begin{DoxyCompactList}\small\item\em Get gamma. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_tusscher_a8647071908682752631078f2f65eacc3}{
+const std::vector$<$ Real $>$ \& \hyperlink{classvoom_1_1_tusscher_a8647071908682752631078f2f65eacc3}{getInternalParameters} (int \&nData) const }
+\label{classvoom_1_1_tusscher_a8647071908682752631078f2f65eacc3}
+
+\begin{DoxyCompactList}\small\item\em Get all internal parameters. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_tusscher_a399257b5f36ded2ad9c66529df630f00}{
+void \hyperlink{classvoom_1_1_tusscher_a399257b5f36ded2ad9c66529df630f00}{setInternalParameters} (const std::vector$<$ Real $>$ \&data)}
+\label{classvoom_1_1_tusscher_a399257b5f36ded2ad9c66529df630f00}
+
+\begin{DoxyCompactList}\small\item\em Set all internal parameters. \item\end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\subsection{Constructor \& Destructor Documentation}
+\hypertarget{classvoom_1_1_tusscher_a8ee053f384729caad43bea1f9b2fcd94}{
+\index{voom::Tusscher@{voom::Tusscher}!Tusscher@{Tusscher}}
+\index{Tusscher@{Tusscher}!voom::Tusscher@{voom::Tusscher}}
+\subsubsection[{Tusscher}]{\setlength{\rightskip}{0pt plus 5cm}voom::Tusscher::Tusscher (Real $\ast$ {\em constants})\hspace{0.3cm}{\ttfamily  \mbox{[}inline\mbox{]}}}}
+\label{classvoom_1_1_tusscher_a8ee053f384729caad43bea1f9b2fcd94}
+
+
+Constructor. 
+
+Surface Area to Volume Ratio from the paper mentioned above 
+
+\subsection{Member Function Documentation}
+\hypertarget{classvoom_1_1_tusscher_a6ca3b7ba35dc82631a371d248fe5749b}{
+\index{voom::Tusscher@{voom::Tusscher}!compute@{compute}}
+\index{compute@{compute}!voom::Tusscher@{voom::Tusscher}}
+\subsubsection[{compute}]{\setlength{\rightskip}{0pt plus 5cm}Real voom::Tusscher::compute (Real {\em Xi}, \/  Real {\em C\_\-m}, \/  Real {\em dt}, \/  Real {\em volt}, \/  Real {\em istim})\hspace{0.3cm}{\ttfamily  \mbox{[}virtual\mbox{]}}}}
+\label{classvoom_1_1_tusscher_a6ca3b7ba35dc82631a371d248fe5749b}
+
+
+Compute Ionic Current. \hyperlink{classvoom_1_1_tusscher}{Tusscher} model computes current as pA/pF. We will need to convert it to mA/cc and return to body class 
+
+Implements \hyperlink{classvoom_1_1_ionic_material_a1b95cf90af115374b428f2e5ece571cb}{voom::IonicMaterial}.
+
+The documentation for this class was generated from the following files:\begin{DoxyCompactItemize}
+\item 
+/u/home/a/adityapo/Research/voom2/src/Source/IonicSource/Tusscher.h\item 
+/u/home/a/adityapo/Research/voom2/src/Source/IonicSource/Tusscher.cc\end{DoxyCompactItemize}

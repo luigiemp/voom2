@@ -1,0 +1,50 @@
+\hypertarget{classvoom_1_1_elliptic_model}{
+\section{voom::EllipticModel Class Reference}
+\label{classvoom_1_1_elliptic_model}\index{voom::EllipticModel@{voom::EllipticModel}}
+}
+
+
+Elliptic model is the parent class for FiniteMechanics, LinearizedMechanics, Poisson.  
+
+
+{\ttfamily \#include $<$EllipticModel.h$>$}
+
+Inherits \hyperlink{classvoom_1_1_model}{voom::Model}.
+
+Inherited by \hyperlink{classvoom_1_1_mechanics_model}{voom::MechanicsModel}, and \hyperlink{classvoom_1_1_poisson_model}{voom::PoissonModel}.\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{classvoom_1_1_elliptic_model_a9394b118c0ad908b352cee60b0b80406}{
+{\bfseries EllipticModel} (\hyperlink{classvoom_1_1_mesh}{Mesh} $\ast$aMesh, const uint NodeDoF)}
+\label{classvoom_1_1_elliptic_model_a9394b118c0ad908b352cee60b0b80406}
+
+\item 
+\hypertarget{classvoom_1_1_elliptic_model_a09a0d67b1e5afb4a9b3b77d6b8ab0b02}{
+virtual void \hyperlink{classvoom_1_1_elliptic_model_a09a0d67b1e5afb4a9b3b77d6b8ab0b02}{compute} (\hyperlink{structvoom_1_1_elliptic_result}{EllipticResult} \&R)=0}
+\label{classvoom_1_1_elliptic_model_a09a0d67b1e5afb4a9b3b77d6b8ab0b02}
+
+\begin{DoxyCompactList}\small\item\em \hyperlink{classvoom_1_1_model}{Model} comput function. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_elliptic_model_aa4c8fd0705ad1432d832bf5d3e63be5d}{
+void \hyperlink{classvoom_1_1_elliptic_model_aa4c8fd0705ad1432d832bf5d3e63be5d}{checkConsistency} (\hyperlink{structvoom_1_1_elliptic_result}{EllipticResult} \&R, Real perturbationFactor, int request=6, Real h=1e-\/6, Real tol=1e-\/6)}
+\label{classvoom_1_1_elliptic_model_aa4c8fd0705ad1432d832bf5d3e63be5d}
+
+\begin{DoxyCompactList}\small\item\em Check consistency -\/ common to all elliptic models. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_elliptic_model_a1139839466c453f15173cca6ff57cbed}{
+virtual uint \hyperlink{classvoom_1_1_elliptic_model_a1139839466c453f15173cca6ff57cbed}{getNumMat} ()=0}
+\label{classvoom_1_1_elliptic_model_a1139839466c453f15173cca6ff57cbed}
+
+\begin{DoxyCompactList}\small\item\em Return number of unique material pointers. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_elliptic_model_ac6b72407edd6ab92e0537fc1c792c0af}{
+virtual void {\bfseries setPrevField} ()=0}
+\label{classvoom_1_1_elliptic_model_ac6b72407edd6ab92e0537fc1c792c0af}
+
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Elliptic model is the parent class for FiniteMechanics, LinearizedMechanics, Poisson. 
+
+The documentation for this class was generated from the following files:\begin{DoxyCompactItemize}
+\item 
+/u/home/a/adityapo/Research/voom2/src/Model/EllipticModel.h\item 
+/u/home/a/adityapo/Research/voom2/src/Model/EllipticModel.cc\end{DoxyCompactItemize}
