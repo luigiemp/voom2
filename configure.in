@@ -60,6 +60,8 @@ AC_CONFIG_FILES([
 		  src/VoomMath/Test/Makefile
 		  src/Mesh/Makefile
 		  src/Mesh/Test/Makefile
+		  src/Potential/Makefile
+		  src/Potential/Test/Makefile
 		  src/Material/Makefile 
 		  src/Material/Test/Makefile
 		  src/Source/IonicSource/Makefile

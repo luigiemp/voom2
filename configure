@@ -4391,7 +4391,7 @@ fi
 
 
 
-ac_config_files="$ac_config_files Makefile doc/Makefile src/Makefile src/VoomMath/Makefile src/VoomMath/Test/Makefile src/Mesh/Makefile src/Mesh/Test/Makefile src/Material/Makefile src/Material/Test/Makefile src/Source/IonicSource/Makefile src/Source/MechanicsLoad/Makefile src/Quadrature/Makefile src/Quadrature/Test/Makefile src/Shape/Makefile src/Shape/Test/Makefile src/Element/Makefile src/Element/Test/Makefile src/Model/Makefile src/Model/Test/Makefile src/Solver/Makefile src/Solver/Test/Makefile src/Utils/inpParser/Makefile"
+ac_config_files="$ac_config_files Makefile doc/Makefile src/Makefile src/VoomMath/Makefile src/VoomMath/Test/Makefile src/Mesh/Makefile src/Mesh/Test/Makefile src/Potential/Makefile src/Potential/Test/Makefile src/Material/Makefile src/Material/Test/Makefile src/Source/IonicSource/Makefile src/Source/MechanicsLoad/Makefile src/Quadrature/Makefile src/Quadrature/Test/Makefile src/Shape/Makefile src/Shape/Test/Makefile src/Element/Makefile src/Element/Test/Makefile src/Model/Makefile src/Model/Test/Makefile src/Solver/Makefile src/Solver/Test/Makefile src/Applications/TestBVP/Makefile src/Applications/PassiveLV/Makefile src/Utils/inpParser/Makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -5044,6 +5044,8 @@ do
     "src/VoomMath/Test/Makefile") CONFIG_FILES="$CONFIG_FILES src/VoomMath/Test/Makefile" ;;
     "src/Mesh/Makefile") CONFIG_FILES="$CONFIG_FILES src/Mesh/Makefile" ;;
     "src/Mesh/Test/Makefile") CONFIG_FILES="$CONFIG_FILES src/Mesh/Test/Makefile" ;;
+    "src/Potential/Makefile") CONFIG_FILES="$CONFIG_FILES src/Potential/Makefile" ;;
+    "src/Potential/Test/Makefile") CONFIG_FILES="$CONFIG_FILES src/Potential/Test/Makefile" ;;
     "src/Material/Makefile") CONFIG_FILES="$CONFIG_FILES src/Material/Makefile" ;;
     "src/Material/Test/Makefile") CONFIG_FILES="$CONFIG_FILES src/Material/Test/Makefile" ;;
     "src/Source/IonicSource/Makefile") CONFIG_FILES="$CONFIG_FILES src/Source/IonicSource/Makefile" ;;
@@ -5058,6 +5060,8 @@ do
     "src/Model/Test/Makefile") CONFIG_FILES="$CONFIG_FILES src/Model/Test/Makefile" ;;
     "src/Solver/Makefile") CONFIG_FILES="$CONFIG_FILES src/Solver/Makefile" ;;
     "src/Solver/Test/Makefile") CONFIG_FILES="$CONFIG_FILES src/Solver/Test/Makefile" ;;
+    "src/Applications/TestBVP/Makefile") CONFIG_FILES="$CONFIG_FILES src/Applications/TestBVP/Makefile" ;;
+    "src/Applications/PassiveLV/Makefile") CONFIG_FILES="$CONFIG_FILES src/Applications/PassiveLV/Makefile" ;;
     "src/Utils/inpParser/Makefile") CONFIG_FILES="$CONFIG_FILES src/Utils/inpParser/Makefile" ;;
 
   *) { { $as_echo "$as_me:$LINENO: error: invalid argument: $ac_config_target" >&5

@@ -63,6 +63,11 @@ namespace voom
     // It is used in the Model derived classes
     virtual bool HasHistoryVariables() = 0;
 
+    // TODO: DELETE THESE THREE FUNCTIONS
+    virtual void setTimestep(double deltaT){;}
+    virtual void setActivationMultiplier(double activation){;}
+    virtual void updateStateVariables(){;}
+
   protected:
     int _matID;
     

@@ -6,6 +6,11 @@
 #define _VOOM_MATH_
 
 #include "voom.h"
+#include <math.h>
+// WARNING
+#include <unsupported/Eigen/MatrixFunctions>
+// END WARNING
+#include <Eigen/Eigenvalues>
 #include "ThirdOrderTensor.h"
 #include "FourthOrderTensor.h"
 
@@ -17,6 +22,8 @@ namespace voom
   Real det(const MatrixXd & A);
 
   void inv(const MatrixXd & A, MatrixXd & B);
+
+  Matrix3d VoomExpSymmMatrix(const Matrix3d &A);
 };
 
 #endif // _VOOM_MATH_

@@ -537,6 +537,8 @@ namespace voom {
       out << CellType << " " << endl;
     }  // end of printing conntable
 
+
+
     // Point data section
     // Displacements
     out << endl << "POINT_DATA " << NumNodes << endl
@@ -567,6 +569,79 @@ namespace voom {
 	out << R(i*dim + j) << endl;
       }
     }    
+
+
+
+    // Cell data section
+    // Alpha_1 material property
+    out << endl << "CELL_DATA " << NumEl << endl
+	<< "SCALARS Alpha1 double" << endl
+	<< "LOOKUP_TABLE default" << endl;
+    for ( int e = 0; e < NumEl; e++ ) {
+      vector<Real > MatProp = _materials[e]->getMaterialParameters();
+      out << MatProp[0] << endl;
+    }    
+
+    // Alpha_2 material property
+    out << "SCALARS Alpha2 double" << endl
+	<< "LOOKUP_TABLE default" << endl;
+    for ( int e = 0; e < NumEl; e++ ) {
+      vector<Real > MatProp = _materials[e]->getMaterialParameters();
+      out << MatProp[1] << endl;
+    }
+
+    // Material internal variable
+    out << "SCALARS InternalVariable double" << endl
+	<< "LOOKUP_TABLE default" << endl;
+    for ( int e = 0; e < NumEl; e++ ) {
+      vector<Real > IntProp = _materials[e]->getInternalParameters();
+      // for ( int i = 0; i < IntProp.size(); i++ ) {
+ /* 
+	     WARNING 
+	     THIS ONLY PRINTS THE FIRST INTERNAL VARIABLE
+	     BAD - NEED TO BE CHANGED!!
+ */
+      if ( IntProp.size() > 0 ) {
+	out << IntProp[0] << endl;
+      } else {
+	out << 0.0 << endl;
+      }
+
+	//}
+    }
+
+    // Material stress tensor
+    out << "TENSORS P double" << endl;
+
+      // Loop through elements, also through material points array, which is unrolled
+      // uint index = 0;
+      MechanicsMaterial::FKresults FKres;
+      FKres.request = 2;
+      for(int e = 0; e < NumEl; e++)
+      {
+	GeomElement* geomEl = elements[e];
+	const int numQP = geomEl->getNumberOfQuadPoints();
+	Vector3d Fiber = geomEl->getFiber();
+	
+	// F at each quadrature point are computed at the same time in one element
+	vector<Matrix3d > Flist(numQP, Matrix3d::Zero());
+	// Compute deformation gradients for current element
+	this->computeDeformationGradient(Flist, geomEl);
+     
+	// Loop over quadrature points
+	// for(int q = 0; q < numQP; q++) {
+	// _materials[e]->compute(FKres, Flist[q], &Fiber);
+	  /* 
+	     WARNING 
+	     THIS ONLY WORKS WITH 1QP PER ELEMENT
+	     BAD - NEED TO BE CHANGED!!
+	  */
+	  // }
+	_materials[e]->compute(FKres, Flist[0], &Fiber);
+	out << FKres.P(0,0) << " " <<  FKres.P(0,1) << " " << FKres.P(0,2) << endl << 
+	       FKres.P(1,0) << " " <<  FKres.P(1,1) << " " << FKres.P(1,2) << endl << 
+	       FKres.P(2,0) << " " <<  FKres.P(2,1) << " " << FKres.P(2,2) << endl;
+      }
 
     // Close file
     out.close();
