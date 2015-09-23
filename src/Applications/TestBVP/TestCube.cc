@@ -1,13 +1,5 @@
 #include "PassMyoA.h"
 #include "CompNeoHookean.h"
-#include "PlasticMaterial.h"
-#include "HillForceVelPotential.h"
-#include "BlankPotential.h"
-#include "APForceVelPotential.h"
-#include "Potential.h"
-#include "ViscousPotential.h"
-#include "BlankViscousPotential.h"
-#include "NewtonianViscousPotential.h"
 #include "FEMesh.h"
 #include "EigenEllipticResult.h"
 #include "MechanicsModel.h"
@@ -26,8 +18,14 @@ int main(int argc, char** argv)
 
 
   // Initialize Mesh
-  FEMesh Cube("Cube6.node", "Cube6.ele");
-  FEMesh surfMesh("Cube6.node", "Cube6Surf.ele");
+  // Assumptions to use this main as is: strip has a face at z=0; tetrahedral mesh
+  // FEMesh Cube("Cube6.node", "Cube6.ele");
+  // FEMesh surfMesh("Cube6.node", "Cube6Surf.ele");
+  FEMesh Cube("Strip36.node", "Strip36.ele");
+  FEMesh surfMesh("Strip36.node", "Strip36Surf.ele");
+  // FEMesh Cube("Strip144.node", "Strip144.ele");
+  // FEMesh surfMesh("Strip144.node", "Strip144Surf.ele");
+
  
   cout << endl;
   cout << "Number Of Nodes   : " << Cube.getNumberOfNodes() << endl;
@@ -37,82 +35,55 @@ int main(int argc, char** argv)
     
   // Initialize Material
   uint NumMat =  Cube.getNumberOfElements();
-  
-  vector<MechanicsMaterial * > PLmaterials;
-  PLmaterials.reserve(NumMat);
-
-  CompNeoHookean PassiveMat(0, 0.4, 0.04);
-  CompNeoHookean ActiveMat(0, 40.0, 4.0);
-  APForceVelPotential TestPotential(1.0, 175.0);
-  // HillForceVelPotential TestPotential(4.4*pow(10,-3), .01*0.59, 25);
-  //BlankPotential TestPotential;
-
-  BlankViscousPotential ViscPotential;
-  // NewtonianViscousPotential ViscPotential(1000, 0);
-
-  vector <Vector3d> dirvec(3, Vector3d::Zero(3,1));
-  dirvec[0] << 1, 0, 0;
-  dirvec[1] << 0, 1, 0;
-  dirvec[2] << 0, 0, 1;
-
-  Vector3d HardParam(0,0,0);
-
-  // Read in Activation File:
-  ifstream myfile;
-  myfile.open ("ActivationFunction_LargeTimestep.dat");
-  vector <double> Time(795, 0.0);
-  vector <double> ActivationFactor(795, 0.0);
-  for (int i = 0; i < 795; i++)
-  {
-    myfile >> Time[i];
-    myfile >> ActivationFactor[i];
-  }
-
-
+  vector<MechanicsMaterial * > materials;
+  materials.reserve(NumMat);
+  vector<Vector3d > Fibers; 
+  Fibers.reserve(NumMat);
 
   for (int k = 0; k < NumMat; k++) {
-    PlasticMaterial* PlMat = new PlasticMaterial(k, &ActiveMat, &PassiveMat, &TestPotential, &ViscPotential);
-    PlMat->setDirectionVectors(dirvec);
-    PlMat->setHardeningParameters(HardParam);
-    PlMat->setActiveDeformationGradient(Matrix3d::Identity(3,3));
-    PlMat->setTotalDeformationGradient(Matrix3d::Identity(3,3));
+    CompNeoHookean* Mat = new CompNeoHookean(k, 1.0, 1.0);
+    materials.push_back(Mat);
 
-    PlMat->setTimestep(0.01);
-    PlMat->setActivationMultiplier(0.5);
-
-    PLmaterials.push_back(PlMat);
+    Vector3d N; N << 0.0, 0.0, 1.0;
+    Fibers.push_back(N);
   }
+
+  // Load fibers into elements
+  Cube.setFibers(Fibers);
 
   // Initialize Model
   int NodeDoF = 3;
-  int PressureFlag = 0;
-  Real Pressure = 0.0;
+  int PressureFlag = 1;
+  Real Pressure = 1.54;
   int NodalForcesFlag = 1;
   vector<int > ForcesID;
   vector<Real > Forces;
-  MechanicsModel myModel(&Cube, PLmaterials, NodeDoF, PressureFlag, &surfMesh,
+  MechanicsModel myModel(&Cube, materials, NodeDoF, PressureFlag, &surfMesh,
 			 NodalForcesFlag);
   myModel.updatePressure(Pressure);
   myModel.updateNodalForces(&ForcesID, &Forces);
  
   // Initialize Result
+  uint myRequest;
   uint PbDoF = (Cube.getNumberOfNodes())*myModel.getDoFperNode();
   EigenEllipticResult myResults(PbDoF, NumMat*2);
 
   // Run Consistency check
+  /*
   Real perturbationFactor = 0.1;
-  uint myRequest = 7; // Check both Forces and Stiffness
+  myRequest = 7; // Check both Forces and Stiffness
   Real myH = 1e-6;
   Real myTol = 1e-7;
   myModel.checkConsistency(myResults, perturbationFactor, myRequest, myH, myTol);
-  // myModel.checkDmat(myResults, perturbationFactor, myH, myTol);
-  
+  myModel.checkDmat(myResults, perturbationFactor, myH, myTol);
+  */
 
 
 
 
     // Print initial configuration
-    myModel.writeOutputVTK("CubeSmall_", 0);
+    // myModel.writeOutputVTK("CubeSmall_", 0);
+    myModel.writeOutputVTK("Strip36_", 0);
 
     // Check on applied pressure
     myRequest = 2;
@@ -128,14 +99,25 @@ int main(int argc, char** argv)
     cout << endl << "Pressure = " << pX << " " << pY << " " << pZ << endl << endl;
      
     // EBC
-    vector<int > DoFid(8,0);
-    vector<Real > DoFvalues(8, 0.0);
-    DoFid[0] = 0;  DoFid[1] = 1;  DoFid[2] = 2;  
-    DoFid[3] = 4;  DoFid[4] = 5;  DoFid[5] = 8;  
-    DoFid[6] = 9;  DoFid[7] = 11;
+    vector<int > DoFid;
+    vector<Real > DoFvalues;
+    for(int i = 0; i < Cube.getNumberOfNodes(); i++) {
+      // All nodes at x = 0
+      if ( Cube.getX(i, 0) < 1.0e-12 ) {
+	DoFid.push_back(i*3);
+	// All nodes at y =0
+	if ( Cube.getX(i, 1) < 1.0e-12 ) {
+	  DoFid.push_back(i*3 + 1);
+	}
+	// All nodes at x = z
+	if ( Cube.getX(i, 2) < 1.0e-12 ) {
+	  DoFid.push_back(i*3 + 2);
+	}
+      }
+    }
  
     for(int i = 0; i < DoFid.size(); i++) {
-      DoFvalues[i] = Cube.getX(floor(double(DoFid[i])/3.0) ,DoFid[i]%3);
+      DoFvalues.push_back( Cube.getX(floor(double(DoFid[i])/3.0) ,DoFid[i]%3) );
       // cout << DoFid[i] << " " <<  DoFvalues[i] << endl;
     }
 
@@ -149,31 +131,12 @@ int main(int argc, char** argv)
     Real NRtol = 1.0e-12;
     uint NRmaxIter = 100;
     EigenNRsolver mySolver(&myModel, DoFid, DoFvalues, CHOL, NRtol, NRmaxIter);
+    mySolver.solve(DISP); 
 
+    // myModel.writeOutputVTK("CubeSmall_", 1);
+    myModel.writeOutputVTK("Strip36_", 1);
     
 
-    
-
-    for (int s = 0; s <= 795; s++) {
-      cout << "Step " << s << endl;
-      cout << "Activation Factor: " << ActivationFactor[s] << endl;
-      
-      for (int k = 0; k < NumMat; k++)
-      {
-	(PLmaterials[k])->setTimestep(0.5/1000);
-	(PLmaterials[k])->setActivationMultiplier(ActivationFactor[s]);
-	// (PLmaterials[k])->setActivationMultiplier(0.0);
-      }
-
-      mySolver.solve(DISP); 
-      myModel.writeOutputVTK("CubeSmall_", s+1);
-     
-      for (int k = 0; k < NumMat; k++)
-      {
-	(PLmaterials[k])->updateStateVariables();
-      }
-      // myModel.writeField("CubeSmall_", 1);
-    }
     // int m = 5; 
     // double factr = 1.0e+1;
     // double pgtol = 1.0e-5;
@@ -204,7 +167,7 @@ int main(int argc, char** argv)
     // cout << endl;
     // myModel.printField();
     // cout << endl;
-    /*
+    
     // Compute Residual
     myRequest = 2;
     myResults.setRequest(myRequest);
@@ -214,7 +177,7 @@ int main(int argc, char** argv)
       ForcesID.push_back( DoFid[i] );
       Forces.push_back( -F(DoFid[i]) );
     }
-    */
+
   // Timing
   time (&end);
   cout << endl << "BVP solved in " << difftime(end,start) << " s" << endl;
