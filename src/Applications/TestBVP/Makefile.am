@@ -1,4 +1,4 @@
-bin_PROGRAMS = TestBVP TestPressure TestMultiStepsBVP TestCube TestStrip StripLV
+bin_PROGRAMS = TestBVP TestPressure TestMultiStepsBVP TestCube_Plastic TestStrip StripLV
 INCLUDES =		-I./ -I./../ -I./../../	-I./../../Mesh -I./../../Solver  	\
 	 		-I./../../VoomMath/ -I./../../Shape -I./../../Quadrature	\
 			-I./../../Model -I./../../Potential -I./../../Material 		\
@@ -16,6 +16,6 @@ LDADD = -lSolver -lModel -lMesh -lElement              \
 TestBVP_SOURCES = TestBVP.cc
 TestPressure_SOURCES = TestPressure.cc
 TestMultiStepsBVP_SOURCES = TestMultiStepsBVP.cc
-TestCube_SOURCES = TestCube.cc
+TestCube_Plastic_SOURCES = TestCube_Plastic.cc
 TestStrip_SOURCES = TestStrip.cc
 StripLV_SOURCES = StripLV.cc
