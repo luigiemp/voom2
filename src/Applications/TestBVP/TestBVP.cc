@@ -38,10 +38,13 @@ int main(int argc, char** argv)
   Fibers.reserve(NumMat);
   for (int k = 0; k < NumMat; k++) {
     // PassMyoA* Mat = new PassMyoA(k, 39.02, 7.31, 100.0, 0.01, 2.85, 2.82);
+ 
     PassMyoA* Mat = new PassMyoA(k, 35.19, 7.06, 100.0, 0.025, 2.87, 2.82);
+    materials.push_back(Mat);
+    
     Vector3d N; N << 1.0/sqrt(3.0), 1.0/sqrt(3.0), 1.0/sqrt(3.0);
     // Vector3d N; N << 0.0, 0.0, 1.0;
-    materials.push_back(Mat);
+   
     // materials.push_back(new CompNeoHookean(k, 10.0, 3.0) );
 
     Fibers.push_back(N);
@@ -69,7 +72,7 @@ int main(int argc, char** argv)
   // Run Consistency check
   Real perturbationFactor = 0.1;
   uint myRequest = 7; // Check both Forces and Stiffness
-  Real myH = 1e-6;
+  Real myH = 1e-4;
   Real myTol = 1e-7;
   myModel.checkConsistency(myResults, perturbationFactor, myRequest, myH, myTol);
   myModel.checkDmat(myResults, perturbationFactor, myH, myTol);
