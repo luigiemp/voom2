@@ -1,4 +1,3 @@
-
 #include "EigenEllipticResult.h"
 
 #include "LoopShellMesh.h"
@@ -37,13 +36,15 @@ int main(int argc, char** argv) {
     //LoopShellMesh icosa_mesh("Und400_2722_nodes.dat","Und400_2722_conn.dat");
     //LoopShellMesh icosa_mesh("Und400_1154_nodes.dat","Und400_1154_conn.dat");
 
+    
     uint NumMat = icosa_mesh.getNumberOfElements();
     vector<LandauBrazovskii *> materials;
     materials.reserve(NumMat);
-    double l = 10.0;
+    double l = 12.0;
     for(int k = 0; k < NumMat; k++)
-      materials.push_back(new LandauBrazovskii(.01,sqrt(l*(l+1)),-2,-35.0,2)); //for l32 c=0.001
+      materials.push_back(new LandauBrazovskii(.01,sqrt(l*(l+1)),-1,5.0,1)); //for l32 c=0.001
 
+   
     LBModel model( &icosa_mesh, materials, 1);
     // Set Requests
     uint PbDoF = icosa_mesh.getNumberOfNodes();
@@ -51,7 +52,7 @@ int main(int argc, char** argv) {
     EigenEllipticResult myResults(PbDoF, TotNumMatProp);
 
     //Load Initial configuration
-    if (true){
+    if (false){
     ifstream icID;
     double phi[PbDoF];
     try{
@@ -91,12 +92,12 @@ int main(int argc, char** argv) {
 
     int choice = 1;
     if (choice == 1){
-      LBFGSB mySolver( & model, & myResults, 5, 1e5, 1e-8, 98, 4000);
+      LBFGSB mySolver( & model, & myResults, 5, 0, 1e-16, 98, 4000);
       //LBFGSB mySolver( & model, & myResults, 5, 0.5, 1e-8, 98, 10000);
       mySolver.solve();
       //model.writeOutputVTK("U25922_l24_c0.001_-0.1_2_2.vtk",0);
       //model.writeOutputVTK("S5_l24_c0.01_-3.5_1_2.vtk",0);
-      model.writeOutputVTK("S5_l10_c0.01_-2_-35_2.vtk",0);
+      model.writeOutputVTK("ToDelete",0);
       //model.writeOutputVTK("l_7",0);
     }
     if (choice==2){
@@ -133,7 +134,7 @@ int main(int argc, char** argv) {
 	myResults.setRequest(myRequest);
 	int counter = 0;
 	model.writeOutputVTK("dynamics_",counter);
-	LBFGSB mySolver( & model, & myResults, 5, 1, 1e-6, 1, 50000);
+	LBFGSB mySolver( & model, & myResults, 5, 0, 1e-6, 1, 50000);
 	model.setPrevField();
       	for (Real t=0; t<=T; t=t+dt){
 	  mySolver.solve();

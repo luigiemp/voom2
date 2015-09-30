@@ -7,7 +7,8 @@ INCLUDES     = 	-I./ 						\
 		-I./../Material					\
 		-I./../Element					\
 		-I./../Mesh 					\
-		-I/u/local/apps/eigen/3.2.4/gcc-4.4.7/include/eigen3
+		-I/u/local/apps/eigen/3.2.4/gcc-4.4.7/include/eigen3\
+		-I./../Geometry -I./../HalfEdgeMesh
 
 lib_LIBRARIES = libModel.a
-libModel_a_SOURCES = EllipticModel.cc MechanicsModel.cc
+libModel_a_SOURCES = EllipticModel.cc MechanicsModel.cc LoopShellModel.cc LBModel.cc
