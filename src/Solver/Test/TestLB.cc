@@ -13,7 +13,7 @@ int main(int argc, char** argv) {
     time_t start, end;
     double dif;
     time(&start);
-    const string IC = "S5_l10_c0.01_-2_-10_2.vtk0.vtk";
+    const string IC = "ToDelete0.vtk";
     //const string IC = "S5_l24_c0.01_-3.6_1_2.vtk0.vtk";
     cout << " ------------------------------- " << endl;
     //LoopShellMesh icosa_mesh("sphere_nodes_1SD.dat","sphere_conn_1SD.dat");
@@ -40,9 +40,9 @@ int main(int argc, char** argv) {
     uint NumMat = icosa_mesh.getNumberOfElements();
     vector<LandauBrazovskii *> materials;
     materials.reserve(NumMat);
-    double l = 12.0;
+    double l = 15.5;
     for(int k = 0; k < NumMat; k++)
-      materials.push_back(new LandauBrazovskii(.01,sqrt(l*(l+1)),-1,5.0,1)); //for l32 c=0.001
+      materials.push_back(new LandauBrazovskii(.0005,sqrt(l*(l+1)),-1,1.5,1)); //for l32 c=0.001
 
    
     LBModel model( &icosa_mesh, materials, 1);
@@ -92,7 +92,7 @@ int main(int argc, char** argv) {
 
     int choice = 1;
     if (choice == 1){
-      LBFGSB mySolver( & model, & myResults, 5, 0, 1e-16, 98, 4000);
+      LBFGSB mySolver( & model, & myResults, 5, 0, 1e-8, 98, 4000);
       //LBFGSB mySolver( & model, & myResults, 5, 0.5, 1e-8, 98, 10000);
       mySolver.solve();
       //model.writeOutputVTK("U25922_l24_c0.001_-0.1_2_2.vtk",0);

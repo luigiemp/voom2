@@ -52,6 +52,7 @@ namespace voom {
 	const vector<int  >& NodesID = element->getNodesID();
 	const int numQP    = element->getNumberOfQuadPoints();
 	const int numNodes = NodesID.size();
+	//cout << "element="<<e<<endl;
 	// Loop over quadrature points
 	for(int q = 0; q < numQP; q++) {
 	  // Initialize a and aPartials
