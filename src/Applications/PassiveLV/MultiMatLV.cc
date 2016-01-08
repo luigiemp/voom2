@@ -16,8 +16,8 @@ int main(int argc, char** argv)
   time(&start);
 
   // Initialize Mesh
-  FEMesh LVmesh("../../../Mesh/Test/CoarseLV.node", "../../../Mesh/Test/CoarseLV.ele");
-  FEMesh LVsurf("../../../Mesh/Test/CoarseLV.node", "../../../Mesh/Test/CoarseLV.surf");
+  FEMesh LVmesh("../CoarseLV.node", "../CoarseLV.ele");
+  FEMesh LVsurf("../CoarseLV.node", "../CoarseLV.surf");
   string BCfile = "../CoarseLV.BaseSurfBC";
  
   cout << endl;

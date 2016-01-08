@@ -16,9 +16,9 @@ int main(int argc, char** argv)
   time(&start);
 
   // Initialize Mesh
-  FEMesh LVmesh("../../Mesh/Test/CoarseLV.node", "../../Mesh/Test/CoarseLV.ele");
-  FEMesh LVsurf("../../Mesh/Test/CoarseLV.node", "../../Mesh/Test/CoarseLV.surf");
-  string BCfile = "CoarseLV.BaseSurfBC";
+  FEMesh LVmesh("../CoarseLV.node", "../CoarseLV.ele");
+  FEMesh LVsurf("../CoarseLV.node", "../CoarseLV.surf");
+  string BCfile = "../CoarseLV.BaseSurfBC";
  
   cout << endl;
   cout << "Number Of Nodes   : " << LVmesh.getNumberOfNodes() << endl;
@@ -30,7 +30,7 @@ int main(int argc, char** argv)
   vector<MechanicsMaterial * > materials;
   materials.reserve(NumEl);
 
-  string FiberFile = "CoarseLV.fiber";
+  string FiberFile = "../CoarseLV.fiber";
   ifstream FiberInp(FiberFile.c_str());
   int NumMat = 1;
   

@@ -2,8 +2,9 @@
 #include <iostream>
 
 #include "CompNeoHookean.h"
-#include "IsotropicDiffusion.h"
 #include "PassMyoA.h"
+#include "Jacobian.h"
+#include "IsotropicDiffusion.h"
 
 using namespace voom;
 
@@ -43,6 +44,8 @@ int main()
     MatMech.checkConsistency(Rm,F);
   }
 
+
+
   {
     cout << endl << "Testing PassMyoA material. " << endl;
     // PassMyoA MatMech(1.0+double(rand())/RAND_MAX, 3.0+double(rand())/RAND_MAX, 1.0+double(rand())/RAND_MAX, 1.0+double(rand())/RAND_MAX, 1.0+double(rand())/RAND_MAX);
@@ -79,6 +82,40 @@ int main()
 
     MatMech.checkConsistency(Rm, F, &N);
   }
+
+
+
+  {
+    cout << endl << "Testing Jacobian material. " << endl;
+    Jacobian MatMech(0);
+    
+    MechanicsMaterial::FKresults Rm;
+    Rm.request = 7;
+    Matrix3d F;
+    F << 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0;
+    srand(time(NULL));
+    for (unsigned int i = 0; i<3; i++) 
+      for (unsigned int J = 0; J<3; J++) 
+	F(i,J) += 0.1*(double(rand())/RAND_MAX);
+    cout << "determinant(F) = " << F.determinant() << endl;
+    
+
+    MatMech.compute(Rm, F);
+    
+    cout << "Energy     = " << Rm.W << endl;
+    cout << "P(2,2)     = " << Rm.P(2,2) << endl;
+    cout << "K[0,0,0,0] = " << Rm.K.get(0,0,0,0) << endl;
+    // for (unsigned int i = 0; i<3; i++) {
+    //   for (unsigned int J = 0; J<3; J++) {
+    // 	cout << i << " " << J << " " << (Rm.Dmat).get( 0, i, J ) << " " << (Rm.Dmat).get( 1, i, J ) << endl;
+    //   }
+    // }
+    
+    cout << endl << "Material ID = " << MatMech.getMatID() << endl << endl;
+ 
+    MatMech.checkConsistency(Rm,F);
+  }
+
 
 
 
