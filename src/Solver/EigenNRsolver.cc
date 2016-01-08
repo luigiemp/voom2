@@ -95,10 +95,10 @@ namespace voom
 	  // Update iter and error
 	  iter++;
 	  error = Deltax.norm();
-	  myResults.setRequest(3);
+	  myResults.setRequest(ENERGY | FORCE);
 	  _myModel->compute(myResults);
-	  cout << "Energy = " << myResults.getEnergy() << "   - NR iter = " << iter << "   -  NR error = " << error << endl;
-	
+	  cout << "Energy = " << myResults.getEnergy() << "   - NR iter = " << iter << "   -  NR error = " << error;
+	  cout << " Residual = " << (myResults._residual)->norm() << endl;
 	} // while loop
 	// After finding current field, update prev field
 	// _myModel->setPrevField();

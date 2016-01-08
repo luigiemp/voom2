@@ -67,6 +67,7 @@ namespace voom
                 
                 Cnum = (Pplus(i,J) - Pminus(i,J))/(2.0*h);
 		error += square(Cnum - Kan.get(i,J,k,L));
+
 	    } // i
 	  } // J
 	} // k

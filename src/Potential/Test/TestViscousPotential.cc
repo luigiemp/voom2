@@ -14,19 +14,19 @@ using namespace voom;
 int main()
 {
 	// BlankViscousPotential ViscPotential;
-	NewtonianViscousPotential ViscPotential(100, 0);
+	NewtonianViscousPotential ViscPotential(100., 0.5);
 
 	double deltaT = 0.01;
 	
 
 	Matrix3d F;
-	F << 1., 0.0, 0.0, 0.0, 1., 0.0, 0.0, 0.0, 1.;
-	// F << 1.0008, .0015, .0100, .0023, 1.0083, .0008, .0091, .0054, 1.0044;
+	// F << 1., 0.0, 0.0, 0.0, 1., 0.0, 0.0, 0.0, 1.;
+	F << 1.00031, 0.0671117, 0.0329642, 0.0302786, 1.05347, 0.00105537, 0.00444561, 0.0201215, 1.03399;
 		
 	srand(time(NULL));
-	for (unsigned int i = 0; i<3; i++) 
-		for (unsigned int J = 0; J<3; J++) 
-			F(i,J) += 0.1*(double(rand())/RAND_MAX); 
+	// for (unsigned int i = 0; i<3; i++) 
+	//	for (unsigned int J = 0; J<3; J++) 
+	//		F(i,J) += 0.1*(double(rand())/RAND_MAX); 
 	// cout << "determinant(F) = " << F.determinant() << endl;
 	
 	cout << "F = " << endl << F << endl;

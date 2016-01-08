@@ -16,7 +16,7 @@ namespace voom
     PlasticMaterial(int MatID, MechanicsMaterial* ActiveMaterial, MechanicsMaterial* PassiveMaterial, Potential* KineticPotential, ViscousPotential* ViscPotential): MechanicsMaterial(MatID), _ActiveMaterial(ActiveMaterial), _PassiveMaterial(PassiveMaterial), _KineticPotential(KineticPotential), _ViscousPotential(ViscPotential){
       for (int i = 0; i < 3; i++) _M.push_back(Matrix3d::Zero(3,3));
       _maxIter = 100;
-      _hardOptTOL = 1 * pow(10, -10);
+      _hardOptTOL = 1.0E-10;
       _activation = 0;
       _deltaT = 0.05;
     }

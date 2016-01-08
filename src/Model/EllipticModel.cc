@@ -100,6 +100,7 @@ namespace voom {
 	      // Computing Error and Norm;
 	      error += pow((Fplus - Fminus)/(2.*h) - R.getStiffness(a*_nodeDoF+i, b*_nodeDoF+j), 2.0);
 	      norm += pow( R.getStiffness(a*_nodeDoF+i, b*_nodeDoF+j), 2.0); 
+	      cout << R.getStiffness(a*_nodeDoF+i, b*_nodeDoF+j) << "\t" << (Fplus - Fminus)/(2.*h) << endl;
 	    } // j loop
 	  } // b loop
 	} // i loop

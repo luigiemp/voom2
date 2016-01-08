@@ -18,7 +18,8 @@ using namespace voom;
 
 int main(int argc, char** argv)
 {
-
+  cout << string(50, '\n'); // Clear Screen
+  
   // Timing
   time_t start, end;
   time(&start);
@@ -33,18 +34,19 @@ int main(int argc, char** argv)
 
   // Initialize Mesh
   // Assumptions to use this main as is: strip has a face at z=0; tetrahedral mesh
-  FEMesh Cube("Cube6.node", "Cube6.ele");
-  FEMesh surfMesh("Cube6.node", "Cube6Surf.ele");
+  FEMesh Cube("Cube1.node", "Cube1.ele");
+  FEMesh surfMesh("Cube1.node", "Cube1Surf.ele");
   Real xmax = 1.0;
   // FEMesh Cube("Strip36.node", "Strip36.ele");
   // FEMesh surfMesh("Strip36.node", "Strip36Surf.ele");
   // FEMesh Cube("Strip144.node", "Strip144.ele");
   // FEMesh surfMesh("Strip144.node", "Strip144Surf.ele");
- 
+  // Real xmax = 6.0; 
+
   cout << endl;
-  cout << "Number Of Nodes   : " << Cube.getNumberOfNodes() << endl;
-  cout << "Number Of Element : " << Cube.getNumberOfElements() << endl;
-  cout << "Mesh Dimension    : " << Cube.getDimension() << endl << endl;
+  cout << "\033[1;32mNumber Of Nodes \t : \033[0m" << Cube.getNumberOfNodes() << endl;
+  cout << "\033[1;32mNumber Of Element \t : \033[0m" << Cube.getNumberOfElements() << endl;
+  cout << "\033[1;32mMesh Dimension \t\t : \033[0m" << Cube.getDimension() << endl << endl;
   
 
     
@@ -54,14 +56,14 @@ int main(int argc, char** argv)
   vector<MechanicsMaterial * > PLmaterials;
   PLmaterials.reserve(NumMat);
 
-  CompNeoHookean PassiveMat(0, 0.4, 0.04);
-  CompNeoHookean ActiveMat(0, 40.0, 4.0);
+  CompNeoHookean PassiveMat(0, 4.0, 0.4);
+  CompNeoHookean ActiveMat(0, 4.0, 0.4);
   APForceVelPotential TestPotential(1.0, 500.0);
   // HillForceVelPotential TestPotential(4.4*pow(10,-3), .01*0.59, 25);
   // BlankPotential TestPotential;
 
   // BlankViscousPotential ViscPotential;
-  NewtonianViscousPotential ViscPotential(0., 0.);
+  NewtonianViscousPotential ViscPotential(0.05, 0.5);
 
   vector <Vector3d> dirvec(3, Vector3d::Zero(3,1));
   dirvec[0] << 1., 0., 0.;
@@ -85,6 +87,7 @@ int main(int argc, char** argv)
 
 
   for (int k = 0; k < NumMat; k++) {
+    // PLmaterials.push_back(&PassiveMat);
     PlasticMaterial* PlMat = new PlasticMaterial(k, &ActiveMat, &PassiveMat, &TestPotential, &ViscPotential);
     PlMat->setDirectionVectors(dirvec);
     PlMat->setHardeningParameters(HardParam);
@@ -95,7 +98,6 @@ int main(int argc, char** argv)
     PlMat->setActivationMultiplier(0.0);
 
     PLmaterials.push_back(PlMat);
-    // PLmaterials.push_back(&PassiveMat);
   }
 
   // Initialize Model
@@ -121,6 +123,10 @@ int main(int argc, char** argv)
   myRequest = 7; // Check both Forces and Stiffness
   Real myH = 1e-6;
   Real myTol = 1e-7;
+
+  // Before checking consistency, the perturbed deformation state must be 
+  // set to the current deformation state.
+
   // myModel.checkConsistency(myResults, perturbationFactor, myRequest, myH, myTol);
   // myModel.checkDmat(myResults, perturbationFactor, myH, myTol);
 
@@ -192,7 +198,7 @@ int main(int argc, char** argv)
     EigenNRsolver mySolver(&myModel, DoFid, DoFvalues, CHOL, NRtol, NRmaxIter);
 
     ind = 0;
-    int NumPassiveInc = 10;
+    int NumPassiveInc = 00;
     Real DeltaX = 0.2*xmax/NumPassiveInc;
     // cout << DoFxmax.size() << endl;
     for (int s = 0; s < NumPassiveInc; s++) {
@@ -209,17 +215,18 @@ int main(int argc, char** argv)
       myModel.writeOutputVTK(outputString, ind);
     }
 
-    for (int s = 0; s < 900; s++) {
+    for (int s = 0; s < 5; s++) {
+      cout << endl << "============================" << endl;
       cout << "Step " << s << endl;
-      // cout << "Activation Factor: " << ActivationFactor[s] << endl;
+      cout << "Activation Factor: " << ActivationFactor[s] << endl;
       
-      if (s == 200)  // Free Contraction = 0, Fixed = 200
+      if (s == 0)  // Free Contraction = 0, Fixed = 200
       {
 	for (int i = 0; i < DoFxmax.size(); i++)
 	{
 	  DoFid.erase(DoFid.begin() + DoFxmax[i] - i);
 	  DoFvalues.erase(DoFvalues.begin() + DoFxmax[i] - i);
-	  ViscPotential.setViscosity(1.0E-5);
+	  ViscPotential.setViscosity(0.0E-5);
 	  // High  = 1E-4, Low = 1E-5
 	}
       }
@@ -227,10 +234,11 @@ int main(int argc, char** argv)
       for (int k = 0; k < NumMat; k++)
       {
     	(PLmaterials[k])->setTimestep(0.5/1000);
-	if(s >= 795 || ActivationFactor[s] < 0.4)
+	if(s >= 901 || ActivationFactor[s] < 0.0)
     		(PLmaterials[k])->setActivationMultiplier(0.0);
 	else
 	    	(PLmaterials[k])->setActivationMultiplier(ActivationFactor[s]);
+		// (PLmaterials[k])->setActivationMultiplier(0.0);
       }
       
       ind++;

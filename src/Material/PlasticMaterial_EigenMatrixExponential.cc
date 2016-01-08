@@ -40,10 +40,10 @@ namespace voom
 
 		Matrix3d A = Matrix3d::Zero();
 		for (int i = 0; i < 3; i++){
-			A += exp(deltaQ(i)) * _M[i];
+			A += deltaQ(i) * _M[i];
 		}
 
-		Fanp1 = A * _Fa;
+		Fanp1 = A.exp() * _Fa;
 
 		// Compute Elastic Deformation Gradient
 		Matrix3d invFa = _Fa.inverse();
@@ -58,7 +58,7 @@ namespace voom
 		
 		vector <Matrix3d> dFadQ(3, Matrix3d::Zero());
 		for (int p = 0; p < 3; p++)
-			dFadQ[p] = A * _M[p] * _Fa;
+			dFadQ[p] = A.exp() * _M[p] * _Fa;
 		
 		Vector3d dDsdQnp1(0,0,0);
 		for (int a = 0; a < 3; a++)
@@ -95,10 +95,10 @@ namespace voom
 
 		Matrix3d A = Matrix3d::Zero();
 		for (int i = 0; i < 3; i++){
-			A += exp(deltaQ(i)) * _M[i];
+			A += deltaQ(i) * _M[i];
 		}
 
-		Fanp1 = A * _Fa;
+		Fanp1 = A.exp() * _Fa;
 
 		// Compute Elastic Deformation Gradient
 		Matrix3d invFa = _Fa.inverse();
@@ -113,9 +113,9 @@ namespace voom
 		
 		vector <Matrix3d> dFadQ(3, Matrix3d::Zero());
 		for (int p = 0; p < 3; p++)
-			dFadQ[p] = A * _M[p] * _Fa;
+			dFadQ[p] = A.exp() * _M[p] * _Fa;
 
-		Matrix3d expA = A;
+		Matrix3d expA = A.exp();
 
 		FourthOrderTensor d2FadQ2(3,3,3,3);
 		FourthOrderTensor dFedFanp1(3,3,3,3);

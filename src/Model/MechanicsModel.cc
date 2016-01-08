@@ -49,7 +49,6 @@ namespace voom {
 	    for(uint a = 0; a < nodeNum; a++)
 	      Flist[q](i,J) += 
 		_field[NodesID[a]*dim + i] * geomEl->getDN(q, a, J);
-
     } // loop over quadrature points
 
   }
