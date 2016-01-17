@@ -10,4 +10,4 @@ INCLUDES     = 	-I./ 						\
 		-I/u/local/apps/eigen/3.2.4/gcc-4.4.7/include/eigen3
 
 lib_LIBRARIES = libModel.a
-libModel_a_SOURCES = EllipticModel.cc MechanicsModel.cc
+libModel_a_SOURCES = Model.cc MechanicsModel.cc

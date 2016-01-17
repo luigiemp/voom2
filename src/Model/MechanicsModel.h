@@ -2,14 +2,14 @@
 #ifndef __MechanicsModel_h__
 #define __MechanicsModel_h__
 
-#include "EllipticModel.h"
+#include "Model.h"
 #include "MechanicsMaterial.h"
-#include "EigenEllipticResult.h"
+#include "EigenResult.h"
 
 namespace voom{
 
   // Model Results
-  class MechanicsModel: public EllipticModel {
+  class MechanicsModel: public Model {
 
   public:
 
@@ -153,10 +153,10 @@ namespace voom{
     void writeOutputVTK(const string OutputFile, int step); 
 
     //! Solve the system
-    void compute(EllipticResult & R);
+    void compute(Result & R);
 
     // Apply pressure
-    void applyPressure(EllipticResult & R);
+    void applyPressure(Result & R);
 
     // Update pressure
     void updatePressure(Real Pressure) {
@@ -169,7 +169,7 @@ namespace voom{
     }
 
     // Check consistency of gradg and Hg
-    void checkDmat(EigenEllipticResult & R, Real perturbationFactor, Real h, Real tol);
+    void checkDmat(EigenResult & R, Real perturbationFactor, Real h, Real tol);
 
 
 
