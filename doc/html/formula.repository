@@ -1,8 +1,0 @@
-\form#0:$\frac{\partial N}{\partial x} $
-\form#1:\[ \frac{\partial N}{\partial \xi} \frac{\partial \xi}{\partial x} \]
-\form#2:\[ \frac{\partial x_a}{\partial \xi_b} = \sum_{m=1}^{3} \frac{\partial N_m}{\partial \xi_j} x_m^a \]
-\form#3:\[ \frac{\partial N(\xi)}{\partial \xi_i} \approx \frac{ N(\xi + \Delta \xi_i) - N(\xi - \Delta \xi_i) }{2\Delta \xi_i} \]
-\form#4:$L_2$
-\form#5:\[ \frac{du_i}{dt} = a_i(V^n) + b_i(V^m)u_i \]
-\form#6:\[ \frac{d}{dt} State[i] = f( State[0],.. State[k]) \]
-\form#7:\[ State^{n+1}[i] - State^n[i] - \Delta t * f() = 0 \]
