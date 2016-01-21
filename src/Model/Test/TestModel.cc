@@ -8,6 +8,10 @@
 #include "CompNeoHookean.h"
 #include "EigenEllipticResult.h"
 
+#include "LoopShellMesh.h"
+#include "SCElastic.h"
+#include "LoopShellModel.h"
+
 
 using namespace voom;
 
@@ -19,7 +23,7 @@ int main(int argc, char** argv) {
   {
     cout << " ------------------------------- " << endl;
     cout << " TEST OF MECHANICS MODEL " << endl << endl;
-    
+  
     // FEMesh myFEmesh("../../Solver/Test/QuadTet.node", "../../Solver/Test/QuadTet.ele");
     // FEMesh surfMesh("../../Solver/Test/QuadTet.node", "../../Solver/Test/QuadTet.surf");
     // FEMesh myFEmesh("../../Mesh/Test/CoarseLV.node", "../../Mesh/Test/CoarseLV.ele");
@@ -59,7 +63,7 @@ int main(int argc, char** argv) {
     int PressureFlag = 1;
     Real Pressure = 1.0;
     MechanicsModel myModel(&myFEmesh, materials, NodeDoF, PressureFlag, Pressure, &surfMesh);
-    
+  
     // Run consistency test
     uint PbDoF = (myFEmesh.getNumberOfNodes())*myModel.getDoFperNode();
     int TotNumMatProp = NumMat*2;
@@ -74,11 +78,47 @@ int main(int argc, char** argv) {
   
     myModel.checkDmat(myResults, perturbationFactor, myH, myTol);
     
+    cout << " ------------------------------- " << endl;
+    cout << " Testing Loop Shell Model " << endl << endl;
+    //LoopShellMesh icosa_mesh("sphere_nodes_1SD.dat","sphere_conn_1SD.dat");
+    //LoopShellMesh icosa_mesh("sphere_loop_nodes.dat","sphere_loop_conn.dat");
+    LoopShellMesh icosa_mesh("T5sphere_nodes.dat","T5sphere_conn.dat");
+    //LoopShellMesh icosa_mesh("nonicosa_sphere_nodes.dat","nonicosa_sphere_conn.dat");
+    uint NumMat = icosa_mesh.getNumberOfElements();
+    uint NodeDoF = 3;
+    vector<SCElastic *> materials;
+    materials.reserve(NumMat);
+    for(int k = 0; k < NumMat; k++)
+      materials.push_back(new SCElastic(1,0,0));
+
+    LoopShellModel model( &icosa_mesh, materials, NodeDoF);
+
+    // Run consistency test
+    uint PbDoF = (icosa_mesh.getNumberOfNodes())*model.getDoFperNode();
+    int TotNumMatProp = NumMat*2;
+    EigenEllipticResult myResults(PbDoF, TotNumMatProp);
+    ComputeRequest myRequest = FORCE;
+    myResults.setRequest(myRequest);
+    //model.printField();
+    model.compute( myResults);
+    //cout << "Energy : " << myResults.getEnergy()<<endl;
+    //model.checkConsistency(myResults, perturbationFactor, myRequest, myH, myTol);
+    cout << std::scientific;
+    //cout << (*(myResults._residual)).cwiseAbs().colwise().maxCoeff() << endl;
+    cout << (*(myResults._residual)) << endl;
+    int counter = 0;
+    for (int i=0; i< PbDoF; i++ ){
+      if (abs((*(myResults._residual))(i)) > .0001){
+	counter++;
+	//cout << "Detected at " << i << endl;
+      }
+    }
+    //cout << "counter = " << counter << endl;
     cout << endl << " END OF TEST OF MECHANICS MODEL " << endl;
     cout << " ------------------------------ " << endl << endl;
+
+
   }
-
-
 
   // //Test Poisson model
   // {

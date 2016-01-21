@@ -1,9 +1,11 @@
 #include "FEMesh.h"
+#include "LoopShellMesh.h"
 
 using namespace voom;
 
 int main(int argc, char** argv)
 {
+
   cout << endl << "Testing voom mesh class ... " << endl;
   cout << "................................... " << endl << endl;
   
@@ -18,7 +20,7 @@ int main(int argc, char** argv)
     cout << endl << "Nodal position" << endl;
     for(uint i = 0; i < TestFEmesh.getNumberOfNodes(); i++) {
       for(uint m = 0 ; m < TestFEmesh.getDimension(); m++)
-	cout << setw(10) << TestFEmesh.getX(i, m) << " " ;
+  	cout << setw(10) << TestFEmesh.getX(i, m) << " " ;
       cout << endl;
     }   
     cout << endl << "Conn table" << endl;
@@ -26,7 +28,7 @@ int main(int argc, char** argv)
     for(uint e = 0; e < TestFEmesh.getNumberOfElements(); e++) {
       vector<int > NodesID = Els[e]->getNodesID();
       for(uint n = 0 ; n < NodesID.size(); n++)
-	cout << NodesID[n] << " " ;
+  	cout << NodesID[n] << " " ;
       cout << endl;
     }   
     
@@ -46,7 +48,7 @@ int main(int argc, char** argv)
     cout << endl << "Nodal position" << endl;
     for(uint i = 0; i < TestFEmesh.getNumberOfNodes(); i++) {
       for(uint m = 0 ; m < TestFEmesh.getDimension(); m++)
-	cout << setw(10) << TestFEmesh.getX(i, m) << " " ;
+  	cout << setw(10) << TestFEmesh.getX(i, m) << " " ;
       cout << endl;
     }   
     cout << endl << "Conn table" << endl;
@@ -54,7 +56,7 @@ int main(int argc, char** argv)
     for(uint e = 0; e < TestFEmesh.getNumberOfElements(); e++) {
       vector<int > NodesID = Els[e]->getNodesID();
       for(uint n = 0 ; n < NodesID.size(); n++)
-	cout << NodesID[n] << " " ;
+  	cout << NodesID[n] << " " ;
       cout << endl;
     }   
     
@@ -74,7 +76,7 @@ int main(int argc, char** argv)
     cout << endl << "Nodal position" << endl;
     for(uint i = 0; i < TestFEmesh.getNumberOfNodes(); i++) {
       for(uint m = 0 ; m < TestFEmesh.getDimension(); m++)
-	cout << setw(10) << TestFEmesh.getX(i, m) << " " ;
+  	cout << setw(10) << TestFEmesh.getX(i, m) << " " ;
       cout << endl;
     }   
     cout << endl << "Conn table" << endl;
@@ -82,7 +84,7 @@ int main(int argc, char** argv)
     for(uint e = 0; e < TestFEmesh.getNumberOfElements(); e++) {
       vector<int > NodesID = Els[e]->getNodesID();
       for(uint n = 0 ; n < NodesID.size(); n++)
-	cout << NodesID[n] << " " ;
+  	cout << NodesID[n] << " " ;
       cout << endl;
     }   
     
@@ -102,7 +104,7 @@ int main(int argc, char** argv)
     cout << endl << "Nodal position" << endl;
     for(uint i = 0; i < TestFEmesh.getNumberOfNodes(); i++) {
       for(uint m = 0 ; m < TestFEmesh.getDimension(); m++)
-	cout << setw(10) << TestFEmesh.getX(i, m) << " " ;
+  	cout << setw(10) << TestFEmesh.getX(i, m) << " " ;
       cout << endl;
     }   
     cout << endl << "Conn table" << endl;
@@ -110,7 +112,7 @@ int main(int argc, char** argv)
     for(uint e = 0; e < TestFEmesh.getNumberOfElements(); e++) {
       vector<int > NodesID = Els[e]->getNodesID();
       for(uint n = 0 ; n < NodesID.size(); n++)
-	cout << NodesID[n] << " " ;
+  	cout << NodesID[n] << " " ;
       cout << endl;
     }   
     
@@ -130,7 +132,7 @@ int main(int argc, char** argv)
     cout << endl << "Nodal position" << endl;
     for(uint i = 0; i < TestFEmesh.getNumberOfNodes(); i++) {
       for(uint m = 0 ; m < TestFEmesh.getDimension(); m++)
-	cout << setw(10) << TestFEmesh.getX(i, m) << " " ;
+  	cout << setw(10) << TestFEmesh.getX(i, m) << " " ;
       cout << endl;
     }   
     cout << endl << "Conn table" << endl;
@@ -138,7 +140,7 @@ int main(int argc, char** argv)
     for(uint e = 0; e < TestFEmesh.getNumberOfElements(); e++) {
       vector<int > NodesID = Els[e]->getNodesID();
       for(uint n = 0 ; n < NodesID.size(); n++)
-	cout << NodesID[n] << " " ;
+  	cout << NodesID[n] << " " ;
       cout << endl;
     }   
     
@@ -174,9 +176,9 @@ int main(int argc, char** argv)
   }
 
 
-
- 
-  cout << endl << "........................ " << endl;
-  cout << "Test of voom mesh class completed" << endl;
+  LoopShellMesh icosa("T7nodes.dat","T7connectivity.dat");
+  
+  // cout << endl << "........................ " << endl;
+  // cout << "Test of voom mesh class completed" << endl;
   return 0;
 }

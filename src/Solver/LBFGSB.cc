@@ -39,6 +39,7 @@ namespace voom
     _factr(factr), _pgtol(pgtol),
     _iprint(iprint), _maxIterations(maxIterations), _iterNo(0) {
     
+    _counter = 0; //********************** Temporary *********************
     _n = ( (_myModel->getMesh())->getNumberOfNodes() )*( _myModel->getDoFperNode() );
     this->resize(_n);
     _projg = 0.0;
@@ -90,7 +91,8 @@ namespace voom
       setulb_(&_n, &_m, _x.data(), _l.data(), _u.data(), _nbd.data(), 
 	      &_f, _g.data(), &_factr, &_pgtol, _wa.data(),_iwa.data(), 
 	      &(task[0]), &_iprint, &(csave[0]),
-	      &(lsave[0]),&(isave[0]),&(dsave[0])); 
+	      &(lsave[0]),&(isave[0]),&(dsave[0]));
+
       if(strncmp(task,"FG",2) == 0) {
 	// The minimization routine has returned to request the
 	// function f and gradient g values at the current x.

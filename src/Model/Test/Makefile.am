@@ -9,7 +9,8 @@ INCLUDES = -I./							\
 	   -I./../../Material 					\
 	   -I./../../Element					\
 	   -I./../../Mesh					\
-	   -I/u/local/apps/eigen/3.2.4/gcc-4.4.7/include/eigen3
+	   -I/u/local/apps/eigen/3.2.4/gcc-4.4.7/include/eigen3	\
+	   -I./../../Geometry -I./../../HalfEdgeMesh
 AM_LDFLAGS = 	-L./ 								\
 	     	-L./../ 							\
 	     	-L./../../Model					 		\
@@ -18,6 +19,8 @@ AM_LDFLAGS = 	-L./ 								\
 		-L./../../Material 						\
 		-L./../../Quadrature 						\
 		-L./../../Shape 						\
-		-L./../../VoomMath 						
-LDADD   = -lModel -lMesh -lElement -lQuadrature -lShape -lMaterials -lVoomMath
+		-L./../../VoomMath 						\
+		-L./../../Geometry						\
+		-L./../../HalfEdgeMesh
+LDADD   = -lModel -lMesh -lElement -lQuadrature -lShape -lMaterials -lVoomMath -lGeometry -lHEMesh
 TestModel_SOURCES = TestModel.cc
