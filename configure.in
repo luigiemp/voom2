@@ -79,5 +79,6 @@ AC_CONFIG_FILES([
 		  src/Applications/TestBVP/Makefile
 		  src/Applications/PassiveLV/Makefile
 	          src/Utils/inpParser/Makefile
+		  src/Geometry/Makefile
 		])
 AC_OUTPUT
