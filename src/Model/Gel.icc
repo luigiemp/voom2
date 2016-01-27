@@ -1,0 +1,4895 @@
+// -*- C++ -*-
+//----------------------------------------------------------------------
+//
+//                         William S. Klug
+//                University of California Los Angeles
+//                 (C) 2004-2008 All Rights Reserved
+//
+//----------------------------------------------------------------------
+
+/*! 
+  \file SemiflexibleGel.cc
+
+  \brief SemiflexibleGel is a concrete class derived from Body, implementing
+  the concept of a collection of cross-linked semiflexible polymers (i.e., beams)
+
+*/
+
+#if defined(_OPENMP)
+#include <omp.h>
+#endif
+
+namespace voom {
+
+      
+  template<int N>
+  SemiflexibleGel<N>::SemiflexibleGel(DefNodeContainer & dNodes, SemiflexibleInput * input ) {
+  
+    std::cout << "*********** Start Gel Construction *********" << std::endl;
+  //////////////////////////////////////////////////////////////////
+  // Start by working with adaptive meshing with creation of gel.
+  //////////////////////////////////////////////////////////////////
+  
+  // get rid of two declarations below when they are included in 
+  // adaptiveMeshingFlag block
+  
+  // From old ADAPTIVE MESHING constructor arguments
+  bool adaptiveMeshingFlag = input->getBool("adaptiveMeshing");
+
+  if (!adaptiveMeshingFlag) {
+    std::cout << "This constructor only does adaptive meshing, you fool!" 
+	      << std::endl;
+    exit(0);
+  }
+
+  double filDens = input->getReal("filDens"); 
+  double filLength = input->getReal("L"); // not needed for RETRIEVE
+	
+  
+  
+  // ------------------GENERAL SYSTEM PARAMETERS------------------
+  bool cutOffEnds = input->getBool("Cut Off Ends"); 
+  // Other members from old parameter map
+  double kT = input->getReal("kT");
+  double kappa = input->getReal("angle stiffness");
+  double mu = input->getReal("bond stiffness");
+  double visc = input->getReal("viscosity");
+  double dt = input->getReal("time step");
+	
+  // Need to check if values below were entered correctly from input file 
+  // otherwise there will be a segmentation fault
+	
+  double minLength = input->getReal("Min Seg Length");
+  double targetSegLength;
+  if (input->checkMap("target segment length")) {
+    targetSegLength = input->getReal("target segment length");
+  }
+  else {
+    targetSegLength = 2.0*minLength;
+  }	
+  std::string storageFileName = input->getString("storage file name");
+  std::string storageDirectoryName = input->getString("storage directory name");
+	
+  std::string storageTotalName = storageDirectoryName + storageFileName; 
+  	
+	
+  std::cout << "fildens is " << filDens << std::endl;
+  std::cout << "filLengths is " <<filLength<< std::endl;
+  std::cout << "cutOffends is " <<cutOffEnds<< std::endl;
+  std::cout << "minLength is " <<minLength<< std::endl;
+  std::cout << "targetSegLenth is " <<targetSegLength<< std::endl;
+  // ------------------ADAPTIVE MESH PARAMETERS------------------
+
+  
+  // ------------------GEL CREATION----------------------------
+
+  int nFils = 0;
+  TempFilamentContainer tmpFils; 
+  //DefNodeContainer dNodes;
+  std::set<int> longFils;
+  double nemAngle = 0.0;
+  std::string removalMethod;
+
+  // ------------------BEGIN CREATING GEL----------------------
+  bool retrieveGelFlag = input->getBool("retrieveGel");
+  
+  if (!retrieveGelFlag) {
+
+
+    // ------------------NEMATIC PDF PARAMETERS------------------
+    // NOT in retrieve constructor
+    NematicProbTable npt;
+    bool donem = false;
+	
+    double nematic;
+    if (input->checkMap("nematic PDF param")) {
+      nematic = input->getReal("nematic PDF param");
+      donem = true;
+      nemAngle = input->getReal("nematic direction angle");
+    }
+		
+    std::string orientationPDF = input->getString("orientational PDF");
+    if (orientationPDF == "Gaussian") {
+      npt.setPDF(0);
+      npt.setTable(nematic);
+    }
+    
+    ranlib::Uniform<double> rnguni;
+    rnguni.seed((unsigned int)time(0));
+    	
+	
+    tvmet::Vector<double,2> syssize;
+    syssize[0] = input->getReal("Wx");
+    syssize[1] = input->getReal("Wy");
+	
+    _box = new LeesEdwards(syssize[0],syssize[1],0.0);
+    
+    VectorND size( _box->size() );
+    double vol=1.0;
+    for(int i=0; i<N; i++) {
+      vol *= size[i];
+    }
+	
+    nFils = (int)(filDens*vol);
+    VectorND startPos;
+    VectorND oldVec;
+    VectorND newVec;
+    double newAng;
+
+    tmpFils.resize(nFils);
+
+    // create first and last points for each filament //
+    
+    std::cout << "Starting gel creation with " << nFils << "filaments" << std::endl;
+    
+    for(int i=0; i<nFils; i++) {
+      //rngps.seed((unsigned int)time(0)+i);
+      rnguni.seed((unsigned int)time(0)+i);
+      double curFilLen;
+      curFilLen = filLength;
+ 
+      TempFilament * newFil = new TempFilament();
+      
+      // randomly choose a starting position for the filament //	
+      for(int k=0;k<N;k++) {
+	newFil->start(k) = size[k]*(rnguni.random());
+      }
+      
+      // now randomly choose an angle and an ending position //
+      if(!donem) {
+        newAng = 2.0*M_PI*(rnguni.random());
+      }
+      else {
+        newAng = npt.findAngle(rnguni.random());
+	if(rnguni.random() < .5) {
+	  newAng = -newAng;
+	}
+	if(rnguni.random() < .5) {
+	  newAng += M_PI;
+	}
+	newAng += nemAngle;
+      }
+      newFil->end(0) = curFilLen*cos(newAng) + newFil->start(0);
+      newFil->end(1) = curFilLen*sin(newAng) + newFil->start(1);
+
+      // determine whether filament is completely in box, crosses through two zones, or crosses through three zones //
+      newFil->filSegs.push_back(pair<VectorND,VectorND>(newFil->start,newFil->end));
+      if(!(_box->inside(newFil->end))) {
+	VectorND newend(newFil->end);
+	_box->mapPoint(newend);
+	VectorND newstart;
+        newstart = newend - (newFil->end - newFil->start);
+	newFil->filSegs.push_back(pair<VectorND,VectorND>(newstart,newend));
+	if(newend(0) != newFil->end(0) && newend(1) != newFil->end(1)) {
+	  newend = newFil->end;
+	  _box->mapPointX(newend);
+	  newstart = newend - (newFil->end - newFil->start);
+	  newFil->filSegs.push_back(pair<VectorND,VectorND>(newstart,newend));
+	  newend = newFil->end;
+	  _box->mapPointY(newend);
+	  newstart = newend - (newFil->end - newFil->start);
+	  newFil->filSegs.push_back(pair<VectorND,VectorND>(newstart,newend));
+	}
+      }
+
+      // now look at existing filaments and find crosslink points //
+      for(int j=0; j<i; j++) {
+	if( (longFils.find(i)==longFils.end() || longFils.find(j)==longFils.end())) {
+	  TempFilament * oldFil = tmpFils[j];
+	  double oldFilLen = norm2((oldFil->end)-(oldFil->start));
+	  VectorND diff;
+	  diff = .5*((oldFil->end)+(oldFil->start)) - .5*(newFil->end+newFil->start);
+	  _box->mapDistance(diff);
+	  if(norm2(diff) <= .5*(oldFilLen+curFilLen)) {
+	    VectorND intersect;
+	    typename vector< pair< VectorND,VectorND > >::iterator oldFilImgs = oldFil->filSegs.begin();
+	    bool connected = false;
+	    while(!connected && oldFilImgs!=oldFil->filSegs.end()) {
+	      typename vector< pair<VectorND,VectorND> >::iterator newFilImgs = newFil->filSegs.begin();
+	      while(!connected && newFilImgs!=newFil->filSegs.end()) {
+		bool checkConnect = IntersectionFinder<N>::checkIntersection(newFilImgs->first,newFilImgs->second,oldFilImgs->first,oldFilImgs->second,intersect);
+		if(checkConnect) {
+		  connected = true;
+		  VectorND cldist;
+		  cldist = intersect - newFilImgs->first;
+		  //_box->mapDistance(cldist);
+		  double distFromStart = norm2(cldist);
+		  cldist += newFil->filSegs[0].first;
+		  TempCrosslink* tmpCL = new TempCrosslink();
+		  tmpCL->baseFil = j;
+		  tmpCL->active = true;
+		  //tmpCL->location = intersect;
+		  //tmpCL->otherFils.insert(i);
+		  //tmpCL->otherFils.insert(j);
+		  tmpCL->otherFils.insert(pair< int, VectorND >(i,cldist));
+		  newFil->crossFils.insert(pair<double,TempCrosslink *>(distFromStart,tmpCL));
+		  cldist = intersect - oldFilImgs->first;
+		  //_box->mapDistance(cldist);
+		  distFromStart = norm2(cldist);
+		  cldist += oldFil->filSegs[0].first;
+		  tmpCL->otherFils.insert(pair< int, VectorND >(j,cldist));
+		  oldFil->crossFils.insert(pair<double,TempCrosslink *>(distFromStart,tmpCL));
+		}
+		newFilImgs++;
+	      }
+	      oldFilImgs++;
+	    }
+	  }
+	}
+      }
+      tmpFils[i] = newFil;
+    }
+
+    // now iterate along each filament and find (and remove) too-short segments //
+
+    removalMethod = input->getString("nearby pair removal method");
+    if (removalMethod != "Stretch" &&
+	removalMethod != "Delete" &&
+	removalMethod != "Collapse" ) {
+      std::cout << "Removal method must be Stretch, Delete or Collapse." 
+		<< std::endl;
+      exit(0);
+    }
+
+
+    if(removalMethod == "Delete") {
+      int deletedCrosslinks = 0;
+      deletedCrosslinks = removeCrosslinks(tmpFils,minLength);
+      std::cout << "Removed " << deletedCrosslinks << " crosslinks from gel to avoid excessively stiff segments." << std::endl;
+    }
+
+    else if(removalMethod == "Collapse") {
+      int collapsedCrosslinks = collapseCrosslinks(tmpFils,minLength);
+      std::cout << "Collapsed " << collapsedCrosslinks << " crosslinks to avoid excessively stiff segments." << std::endl;
+    }
+
+    storeSparseGel(storageTotalName,tmpFils);
+	
+  }
+  
+  
+  // ------------------END OF CREATE GEL------------------
+
+  // we now have a list of crosslinks for each filament; we can now
+  // create the gel
+  int id = 0;
+  NodeBase::DofIndexMap idx(N);
+  DefNode * newNode;	
+  double curPct = .1;
+  for(int k=0; k<nFils; k++) {
+    DefNodeContainer tmpDNC;
+    TempFilament * curFil = tmpFils[k];
+    int nCLs = curFil->crossFils.size();
+    typename multimap<double,TempCrosslink*>::iterator clIter = curFil->crossFils.begin();
+    int i = 0;
+    VectorND segStart;
+    segStart = curFil->start;
+
+    // create first node //
+    for(int m=0; m<N; m++) {
+      idx[m] = N*id + m;
+    }
+    newNode = new BrownianNode<N>(id,idx,segStart,segStart);
+    newNode->setId(id);
+    tmpDNC.push_back(newNode);
+    dNodes.push_back(newNode);
+    id++;
+
+    // create nodes between start and first crosslink and between all crosslink pairs //
+    for(clIter; clIter!=curFil->crossFils.end(); clIter++) {
+      if(clIter->second->active) {
+	VectorND sep;
+	sep = clIter->second->otherFils[k] - segStart;
+	//_box->mapDistance(sep);
+	double dist = norm2(sep);
+	int nNodesBetween;
+	if(targetSegLength > 0.0) {
+	  nNodesBetween = (int)(std::floor((dist/targetSegLength)) -.5);
+	}
+	else {
+	  if(dist > 2.0*minLength) {
+	    int tmpNNB = (int)(std::floor((dist/fabs(targetSegLength))) -.5);
+	    nNodesBetween = max(1,tmpNNB);
+	  }
+	  else nNodesBetween = 0;
+	}
+	double segLength = dist/(nNodesBetween+1.0);
+	for(int nn=1; nn<=nNodesBetween; nn++) {
+	  for(int m=0; m<N; m++) {
+	    idx[m] = N*id + m;
+	  }
+	  VectorND nodePos;
+	  nodePos = segStart + nn*sep*(segLength/dist);
+	  newNode = new BrownianNode<N>(id,idx,nodePos,nodePos);
+	  newNode->setId(id);
+	  tmpDNC.push_back(newNode);
+	  dNodes.push_back(newNode);
+	  id++;
+	}
+	if(k == clIter->second->baseFil) {
+	  for(int m=0; m<N; m++) {
+	    idx[m] = N*id + m;
+	  }
+	  VectorND nodePos;
+	  nodePos = segStart + sep;
+	  newNode = new BrownianNode<N>(id,idx,nodePos,nodePos);
+	  newNode->setId(id);
+	  tmpDNC.push_back(newNode);
+	  dNodes.push_back(newNode);
+	  id++;
+	  clIter->second->clNode = newNode;
+	  //_crosslinkNodes.insert(newNode);
+	  _crossNodeMap.insert(pair<DefNode*,DefNode*>(newNode,newNode));
+	  PeriodicTie<N> * newTie = new PeriodicTie<N>(newNode,_box);
+	  addConstraint(newTie);
+	  clIter->second->ptie = newTie;
+	  int nSlaves = clIter->second->otherFils.size() - 1;
+	  _nSlavesMap.insert(pair<DefNode*,int>(newNode,nSlaves));
+	}
+	else {
+	  //newNode = clIter->second->clNode;
+	  //tmpDNC.push_back(newNode);
+	  //for(int m=0; m<N; m++) {
+	  //  idx[m] = N*id + m;
+	  //}
+	  DefNode* mastNode = clIter->second->clNode;
+	  VectorND nodePos;
+	  nodePos = segStart + sep;
+	  newNode = new BrownianNode<N>(mastNode->id(),mastNode->index(),nodePos,nodePos);
+	  newNode->setId(mastNode->id());
+	  tmpDNC.push_back(newNode);
+	  //dNodes.push_back(newNode);
+	  //id++;
+	  //_crosslinkNodes.insert(newNode);
+	  _crossNodeMap.insert(pair<DefNode*,DefNode*>(newNode,mastNode));
+	  PeriodicTie<N> * pt = clIter->second->ptie;
+	  pt->addSlave(newNode);
+
+	}
+	  
+	segStart += sep;
+      }
+    }
+
+    // create nodes between last crosslink and end //	
+    VectorND sep;
+    sep = curFil->end - segStart;
+    //_box->mapDistance(sep);
+    double dist = norm2(sep);
+    int nNodesBetween;
+    if(targetSegLength > 0.0) {
+      nNodesBetween = (int)(std::floor((dist/targetSegLength)) -.5);
+    }
+    else {
+      if(dist > 2.0*minLength) {
+	int tmpNNB = (int)(std::floor((dist/fabs(targetSegLength))) -.5);
+	nNodesBetween = max(1,tmpNNB);
+      }
+      else nNodesBetween = 0;
+    }
+    double segLength = dist/(nNodesBetween+1.0);
+    for(int nn=1; nn<=nNodesBetween+1; nn++) {
+      for(int m=0; m<N; m++) {
+	idx[m] = N*id + m;
+      }
+      VectorND nodePos;
+      nodePos = segStart + nn*sep*(segLength/dist);
+      newNode = new BrownianNode<N>(id,idx,nodePos,nodePos);
+      newNode->setId(id);
+      tmpDNC.push_back(newNode);
+      dNodes.push_back(newNode);
+      id++;
+    }
+    addFilament(tmpDNC,kappa,mu,visc,kT,dt,minLength); 
+    /*
+    if(((double)(k))/((double)(nFils)) > curPct) {
+      std::cout << "Created " << 100.0*curPct << " percent of filaments." << std::endl;
+      curPct += .1;
+    }
+    */
+  }
+  // now that gel is set up, compute various quantities //
+    
+  computeCrossDistro(-1.0);
+
+  computeFilLenDistro();
+
+  computeNematicDistro(nemAngle);
+
+  if(cutOffEnds) cutOffEndsandCCD(-1.0,dNodes);
+
+  _viscReg = 0;
+
+  _output = paraview;
+
+  for(int fn=0; fn<nFils; fn++) {
+    for(typename multimap<double,TempCrosslink*>::iterator cli = tmpFils[fn]->crossFils.begin(); cli!=tmpFils[fn]->crossFils.end(); cli++) {
+      if(cli->second->baseFil == fn) {
+	TempCrosslink* tmpcl = cli->second;
+	delete tmpcl;
+      }  
+    }	
+    delete tmpFils[fn];
+  }
+
+  if(removalMethod!= "Collapse") {
+    for(typename map<DefNode*,int>::iterator sn=_nSlavesMap.begin(); sn!=_nSlavesMap.end(); sn++) {
+      if(sn->second != 1) std::cerr << "Error: nodes pinned incorrectly!" << std::endl;
+    }
+  }
+
+  int nAngleSprings = 0;
+  int nBonds = 0;
+  int nRods = 0;
+  for(FilamentIterator fi=_filaments.begin(); fi!=_filaments.end(); fi++) {
+    nAngleSprings += (*fi)->angles.size();
+    nBonds += (*fi)->bonds.size();
+    nRods += (*fi)->rods.size();
+  }
+    
+  std::cout << "Set up gel with " 
+	    << nFils << " filaments, " 
+	    << nAngleSprings << " angle springs, "
+	    << nBonds << " bonds, and "
+	    << nRods << " brownian rods."
+	    << std::endl;
+	
+	
+  // ------------------TESTING PARAMETERS------------------
+	
+  // ------------------VTK/OTHERS------------------
+	
+  /*
+  std::cout << "\n" << std::endl;
+  std::cout << "-----Properties from _pm---" << std::endl;
+  std::cout << "Filament Density: " << filDens << std::endl;
+  std::cout << "Fil Len: " << filLength << std::endl;
+
+  std::cout << "Cut off ends: " << cutOffEnds << std::endl;
+  std::cout << "Min seg Length: " << minLength << std::endl;
+  std::cout << "kT: " << kT << std::endl;
+  std::cout << "angle stiffness: " << kappa << std::endl;
+  std::cout << "bond stiffness: " << mu << std::endl;
+  std::cout << "viscosity: " << visc << std::endl;
+  std::cout << "time step: " << dt << std::endl;
+  std::cout << "storage file name: " << storageFileName << std::endl;
+  std::cout << "adaptive mesh flag: " << adaptiveMeshingFlag << std::endl;
+  std::cout << "removal method: " << removalMethod << std::endl;
+  std::cout << "target seg length: " << targetSegLength << std::endl;
+  
+  
+  std::cout << "\n" << std::endl;
+  */
+  
+  }
+
+
+  // construct a filament with different segment lengths //
+  template<int N>
+  SemiflexibleGel<N>::Filament::Filament(const DefNodeContainer & n, double kappa, double mu, double viscosity, double kT, double dt, double minLength) : nodes(n) {
+    int stretchedSegs = 0;
+    if(nodes.size()>1) {
+      for( int i=0; i<nodes.size()-1; i++ ) {
+	// create Bonds and Rods
+	//
+	// i -- i+1 
+	//
+	VectorND bondSep;
+	bondSep = nodes[i+1]->position() - nodes[i]->position();
+	//box->mapDistance(bondSep);
+	double bondLength = norm2(bondSep);
+	if(bondLength < minLength) {
+	  bondLength = minLength;
+	  stretchedSegs++;
+	}
+	double kBond = mu/bondLength;
+	Bond * b = new Bond( nodes[i], nodes[i+1], kBond, bondLength ) ;
+	bonds.push_back(b);
+	Rod * r = new Rod( nodes[i], nodes[i+1], viscosity, kT, dt, bondLength ) ;
+	rods.push_back(r);
+	
+	//std::cout << "Warning: stretched " << stretchedSegs << " filament segments to avoid excessive stiffness." << std::endl;
+	
+      }
+    }
+    if(nodes.size()>2) {
+      for( int i=0; i<nodes.size()-2; i++ ) {
+	// create Angles
+	//
+	// i         i+2 
+	//   \     /
+	//     i+1	  
+	VectorND segSep1;
+	VectorND segSep2;
+	segSep1 = nodes[i+2]->position() - nodes[i+1]->position();
+	segSep2 = nodes[i+1]->position() - nodes[i]->position();
+	//box->mapDistance(segSep1);
+	//box->mapDistance(segSep2);
+	double segLength1 = norm2(segSep1);
+	double segLength2 = norm2(segSep2);
+	if(segLength1 < minLength) {
+	  segLength1 = minLength;
+	}
+	if(segLength2 < minLength) {
+	  segLength2 = minLength;
+	}
+	double avgLength = .5*(segLength1+segLength2);
+	double kAngle = kappa/avgLength;
+	Angle * a = new Angle( nodes[i], nodes[i+1], nodes[i+2], kAngle );
+	angles.push_back(a);
+      }	
+    }
+  }
+
+  template<int N>
+  SemiflexibleGel<N>::Filament::~Filament() {
+    for(int i=0; i< bonds.size(); i++) delete( bonds[i]);
+    for(int i=0; i<  rods.size(); i++) delete(  rods[i]);
+    for(int i=0; i<angles.size(); i++) delete(angles[i]);
+  }
+
+  template<int N>
+  const typename tvmet::Vector<double,N> & SemiflexibleGel<N>::Filament::point() {
+    int nNodes = nodes.size();
+    pt = nodes[0]->point() + nodes[nNodes-1]->point();
+    pt /= 2.0;
+    return pt;
+  }
+
+  template<int N>
+  void SemiflexibleGel<N>::updateNodalPoints(std::string & strainedGelFN) {
+    int intSize = sizeof(int);
+    int doubleSize = sizeof(double);
+    // open the file at the end to get size //
+    std::ifstream inFile(strainedGelFN.data(), ios::in | ios::binary | ios::ate);
+    ifstream::pos_type fsize = inFile.tellg();
+    
+    // reset file to beginning //
+    inFile.seekg(0,ios::beg);
+    
+    // read in system size //
+    VectorND sysSize;
+    for(int i=0; i<N; i++) {
+      double curSS;
+      inFile.read((char *)(&curSS),doubleSize);
+      sysSize[i] = curSS;
+    }
+    
+    // read in # of filaments
+    int nFils;
+    inFile.read((char *)(&nFils),intSize);
+    
+    assert(nFils == _filaments.size());
+    
+    NodeBase::DofIndexMap idx(N);
+    int id = 0;
+    
+    // read in nodal data and create gel elements //
+    for(int j=0; j<nFils; j++) {
+      int nNodesHere;
+      inFile.read((char *)(&nNodesHere),intSize);
+      assert(nNodesHere == filament(j)->nodes.size());
+      //DefNodeContainer tmpDNC(nNodesHere);
+      for(int k=0; k<nNodesHere; k++) {
+	VectorND curPos;
+	VectorND refPos;
+	for(int kdof=0; kdof<N; kdof++) {
+	  idx[kdof] = N*id + kdof;
+	  double cpdof;
+	  inFile.read((char *)(&cpdof),doubleSize);
+	  curPos[kdof] = cpdof;
+	}
+	for(int kdof=0; kdof<N; kdof++) {
+	  double rpdof;
+	  inFile.read((char *)(&rpdof),doubleSize);
+	  refPos[kdof] = rpdof;
+	}
+	filament(j)->nodes[k]->setPoint(curPos);
+	
+	id++;
+      }
+    }
+
+    inFile.close();
+    
+    std::cout << "SemiflexibleGel: updated nodal points using file " <<  strainedGelFN << std::endl;
+        
+  }
+
+  template<int N>
+  void SemiflexibleGel<N>::removePrestress() {
+    // first, set nodal positions so that crosslinked nodes lie on top of one another //
+    for(ConstraintIterator c=_constraints.begin(); c!=_constraints.end(); c++) {
+      (*c)->predict();
+    }
+    // now reset reference lengths and stiffnesses of springs and angle springs //
+    for(FilamentIterator fi=_filaments.begin(); fi!=_filaments.end(); fi++) {
+      for(BondIterator bi=(*fi)->bonds.begin(); bi!=(*fi)->bonds.end(); bi++) {
+	double oldd = (*bi)->getLength();
+	(*bi)->resetLength();
+	double newd = (*bi)->getLength();
+	// do not allow segments to get too short //
+	if(newd <= 5.0e-3) {
+	  (*bi)->resetLength(5.0e-3);
+	  newd = 5.0e-3;
+	  std::cout << "Found short segment!" << std::endl;
+	}
+	double ksp = (*bi)->stiffness();
+	(*bi)->setStiffness(ksp*oldd/newd);
+      }
+      for(AngleIterator ai=(*fi)->angles.begin(); ai!=(*fi)->angles.end(); ai++) {
+	double oldL = (*ai)->meanSegmentLength();
+	double newL = (*ai)->meanSegmentExtension();
+	double kang = (*ai)->stiffness();
+	if(newL <= 5.0e-3) {
+	  newL = 5.0e-3;
+	  std::cout << "Found short segments!" << std::endl;
+	}
+	(*ai)->setStiffness(kang*oldL/newL);
+      }
+    }
+  }
+
+  template<int N>
+  int SemiflexibleGel<N>::removeCrosslinks(TempFilamentContainer & tmpFils, double minLength) {
+    int deletedCrosslinks = 0;
+    ranlib::Uniform<double> rnguni;
+    rnguni.seed((unsigned int)time(0));
+    int nf;
+    for(nf=0; nf<tmpFils.size(); nf++) {
+      TempFilament* fil = tmpFils[nf];
+      typename multimap<double,TempCrosslink*>::iterator clIter = fil->crossFils.begin();
+      vector<TempCrosslink*> cls;
+      for(clIter; clIter!=fil->crossFils.end(); clIter++) {
+	if(clIter->second->active) {
+	  cls.push_back(clIter->second);
+	}
+      }
+      int nCL = cls.size();
+      int i = 0;
+      while(i<nCL-1) {
+	int j=i+1;
+	while(j<nCL && cls[j]->active == false) j++;
+	if(j<nCL) {
+	  rnguni.seed((unsigned int)(time(0)+j));
+	  VectorND clSep;
+	  clSep = cls[j]->otherFils[nf] - cls[i]->otherFils[nf];
+	  //_box->mapDistance(clSep);
+	  double clDist = norm2(clSep);
+	  if(clDist < minLength) {
+	    // randomly select one of the crosslinks to remove //
+	    if(rnguni.random() < .5) {
+	      cls[i]->active = false;
+	      i = j;	    
+	    }
+	    else {
+	      cls[j]->active = false;
+	    }
+	    deletedCrosslinks++;
+	  }
+	  else i = j;
+	}
+	else i = j;
+      }
+    }
+
+    return deletedCrosslinks;  
+    
+  }
+
+  template<int N>
+  int SemiflexibleGel<N>::collapseCrosslinks(TempFilamentContainer & tmpFils, double minLength) {
+    return 0;
+  }
+
+  template<int N>
+  void SemiflexibleGel<N>::moveCLNodes(Filament * f) {
+    int nNodes = f->nodes.size();
+    int dn = 0;
+    while(_crosslinkNodes.find(f->nodes[dn]) != _crosslinkNodes.end()) dn++;
+    assert(dn<nNodes);
+    VectorND ref;
+    ref = f->nodes[dn]->point();
+    for(dn = 0; dn<nNodes; dn++) {     
+      if(_crosslinkNodes.find(f->nodes[dn]) != _crosslinkNodes.end()) {
+        VectorND diff;
+        diff = f->nodes[dn]->point() - ref;
+	_box->mapDistance(diff);
+	diff += ref;
+	f->nodes[dn]->setPoint(diff);
+      } 
+    }
+  }
+
+  template<int N>
+  void SemiflexibleGel<N>::compute( bool f0, bool f1, bool f2 ) {
+
+    // Predictor/corrector approach for constraint
+    int nConstraints = _constraints.size();
+
+#ifdef _OPENMP	
+#pragma omp parallel default(shared)
+#endif
+    {
+#ifdef _OPENMP
+#pragma omp for schedule(static) nowait
+#endif
+      for(int ic=0; ic<nConstraints; ic++) {
+	// if(ic%1000==0) std::cout << "predicting with constraint " << ic << std::endl;
+	_constraints[ic]->predict();
+      }
+    } 
+
+    if( f0 ) _energy = 0.0;
+    
+    // compute energy and forces
+    int nFils = _filaments.size();
+
+#ifdef _OPENMP	
+#pragma omp parallel default(shared)
+#endif
+    {
+#ifdef _OPENMP
+#pragma omp for schedule(static) nowait
+#endif
+      for(int i=0; i<nFils; i++) {
+	// if(i%1000==0) std::cout << "computing on filament " << i << std::endl;
+	Filament * f= filament(i);
+	//moveCLNodes(f);
+	for( BondIterator b = f->bonds.begin(); b!= f->bonds.end(); b++ ) {
+	  (*b)->compute(f0,f1,f2);
+	}
+	// 	for( RodIterator r = f->rods.begin(); r!= f->rods.end(); r++ ) {
+	// 	  (*r)->compute(f0,f1,f2);
+	// 	}
+	for( AngleIterator a = f->angles.begin(); a!= f->angles.end(); a++ ) {
+	  (*a)->compute(f0,f1,f2);
+	}
+      }
+    }   
+
+    for( CrosslinkIterator c=_crosslinks.begin(); c!=_crosslinks.end(); c++) {
+      (*c)->compute(f0,f1,f2);
+    }
+
+    for( MotorIterator m=_motors.begin(); m!=_motors.end(); m++) {
+      if((*m)->isAttached()) (*m)->compute(f0,f1,f2);
+    }
+
+    int nPinches = _pinches.size();
+
+#ifdef _OPENMP	
+#pragma omp parallel default(shared)
+#endif
+    {
+#ifdef _OPENMP
+#pragma omp for schedule(static) nowait
+#endif
+      for(int pn=0; pn<nPinches; pn++) {
+        pinch(pn)->compute(f0,f1,f2);
+      }
+    }
+
+    int ntbp = _tbp.size();
+    double tbpenergy = 0.0;
+    if(ntbp!=0) {
+      std::map< Filament*,std::set<Filament*> > & filpairs = _grid->getNeighbors();
+      for(typename std::map< Filament*,std::set<Filament*> >::iterator fp = filpairs.begin(); fp!=filpairs.end(); fp++) {
+	Filament* fil1 = fp->first;
+	for(typename std::set<Filament*>::iterator partners=fp->second.begin(); partners!=fp->second.end(); partners++) {
+	  Filament* fil2 = *partners;
+	  if(fil1<fil2) {
+	    for(int tb=0; tb<ntbp; tb++) {
+	      tbpenergy += _tbp[tb]->compute(fil1->nodes,fil2->nodes,f0,f1,f2);
+	    }
+	  }
+	}
+      }
+    }
+
+    if(_viscReg!=0) {
+      _viscReg->compute(f0,f1,f2);
+    }
+
+    //checkParallelForces();
+    
+    // sum energy
+    if( f0 ) {
+      double tmpenergy = 0.0;
+#ifdef _OPENMP	
+#pragma omp parallel default(shared)
+#endif
+      {
+#ifdef _OPENMP
+#pragma omp for schedule(static) nowait reduction(+:tmpenergy)
+#endif
+	for(int i=0; i<nFils; i++) {
+	  // if(i%1000==0) std::cout << "computing on filament " << i << std::endl;
+	  Filament * f = filament(i);
+	  for( BondIterator b = f->bonds.begin(); b!= f->bonds.end(); b++ ) {
+	    tmpenergy += (*b)->energy();
+	  }
+	  for( AngleIterator a = f->angles.begin(); a!= f->angles.end(); a++ ) {
+	    tmpenergy += (*a)->energy();
+	  }
+	}
+      }
+      
+      for(CrosslinkIterator c=_crosslinks.begin(); c!=_crosslinks.end(); c++) {
+        tmpenergy += (*c)->energy();
+      }
+
+
+#ifdef _OPENMP	
+#pragma omp parallel default(shared)
+#endif
+      {
+#ifdef _OPENMP
+#pragma omp for schedule(static) nowait reduction(+:tmpenergy)
+#endif
+        for(int pn=0; pn<nPinches; pn++) {
+	  tmpenergy += pinch(pn)->energy();
+        }
+      }
+
+      if(_viscReg!=0) tmpenergy += _viscReg->energy();
+
+      _energy = tmpenergy + tbpenergy;
+
+      
+    } 
+
+    // Predictor/corrector approach for constraint
+
+#ifdef _OPENMP	
+#pragma omp parallel default(shared)
+#endif
+    {
+#ifdef _OPENMP
+#pragma omp for schedule(static) nowait
+#endif
+      for(int ic=0; ic<nConstraints; ic++) {
+	_constraints[ic]->correct();
+      }
+    }
+
+  }
+
+  template<int N>
+  void SemiflexibleGel<N>::printParaview(const std::string name) const {
+
+
+    return;
+
+  }
+  
+  template<int N>
+  void SemiflexibleGel<N>::storeGel(std::string fileName) {
+    int intSize = sizeof(int);
+    int doubleSize = sizeof(double);
+
+    std::ofstream outFile(fileName.data(), ios::out | ios::binary);
+    VectorND sysSize(_box->size());
+    for(int i=0; i<N; i++) {
+      double curSS = sysSize[i];
+      outFile.write((char *)(&curSS),doubleSize);
+    }
+    int nFils = _filaments.size();
+    outFile.write((char *)(&nFils),intSize);
+    
+    std::vector<intPair> slaveCLs(_constraints.size());
+    std::vector<intPair> tmpMastCLs(_constraints.size());
+    std::vector<intPair> mastCLs(_constraints.size());
+    std::multimap<DefNode*, int> slaveInds;
+    int sn = 0;
+    int mn = 0;
+    
+    for(int j=0; j<nFils; j++) {
+      Filament * f = filament(j);
+      int nNodesHere = f->nodes.size();
+      outFile.write((char *)(&nNodesHere),intSize);
+      for(int k=0; k<nNodesHere; k++) {
+	DefNode * curNode = f->nodes[k];
+	VectorND curPos(curNode->point());
+	VectorND refPos(curNode->position());
+	for(int kdof=0; kdof<N; kdof++) {
+	  double cpdof = curPos[kdof];
+	  outFile.write((char *)(&cpdof),doubleSize);
+	}
+	for(int kdof=0; kdof<N; kdof++) {
+	  double rpdof = refPos[kdof];
+	  outFile.write((char *)(&rpdof),doubleSize);
+	}
+	
+	CLNMiter cnmi = _crossNodeMap.find(curNode);
+	if(cnmi != _crossNodeMap.end()) {
+	  DefNode * mast = cnmi->second;
+	  
+	  if(mast != curNode) {
+	    slaveInds.insert(pair< DefNode*, int >(mast,sn));
+	    slaveCLs[sn] = pair< int, int >(j,k);
+	    sn++;
+	  }
+	  
+	  else if(mast == curNode) {
+	    tmpMastCLs[mn] = pair< int, int >(j,k);
+	    mn++;
+	  }
+	}
+      }
+    }
+
+    // write the number of crosslinks to the file //
+    int nCL = _constraints.size();
+    outFile.write((char *)(&nCL),intSize);
+    
+    // now go back and put master nodes in the right order //
+    std::vector<intPair>::iterator pairIter;
+    for(pairIter=tmpMastCLs.begin(); pairIter!=tmpMastCLs.end(); pairIter++) {
+      DefNode * curMast = filament(pairIter->first)->nodes[pairIter->second];
+      std::pair<SNiter, SNiter> sniter; 
+      // SNiter sniter;
+      sniter = slaveInds.equal_range(curMast);
+      // assert(sniter != slaveInds.end());
+      SNiter sni;
+      for(sni=sniter.first; sni!=sniter.second; sni++) {
+        int slaveInd = sni->second;
+	mastCLs[slaveInd] = *pairIter;
+      }
+      // int slaveInd = sniter->second; 
+      // mastCLs[slaveInd] = *pairIter;
+    }
+    
+    std::cout << "Gel storage consistency check: # of constraints in gel = " << nCL << ", # of slave nodes = " << slaveCLs.size() << ", # of master nodes = " << mastCLs.size() << "." << std::endl;
+    
+    for(int cl=0; cl<nCL; cl++) {
+      outFile.write((char *)(&(slaveCLs[cl].first)),intSize);
+      outFile.write((char *)(&(slaveCLs[cl].second)),intSize);
+      outFile.write((char *)(&(mastCLs[cl].first)),intSize);
+      outFile.write((char *)(&(mastCLs[cl].second)),intSize);
+    }
+
+    // now write out pinches //
+    int nPinches = _pinches.size();
+    assert(2.0*nPinches == _pinchNodes.size());
+    outFile.write((char *)(&nPinches),intSize);
+
+    std::map<DefNode*,DefNode*> pinchPartners;
+    for(PinchIterator pi=_pinches.begin(); pi!=_pinches.end(); pi++) {
+      std::pair<DefNode*,DefNode*> newPair = (*pi)->getNodes();
+      pinchPartners.insert(pair<DefNode*,DefNode*>(newPair));
+    }
+
+    std::map< DefNode*,pair<int,int> > partIDs;
+    for(int j=0; j<nFils; j++) {
+      Filament * ftmp = filament(j);
+      int nnds = ftmp->nodes.size();
+      for(int k=0; k<nnds; k++) {
+	DefNode* nodetmp = ftmp->nodes[k];
+	if(_pinchNodes.find(nodetmp) != _pinchNodes.end()) {
+	  std::pair<int,int> newIDPair = pair<int,int>(j,k);
+	  partIDs.insert(pair< DefNode*,pair<int,int> >(nodetmp,newIDPair));
+	}
+      }
+    }
+
+    int nPinchesWritten = 0;
+    for(int j=0; j<nFils; j++) {
+      Filament * ftmp = filament(j);
+      int nnds = ftmp->nodes.size();
+      for(int k=0; k<nnds; k++) {
+	DefNode* nodetmp = ftmp->nodes[k];
+	if(_pinchNodes.find(nodetmp) != _pinchNodes.end()) {
+	  if(pinchPartners.find(nodetmp) != pinchPartners.end()) { 
+	    outFile.write((char *)(&j),intSize);
+	    outFile.write((char *)(&k),intSize);
+	    std::pair<int,int> idPair = partIDs[pinchPartners[nodetmp]];
+	    int partj = idPair.first;
+	    int partk = idPair.second;
+	    outFile.write((char *)(&partj),intSize);
+	    outFile.write((char *)(&partk),intSize);
+	    nPinchesWritten++;
+	  }
+	}
+      }
+    }
+
+    assert(nPinchesWritten == nPinches);
+    
+    
+    std::cout << "Finished storing gel to file " << fileName << "; current file pointer position is " << outFile.tellp() << "." << std::endl;
+
+    outFile.close();
+  }
+
+  template<int N>
+  void SemiflexibleGel<N>::storeSparseGel(std::string fileName, TempFilamentContainer & tmpFils) {
+    int intSize = sizeof(int);
+    int doubleSize = sizeof(double);
+
+    std::ofstream outFile(fileName.data(), ios::out | ios::binary);
+    VectorND sysSize(_box->size());
+    for(int i=0; i<N; i++) {
+      double curSS = sysSize[i];
+      outFile.write((char *)(&curSS),doubleSize);
+    }
+    int nFils = tmpFils.size();
+    outFile.write((char *)(&nFils),intSize);
+    
+    int totalCrosslinks = 0;
+    for(int j=0; j<nFils; j++) {
+      for(int i=0; i<N; i++) {
+	double posi = tmpFils[j]->start[i];
+	outFile.write((char *)(&posi),doubleSize);
+      }
+      for(int i=0; i<N; i++) {
+	double posi = tmpFils[j]->end[i];
+	outFile.write((char *)(&posi),doubleSize);
+      }
+      typename multimap<double,TempCrosslink*>::iterator cls = tmpFils[j]->crossFils.begin();
+      for(cls; cls!=tmpFils[j]->crossFils.end(); cls++) {
+        if(cls->second->active && cls->second->baseFil == j) totalCrosslinks++;
+      }
+    }
+	
+    //assert(totalCrosslinks%2 == 0);
+    //totalCrosslinks /= 2;
+	
+    outFile.write((char *)(&totalCrosslinks),intSize);
+    int writtenCrosslinks = 0;
+    for(int j=0; j<nFils; j++) {
+      typename multimap<double,TempCrosslink*>::iterator cls = tmpFils[j]->crossFils.begin();
+      for(cls; cls!=tmpFils[j]->crossFils.end(); cls++) {
+	if(cls->second->active && cls->second->baseFil == j) {
+          int nCLFils = cls->second->otherFils.size();
+	  outFile.write((char *)(&nCLFils),intSize);
+	  typename map< int, VectorND >::iterator ofs = cls->second->otherFils.begin();
+	  for(ofs; ofs!=cls->second->otherFils.end(); ofs++) {
+	    int filind = ofs->first;
+            outFile.write((char *)(&filind),intSize);
+	    VectorND cllocalpos;
+	    cllocalpos = ofs->second;
+	    for(int i=0; i<N; i++) {
+	      double clposi = cllocalpos[i];
+	      outFile.write((char *)(&clposi),doubleSize);
+	    }
+          }
+	  //VectorND clpos = cls->second->location;
+	  //for(int i=0; i<N; i++) {
+	  //double clposi = clpos[i];
+	  //outFile.write((char *)(&clposi),doubleSize);
+	  //}
+	  writtenCrosslinks++;
+	}
+      }
+    }
+
+    assert(writtenCrosslinks == totalCrosslinks);
+    
+    std::cout << "Finished storing gel to file " << fileName << " with " << nFils << " filaments and " << writtenCrosslinks << " crosslinks; current file pointer position is " << outFile.tellp() << "." << std::endl;
+
+    outFile.close();
+  }
+
+
+  template<int N>
+  void SemiflexibleGel<N>::attachCrosslink(Clink * cl, const Filament * f1, const Filament * f2) {
+    int nNodesFil1 = f1->nodes.size();
+    int nNodesFil2 = f2->nodes.size();
+    DefNodeIterator node1Iter = f1->nodes.begin();
+    DefNodeIterator node2Iter = f2->nodes.begin();
+    DefNode * node1A = *node1Iter;
+    DefNode * node2A = *node2Iter;
+    DefNode * node1B = *(f1->nodes.end()-1);
+    DefNode * node2B = *(f2->nodes.end()-1);
+    VectorND x1A = node1A->point();
+    VectorND x1B = node1B->point();
+    VectorND x2A = node2A->point();
+    VectorND x2B = node2B->point();
+    VectorND xintersect1;
+    VectorND xintersect2;
+    double end_to_end1 = norm2(x1B-x1A);
+    double end_to_end2 = norm2(x2B-x1A);
+    double tol = (end_to_end1+end_to_end2)/2.0;
+
+    double a1,a2;
+    if(abs(x1B[0]-x1A[0]) > 1.0e-6 && abs(x2B[0]-x2A[0]) > 1.0e-6) {
+      a1 = (x1B[1]-x1A[1])/(x1B[0]-x1A[0]);
+      a2 = (x2B[1]-x2A[1])/(x2B[0]-x2A[0]);
+      xintersect1[0] = (x1A[1]-x2A[1]+a2*x2A[0]-a1*x1A[0])/(a2-a1);
+      xintersect1[1] = (a2*(x1A[1]-a1*x1A[0])-a1*(x2A[1]-a2*x2A[0]))/(a2-a1);
+    }
+    else if(abs(x1B[0]-x1A[0]) <= 1.0e-6 && abs(x2B[0]-x2A[0]) > 1.0e-6){
+      xintersect1[0] = x1A[0];
+      a2 = (x2B[1]-x2A[1])/(x2B[0]-x2A[0]);
+      xintersect1[1] = a2*x1A[0] + x2A[1] - a2*x2A[0];
+    }
+    else if(abs(x2B[0]-x2A[0]) <= 1.0e-6 && abs(x1B[0]-x1A[0]) > 1.0e-6) {
+      xintersect1[0] = x2A[0];
+      a1 = (x1B[1]-x1A[1])/(x1B[0]-x1A[0]);
+      xintersect1[1] = x1A[1] - a1*(x1A[0] - x2A[0]);
+    }
+    else {
+      xintersect1[0] = (x1A[0]+x2A[0])/2.0;
+      xintersect1[1] = 1.0e30;
+    }
+
+    int node_jump1 = min((int)(nNodesFil1*norm2(xintersect1-x1A)/end_to_end1),nNodesFil1-2);
+    int node_jump2 = min((int)(nNodesFil2*norm2(xintersect1-x2A)/end_to_end2),nNodesFil2-2);
+
+    if(dot(x1B-x1A,xintersect1-x1A)<0.0) {
+      node_jump1 = 0;
+    }
+
+    if(dot(x2B-x2A,xintersect1-x2A)<0.0) {
+      node_jump2 = 0;
+    }
+      
+    bool intersected = false;
+    int rad = 1;
+    int curRadCounter = 0;
+    int totCounter = 0;
+    int node1_offset = node_jump1;
+    int node2_offset = node_jump2;
+      
+    while(intersected == false && totCounter < (nNodesFil1-1)*(nNodesFil2-1)) {
+      if(node1_offset >= 0 && node2_offset >= 0 && node1_offset < nNodesFil1 - 1 && node2_offset < nNodesFil2 - 1 && (abs(node1_offset-node_jump1) >= (rad-1)/2 || abs(node2_offset-node_jump2) >= (rad-1)/2)) {
+	node1A = *(node1Iter + node1_offset);
+	node1B = *(node1Iter + node1_offset + 1);
+	node2A = *(node2Iter + node2_offset);
+	node2B = *(node2Iter + node2_offset + 1);
+	x1A = node1A->point();
+	x1B = node1B->point();
+	x2A = node2A->point();
+	x2B = node2B->point();
+	intersected = IntersectionFinder<N>::checkIntersection(x1A,x1B,x2A,x2B,xintersect1,xintersect2,tol,_box);
+	if(intersected == true) {
+	  double eps1 = norm2(xintersect1-x1A)/end_to_end1;
+	  double eps2 = norm2(xintersect2-x2A)/end_to_end2;
+	  cl->setPosition(node1A,node1B,node2A,node2B,eps1,eps2);
+	  addCrosslink(cl);
+	}
+	totCounter++;
+      }
+      curRadCounter++;
+      if(curRadCounter >= sqr(rad)) {
+	rad += 2;
+	curRadCounter = 0;
+      }
+	
+      node2_offset = node_jump2 - ((rad-1)/2) + curRadCounter%rad;
+      node1_offset = node_jump1 - ((rad-1)/2) + curRadCounter/rad;
+    }
+  }
+
+  template<int N>
+  bool SemiflexibleGel<N>::attachCrosslink(Filament * f1, Filament * f2, double kcl, double relax) {
+    bool doRelax = false;
+    if(relax > 0.0) {
+      doRelax = true;
+    }
+    bool attachedCL = false;
+    int nNodesFil1 = f1->nodes.size();
+    int nNodesFil2 = f2->nodes.size();
+    DefNodeContainer & f1nodes = f1->nodes;
+    DefNodeContainer & f2nodes = f2->nodes;
+    DefNode * node1A = f1nodes[0];
+    DefNode * node2A = f2nodes[0];
+    DefNode * node1B = f1nodes[nNodesFil1-1];
+    DefNode * node2B = f2nodes[nNodesFil2-1];
+    VectorND x1A = node1A->point();
+    VectorND x1B = node1B->point();
+    VectorND x2A = node2A->point();
+    VectorND x2B = node2B->point();
+    VectorND xintersect1;
+    VectorND xintersect2;
+    double end_to_end1 = norm2(x1B-x1A);
+    double end_to_end2 = norm2(x2B-x2A);
+    double tol = (end_to_end1+end_to_end2)/2.0;
+
+    double a1,a2;
+    if(abs(x1B[0]-x1A[0]) > 1.0e-6 && abs(x2B[0]-x2A[0]) > 1.0e-6) {
+      a1 = (x1B[1]-x1A[1])/(x1B[0]-x1A[0]);
+      a2 = (x2B[1]-x2A[1])/(x2B[0]-x2A[0]);
+      xintersect1[0] = (x1A[1]-x2A[1]+a2*x2A[0]-a1*x1A[0])/(a2-a1);
+      xintersect1[1] = (a2*(x1A[1]-a1*x1A[0])-a1*(x2A[1]-a2*x2A[0]))/(a2-a1);
+    }
+    else if(abs(x1B[0]-x1A[0]) <= 1.0e-6 && abs(x2B[0]-x2A[0]) > 1.0e-6){
+      xintersect1[0] = x1A[0];
+      a2 = (x2B[1]-x2A[1])/(x2B[0]-x2A[0]);
+      xintersect1[1] = a2*x1A[0] + x2A[1] - a2*x2A[0];
+    }
+    else if(abs(x2B[0]-x2A[0]) <= 1.0e-6 && abs(x1B[0]-x1A[0]) > 1.0e-6) {
+      xintersect1[0] = x2A[0];
+      a1 = (x1B[1]-x1A[1])/(x1B[0]-x1A[0]);
+      xintersect1[1] = x1A[1] - a1*(x1A[0] - x2A[0]);
+    }
+    else {
+      xintersect1[0] = (x1A[0]+x2A[0])/2.0;
+      xintersect1[1] = 1.0e30;
+    }
+
+    int node_jump1 = min((int)(nNodesFil1*norm2(xintersect1-x1A)/end_to_end1),nNodesFil1-2);
+    int node_jump2 = min((int)(nNodesFil2*norm2(xintersect1-x2A)/end_to_end2),nNodesFil2-2);
+
+    if(dot(x1B-x1A,xintersect1-x1A)<0.0) {
+      node_jump1 = 0;
+    }
+
+    if(dot(x2B-x2A,xintersect1-x2A)<0.0) {
+      node_jump2 = 0;
+    }
+    
+    bool intersected = false;
+    int ctr1 = 0;
+    int node1_offset = node_jump1;
+    
+    while(intersected == false && ctr1 < (nNodesFil1-1)) {
+      int ctr2 = 0;
+      int node2_offset = node_jump2;
+      while(intersected == false && ctr2 < (nNodesFil2-1)) {
+	node1A = f1nodes[node1_offset];
+	node1B = f1nodes[node1_offset+1];
+	node2A = f2nodes[node2_offset];
+	node2B = f2nodes[node2_offset+1];
+	x1A = node1A->point();
+	x1B = node1B->point();
+	x2A = node2A->point();
+	x2B = node2B->point();
+	end_to_end1 = norm2(x1B-x1A);
+	end_to_end2 = norm2(x2B-x2A);
+	tol = (end_to_end1+end_to_end2)/2.0;
+	intersected = IntersectionFinder<N>::checkIntersection(x1A,x1B,x2A,x2B,xintersect1,xintersect2,tol,_box);
+	if(intersected == true) {
+	  double eps1 = norm2(xintersect1-x1A)/end_to_end1;
+	  double eps2 = norm2(xintersect2-x2A)/end_to_end2;
+	  if(kcl >= 0.0) { // if the crosslink spring constant is non-negative, add real crosslink //
+	    attachedCL = true;
+	    Clink * cl = new Crosslink<N>(node1A,node1B,node2A,node2B,eps1,eps2,kcl,_box,doRelax);
+	    addCrosslink(cl);
+	    
+	    int clposlow = 0;
+	    int clposhigh = f1->clinks.size();
+	    while(clposhigh - clposlow > 1) {
+	      int clposcur = (clposhigh + clposlow)/2;
+	      if(node1_offset + eps1 >= f1->clinks[clposcur]) clposlow = clposcur;
+	      else clposhigh = clposcur;
+	    }
+	    if(clposhigh == 0) f1->clinks.push_back(node1_offset+eps1);
+	    else if(f1->clinks.size() == 1) {
+	      if(node1_offset + eps1 < f1->clinks[0]) {
+		std::vector< double >::iterator clq = f1->clinks.begin();
+		f1->clinks.insert(clq,node1_offset+eps1);
+	      }
+	      else f1->clinks.push_back(node1_offset+eps1);
+	    }
+	    else if(clposlow == 0) {
+	      if(node1_offset + eps1 < f1->clinks[0]) {
+		std::vector< double >::iterator clq = f1->clinks.begin();
+		f1->clinks.insert(clq,node1_offset+eps1);
+	      }
+	      else {
+		std::vector< double >::iterator clq = f1->clinks.begin();
+		f1->clinks.insert(clq+1,node1_offset+eps1);
+	      }
+	    }
+	    else if(clposhigh == f1->clinks.size()) {
+	      if(node1_offset + eps1 >= f1->clinks[clposhigh-1]) f1->clinks.push_back(node1_offset+eps1);
+	      else {
+		std::vector< double >::iterator clq = f1->clinks.end();
+		f1->clinks.insert(clq-1,node1_offset+eps1);
+	      }
+	    }
+	    else {
+	      std::vector< double >::iterator clq = f1->clinks.begin();
+	      f1->clinks.insert(clq+clposhigh,node1_offset+eps1);
+	    }
+
+	    clposlow = 0;
+	    clposhigh = f2->clinks.size();
+	    while(clposhigh - clposlow > 1) {
+	      int clposcur = (clposhigh + clposlow)/2;
+	      if(node2_offset + eps2 >= f2->clinks[clposcur]) clposlow = clposcur;
+	      else clposhigh = clposcur;
+	    }
+	    if(clposhigh == 0) f2->clinks.push_back(node2_offset+eps2);
+	    else if(f2->clinks.size() == 1) {
+	      if(node2_offset + eps2 < f2->clinks[0]) {
+		std::vector< double >::iterator clq = f2->clinks.begin();
+		f2->clinks.insert(clq,node2_offset+eps2);
+	      }
+	      else f2->clinks.push_back(node2_offset+eps2);
+	    }
+	    else if(clposlow == 0) {
+	      if(node2_offset + eps2 < f2->clinks[0]) {
+		std::vector< double >::iterator clq = f2->clinks.begin();
+		f2->clinks.insert(clq,node2_offset+eps2);
+	      }
+	      else {
+		std::vector< double >::iterator clq = f2->clinks.begin();
+		f2->clinks.insert(clq+1,node2_offset+eps2);
+	      }
+	    }
+	    else if(clposhigh == f2->clinks.size()) {
+	      if(node2_offset + eps2 >= f2->clinks[clposhigh-1]) f2->clinks.push_back(node2_offset+eps2);
+	      else {
+		std::vector< double >::iterator clq = f2->clinks.end();
+		f2->clinks.insert(clq-1,node2_offset+eps2);
+	      }
+	    }
+	    else {
+	      std::vector< double >::iterator clq = f2->clinks.begin();
+	      f2->clinks.insert(clq+clposhigh,node2_offset+eps2);
+	    }
+	  }
+	  else { // a negative crosslink spring constant means we glue nodes together //
+	    VectorND AA,BB,AB,BA;
+	    AA = x1A - x2A;
+	    BB = x1B - x2B;
+	    AB = x1A - x2B;
+	    BA = x1B - x2A;
+	    _box->mapDistance(AA);
+	    _box->mapDistance(BB);
+	    _box->mapDistance(AB);
+	    _box->mapDistance(BA);
+	    double AAlen,BBlen,ABlen,BAlen;
+	    AAlen = norm2(AA);
+	    BBlen = norm2(BB);
+	    ABlen = norm2(AB);
+	    BAlen = norm2(BA);
+	    // create a map to put distance/node pair pairs in so that they are sorted //
+	    std::multimap < double, pair<DefNode*,DefNode*> > CLpairs;
+	    CLpairs.insert(pair<double,pair<DefNode*,DefNode*> >(AAlen,pair<DefNode*,DefNode*>(node1A,node2A)));
+	    CLpairs.insert(pair<double,pair<DefNode*,DefNode*> >(ABlen,pair<DefNode*,DefNode*>(node1A,node2B)));
+	    CLpairs.insert(pair<double,pair<DefNode*,DefNode*> >(BAlen,pair<DefNode*,DefNode*>(node1B,node2A)));
+	    CLpairs.insert(pair<double,pair<DefNode*,DefNode*> >(BBlen,pair<DefNode*,DefNode*>(node1B,node2B)));
+	    typename multimap< double,pair<DefNode*,DefNode*> >::iterator mi = CLpairs.begin();
+	    while(!attachedCL && mi!=CLpairs.end()) {
+	      //std::vector< pair<DefNode*,DefNode*> > pinPairs;
+	      //if(_crossNodeMap.find((mi->second).first) == _crossNodeMap.end() && _crossNodeMap.find((mi->second).second) != _crossNodeMap.end()) {
+ 	      //  pinPairs.push_back(pair<DefNode*,DefNode*>((mi->second).first,_crossNodeMap[(mi->second).second])); 
+	      //}
+	      //else if(_crossNodeMap.find((mi->second).first) != _crossNodeMap.end() && _crossNodeMap.find((mi->second).second) == _crossNodeMap.end()) {
+              //  pinPairs.push_back(pair<DefNode*,DefNode*>((mi->second).second,_crossNodeMap[(mi->second).first]));
+	      //}
+	      //else if(_crossNodeMap.find((mi->second).first) == _crossNodeMap.end() && _crossNodeMap.find((mi->second).second) == _crossNodeMap.end()) {
+              //  pinPairs.push_back(pair<DefNode*,DefNode*>((mi->second).second,(mi->second).first));
+	      //pinPairs.push_back(pair<DefNode*,DefNode*>((mi->second).first,(mi->second).first));
+	      //}	
+
+  	      //if(relax>0.0 && pinPairs.size()!=0) {
+	      // check to make sure induced bending isn't too much; if it is, clear out pinPairs //
+	      //VectorND smdiff;
+	      //smdiff = (pinPairs[0].second)->point() - (pinPairs[0].first)->point();
+	      //_box->mapDistance(smdiff);
+	      //smdiff += (pinPairs[0].first)->point();
+	      //(pinPairs[0].first)->setPoint(smdiff);
+	      //double energycost = 0.0;
+	      //for(AngleIterator ai=f1->angles.begin(); ai!=f1->angles.end(); ai++) {
+	      //  (*ai)->compute(true,false,false);
+	      //  energycost += (*ai)->energy();
+	      //}
+	      //for(BondIterator bi=f1->bonds.begin(); bi!=f1->bonds.end(); bi++) {
+	      //  (*bi)->compute(true,false,false);
+	      //  energycost += (*bi)->energy();
+	      //}
+	      //for(AngleIterator ai=f2->angles.begin(); ai!=f2->angles.end(); ai++) {
+	      //  (*ai)->compute(true,false,false);
+	      //  energycost += (*ai)->energy();
+	      //}
+	      //for(BondIterator bi=f2->bonds.begin(); bi!=f2->bonds.end(); bi++) {
+	      //  (*bi)->compute(true,false,false);
+	      //  energycost += (*bi)->energy();
+	      //}
+	      //
+	      //(pinPairs[0].first)->setPoint((pinPairs[0].first)->position());
+		
+	      //	if(energycost > relax) {
+	      //	  pinPairs.clear();
+	      //	  std::cout << "Crosslink would force excessive bending prestress (" << energycost << " > " << relax << "); deleting." << std::endl;
+	      //	}
+	      //    }
+	      
+	      //if(pinPairs.size()!=0) {
+	      //  PeriodicTie<N> * pt = new PeriodicTie<N>(pinPairs[0].second,pinPairs[0].first,_box,true);
+	      //addConstraint(pt);
+	      //for(int pct=0; pct<pinPairs.size(); pct++) {
+	      //  _crossNodeMap.insert(pinPairs[pct]);
+	      //}
+	      //attachedCL = true;
+	      //}
+	
+	      if(_crossNodeMap.find((mi->second).first) == _crossNodeMap.end() && _crossNodeMap.find((mi->second).second) == _crossNodeMap.end()) {
+	        PeriodicTie<N> * pt = new PeriodicTie<N>((mi->second).first,(mi->second).second,_box,doRelax);
+		addConstraint(pt);
+		_crossNodeMap.insert(pair<DefNode*,DefNode*>((mi->second).second,(mi->second).first));
+		_crossNodeMap.insert(pair<DefNode*,DefNode*>((mi->second).first,(mi->second).first));
+		attachedCL = true;
+	      }
+       
+	      mi++;
+	    }
+	    // 	    if(_crossNodeMap.find(node1A) == _crossNodeMap.end() && _crossNodeMap.find(node2A) == _crossNodeMap.end()) {
+	    // 	      PeriodicTie<N> * pt = new PeriodicTie<N>(node1A,node2A,_box);
+	    // 	      addConstraint(pt);
+	    // 	      _crossNodeMap.insert(pair< DefNode*, DefNode* >(node2A,node1A));
+	    // 	      _crossNodeMap.insert(pair< DefNode*, DefNode* >(node1A,node1A));
+	    // // 	      std::cout << "Added crosslink # " << _constraints.size() << std::endl;
+	    // 	      attachedCL = true;
+	    // 	    }
+	    // 	    else if(_crossNodeMap.find(node1A) == _crossNodeMap.end() && _crossNodeMap.find(node2B) == _crossNodeMap.end()) {
+	    // 	      PeriodicTie<N> * pt = new PeriodicTie<N>(node1A,node2B,_box);
+	    // 	      addConstraint(pt);
+	    // 	      _crossNodeMap.insert(pair< DefNode*, DefNode* >(node2B,node1A));
+	    // 	      _crossNodeMap.insert(pair< DefNode*, DefNode* >(node1A,node1A));
+	    // // 	      std::cout << "Added crosslink # " << _constraints.size() << std::endl;
+	    // 	      attachedCL = true;
+	    // 	    }
+	    // 	    else if(_crossNodeMap.find(node1B) == _crossNodeMap.end() && _crossNodeMap.find(node2B) == _crossNodeMap.end()) {
+	    // 	      PeriodicTie<N> * pt = new PeriodicTie<N>(node1B,node2B,_box);
+	    // 	      addConstraint(pt);
+	    // 	      _crossNodeMap.insert(pair< DefNode*, DefNode* >(node2B,node1B));
+	    // 	      _crossNodeMap.insert(pair< DefNode*, DefNode* >(node1B,node1B));
+	    // // 	      std::cout << "Added crosslink # " << _constraints.size() << std::endl;
+	    // 	      attachedCL = true;
+	    // 	    }
+	    // 	    else if(_crossNodeMap.find(node1B) == _crossNodeMap.end() && _crossNodeMap.find(node2A) == _crossNodeMap.end()) {
+	    // 	      PeriodicTie<N> * pt = new PeriodicTie<N>(node1B,node2A,_box);
+	    // 	      addConstraint(pt);
+	    // 	      _crossNodeMap.insert(pair< DefNode*, DefNode* >(node2A,node1B));
+	    // 	      _crossNodeMap.insert(pair< DefNode*, DefNode* >(node1B,node1B));
+	    // // 	      std::cout << "Added crosslink # " << _constraints.size() << std::endl;
+	    // 	      attachedCL = true;
+	    // 	    }
+	  }
+	}
+	ctr2++;
+	node2_offset = (node_jump2+ctr2)%(nNodesFil2-1);
+      }
+      ctr1++;
+      node1_offset = (node_jump1+ctr1)%(nNodesFil1-1);
+    }
+    
+    return attachedCL;
+  }
+  
+  template<int N>
+  double SemiflexibleGel<N>::crosslinkenergy() {
+    double clen = 0.0;
+    for(ConstCrosslinkIterator c=_crosslinks.begin(); c!=_crosslinks.end(); c++) {
+      clen += (*c)->energy();
+    }
+    return clen;
+  }
+
+  template<int N>
+  double SemiflexibleGel<N>::bendingenergy() {
+    double ben = 0.0;
+    for(ConstFilamentIterator f=_filaments.begin(); f!=_filaments.end(); f++) {
+      for(ConstAngleIterator a=((*f)->angles).begin(); a!=((*f)->angles).end(); a++) {
+	ben += (*a)->energy();
+      }
+    }
+    return ben;
+  }
+  
+  template<int N>
+  double SemiflexibleGel<N>::stretchingenergy() {
+    double sten = 0.0;
+    for(ConstFilamentIterator f=_filaments.begin(); f!=_filaments.end(); f++) {
+      for(ConstBondIterator b=((*f)->bonds).begin(); b!=((*f)->bonds).end(); b++) {
+	sten += (*b)->energy();
+      }
+    }
+    return sten;
+  }
+
+  template<int N>
+  double SemiflexibleGel<N>::motorenergy() {
+    double moten = 0.0;
+    for(MotorIterator mi=_motors.begin(); mi!=_motors.end(); mi++) {
+      moten += (*mi)->energy();
+    }
+    return moten;
+  }
+
+  template<int N>
+  double SemiflexibleGel<N>::pinchenergy() {
+    double pinchen = 0.0;
+    for(PinchIterator pi=_pinches.begin(); pi!=_pinches.end(); pi++) {
+      pinchen += (*pi)->energy();
+    }
+    return pinchen;
+  }
+
+  template<int N>
+  double SemiflexibleGel<N>::parallelenergy() {
+    double paren = 0.0;
+    for(ConstFilamentIterator f=_filaments.begin(); f!=_filaments.end(); f++) {
+      int nNodes = (*f)->nodes.size();
+      VectorND diff;
+      diff = (*f)->nodes[nNodes-1]->position() - (*f)->nodes[0]->position();
+      double ang = atan2(diff[1],diff[0]);
+      if(abs(cos(ang)) > abs(sin(ang))) {
+	for(ConstBondIterator b=((*f)->bonds).begin(); b!=((*f)->bonds).end(); b++) {
+	  paren += (*b)->energy();
+	}
+	for(ConstAngleIterator a=((*f)->angles).begin(); a!=((*f)->angles).end(); a++) {
+	  paren += (*a)->energy();
+	}
+      }
+    }
+    return paren;
+  }
+
+  template<int N>
+  double SemiflexibleGel<N>::perpenergy() {
+    double perpen = 0.0;
+    for(ConstFilamentIterator f=_filaments.begin(); f!=_filaments.end(); f++) {
+      int nNodes = (*f)->nodes.size();
+      VectorND diff;
+      diff = (*f)->nodes[nNodes-1]->position() - (*f)->nodes[0]->position();
+      double ang = atan2(diff[1],diff[0]);
+      if(abs(cos(ang)) <= abs(sin(ang))) {
+	for(ConstBondIterator b=((*f)->bonds).begin(); b!=((*f)->bonds).end(); b++) {
+	  perpen += (*b)->energy();
+	}
+	for(ConstAngleIterator a=((*f)->angles).begin(); a!=((*f)->angles).end(); a++) {
+	  perpen += (*a)->energy();
+	}
+      }
+    }
+    return perpen;
+  }
+
+  template<int N>
+  void SemiflexibleGel<N>::cutOffEndsandCCD(double kcl, DefNodeContainer & dNodes) {
+    // compute crosslink dist. and cut off ends //
+    int totalCLseps = 0;
+    int nNodesBefore = dNodes.size();
+    dNodes.clear();
+    int nNodesCutOff = 0;
+    int id = 0;
+    NodeBase::DofIndexMap idx(N);
+    if(kcl  > 0.0) {
+      int nFils = _filaments.size();
+      std::cerr << "Cutting off dangling ends with springy crosslinks not implemented yet!" << std::endl;
+      //      for(int i=0; i<nFils; i++) {
+      // 	Filament * fcur = filament(i);
+      // 	for(std::vector< double >::iterator cls = fcur->clinks.begin()+1; cls!=fcur->clinks.end(); cls++) {
+      // 	  double pos_prev = *(cls-1);
+      // 	  double pos_cur = *(cls);
+      // 	  int curSep = ((int)pos_cur) - ((int)pos_prev);
+      // 	  if(_crossDistFreqs.find(curSep) == _crossDistFreqs.end()) {
+      // 	    _crossDistFreqs.insert(pair< int, int >(curSep,1));
+      // 	  }
+      // 	  else {
+      // 	    _crossDistFreqs[curSep] += 1;
+      // 	  }
+      // 	  totalCLseps++;
+      // 	  _meanCLsep += (pos_cur - pos_prev);
+      // 	}
+      //       }
+    }
+    else {
+      int i = 0;
+      int nFils = _filaments.size();
+      while(i<nFils) {
+	Filament * fcur = filament(i);
+	bool hitFirstCL = false;
+	bool cutOffFirst = false;
+
+	// erase nodes before first crosslink, and also erase angle springs, etc. from filaments //
+	while(fcur->nodes.size() > 0 && _crossNodeMap.find(*(fcur->nodes.begin())) == _crossNodeMap.end()) {
+	  (fcur->nodes).erase(fcur->nodes.begin());
+	  nNodesCutOff++;
+	  if(cutOffFirst) {
+	    if(fcur->bonds.size() > 0) {
+	      fcur->bonds.erase(fcur->bonds.begin());
+	    }
+	    if(fcur->rods.size() > 0) {
+	      fcur->rods.erase(fcur->rods.begin());
+	    }
+	    if(fcur->angles.size() > 0) {
+	      fcur->angles.erase(fcur->angles.begin());
+	    }
+	  }
+	  else cutOffFirst = true;
+	}
+	if(cutOffFirst) {
+	  if(fcur->bonds.size() > 0) {
+	    fcur->bonds.erase(fcur->bonds.begin());
+	  }
+	  if(fcur->rods.size() > 0) {
+	    fcur->rods.erase(fcur->rods.begin());
+	  }
+	  if(fcur->angles.size() > 0) {
+	    fcur->angles.erase(fcur->angles.begin());
+	  }
+	}
+
+	// now erase stuff after last crosslink //
+	cutOffFirst = false;
+	while(fcur->nodes.size() > 0 && _crossNodeMap.find(*(fcur->nodes.end()-1)) == _crossNodeMap.end()) {
+	  (fcur->nodes).erase(fcur->nodes.end()-1);
+	  nNodesCutOff++;
+	  if(cutOffFirst) {
+	    if(fcur->bonds.size() > 0) {
+	      fcur->bonds.erase(fcur->bonds.end()-1);
+	    }
+	    if(fcur->rods.size() > 0) {
+	      fcur->rods.erase(fcur->rods.end()-1);
+	    }
+	    if(fcur->angles.size() > 0) {
+	      fcur->angles.erase(fcur->angles.end()-1);
+	    }
+	  }
+	  else cutOffFirst = true;
+	}
+	if(cutOffFirst) {
+	  if(fcur->bonds.size() > 0) {
+	    fcur->bonds.erase(fcur->bonds.end()-1);
+	  }
+	  if(fcur->rods.size() > 0) {
+	    fcur->rods.erase(fcur->rods.end()-1);
+	  }
+	  if(fcur->angles.size() > 0) {
+	    fcur->angles.erase(fcur->angles.end()-1);
+	  }
+	}
+	i++;
+      }
+      
+      // now repopulate node container (for solver) with remaining nodes and reset node IDs //
+      i = 0;
+      while(i<nFils) {
+	Filament * fcur = filament(i);
+	for(DefNodeIterator fn=fcur->nodes.begin(); fn!=fcur->nodes.end(); fn++) {
+	  if(_crossNodeMap.find(*fn) == _crossNodeMap.end() || _crossNodeMap[*fn] == *fn) {
+	    dNodes.push_back(*fn);
+	    for(int k=0; k<N; k++) {
+	      idx[k] = N*id + k;
+	    }
+	    (*fn)->setId(id);
+	    (*fn)->setIndex(idx);
+	    id++;
+	  }
+	  else {
+	    DefNode * mastNode = _crossNodeMap[*fn];
+	    (*fn)->setId(mastNode->id());
+	    (*fn)->setIndex(mastNode->index());
+	  }
+	}
+	if(fcur->nodes.size() > 1) {
+	  i++;
+	  // check consistency of filament //
+	  if(fcur->angles.size() != fcur->nodes.size()-2 || fcur->rods.size() != fcur->nodes.size()-1 || fcur->bonds.size() != fcur->nodes.size()-1) {
+	    std::cerr << "# of angles/rods/bonds in filament incorrect after end chop!" << std::endl;
+	  }
+	  else {
+	    int nn = 0;
+	    for(AngleIterator ai = fcur->angles.begin(); ai != fcur->angles.end(); ai++) {
+	      if((*ai)->baseNodes()[0] != fcur->nodes[nn] || (*ai)->baseNodes()[1] != fcur->nodes[nn+1] || (*ai)->baseNodes()[2] != fcur->nodes[nn+2]) {
+		std::cerr << "Angle springs are messed up" << std::endl;
+	      }
+	      nn++;
+	    }
+	    nn = 0;
+	    for(BondIterator bi = fcur->bonds.begin(); bi != fcur->bonds.end(); bi++) {
+	      if((*bi)->baseNodes()[0] != fcur->nodes[nn] || (*bi)->baseNodes()[1] != fcur->nodes[nn+1]) {
+		std::cerr << "Bond springs are messed up" << std::endl;
+	      }
+	      nn++;
+	    }
+	    nn = 0;
+	    for(RodIterator ri = fcur->rods.begin(); ri != fcur->rods.end(); ri++) {
+	      if((*ri)->baseNodes()[0] != fcur->nodes[nn] || (*ri)->baseNodes()[1] != fcur->nodes[nn+1]) {
+		std::cerr << "Brownian rods are messed up" << std::endl;
+	      }
+	      nn++;
+	    }
+	  }
+	}
+	else {
+	  if(fcur->nodes.size()==0) {
+	    std::cout << "Filament with 0 nodes encountered; removing filament." << std::endl;
+	    nFils--;
+	    FilamentIterator fi = _filaments.begin();
+	    _filaments.erase(fi+i);
+	  }
+	  else {
+	    if(fcur->angles.size() !=0 || fcur->bonds.size()!=0 || fcur->rods.size()!=0) {
+	      std::cerr << "# of angles/rods/bonds in filament incorrect after end chop!" << std::endl;
+	    }
+	    std::cout << "Filament with 1 node encountered; keeping filament." << std::endl;
+	    i++;
+	  }
+	}
+      }
+    }
+    std::cout << "Consistency check: beginning # of nodes = " << nNodesBefore << ", # of nodes cut off = " << nNodesCutOff << ", so expected size of container = " 
+	      << nNodesBefore-nNodesCutOff << "; actual size of container = " << dNodes.size() << "." << std::endl;
+  }
+
+
+  template<int N>
+  std::map< std::pair<double,double>, std::pair<double,double> > SemiflexibleGel<N>::getAngularEnergyDistro() {
+    compute(true,false,false);
+    std::cout << "Energy check: gel energy = " << _energy << std::endl;
+    double minl = 0.0;
+    double maxl = M_PI;
+    double stdd = 0.0;
+    double avgAng = 0.0;
+    int nFils = _filaments.size();
+    std::multimap<double, Filament *> filAngles;
+    //std::multimap<double,double> angEnergies;
+    for(int i=0; i<nFils; i++) {
+      Filament * fil = filament(i);
+      VectorND e2e;
+      e2e = fil->nodes[fil->nodes.size()-1]->position() - fil->nodes[0]->position();
+      double ang = atan2(e2e[1],e2e[0]);
+      if(ang<0.0) ang += M_PI;
+      //double filEner = 0.0;
+      //for(BondIterator bi=fil->bonds.begin(); bi!=fil->bonds.end(); bi++) {
+      //filEner += (*bi)->energy();
+      //}
+      //for(AngleIterator ai=fil->angles.begin(); ai!=fil->angles.end(); ai++) {
+      //filEner += (*ai)->energy();
+      //}
+      //filEner /= _energy;
+      ///angEnergies.insert(pair<double,double>(ang,filEner));
+      filAngles.insert(pair<double,Filament *>(ang,fil));
+      avgAng += ang/nFils;
+      stdd += sqr(ang)/nFils;
+    }
+    stdd = stdd - sqr(avgAng);
+    stdd = sqrt(stdd);
+    //double binwidth = 3.49*stdd/pow(nFils,1.0/3.0);
+    //int nBins = (int)(floor((maxl-minl)/binwidth)+.5);
+    int nBins = 18;
+    double checkEner = 0.0;
+    double binwidth = (maxl-minl)/nBins;
+    double minVal = minl;
+    std::map< doublePair, doublePair > angEnergyMap;
+    for(int i=0; i<nBins; i++) {
+      typename std::multimap<double,Filament*>::iterator lenIt;
+      typename std::multimap<double,Filament*>::iterator lenItHigh;
+      double curHigh = minVal + (i+1.0)*binwidth;
+      lenItHigh = filAngles.lower_bound(curHigh);
+      double meanAng = 0.0;
+      double totEner = 0.0;
+      double bendEner = 0.0;
+      double stretchEner = 0.0;
+      int nPts = 0;
+      for(lenIt = filAngles.begin(); lenIt!=lenItHigh; lenIt++) {
+	meanAng += lenIt->first;
+	double filEner = 0.0;
+	for(BondIterator bi=lenIt->second->bonds.begin(); bi!=lenIt->second->bonds.end(); bi++) {
+	  filEner += (*bi)->energy();
+	  stretchEner +=(*bi)->energy();
+	}
+	for(AngleIterator ai=lenIt->second->angles.begin(); ai!=lenIt->second->angles.end(); ai++) {
+	  filEner += (*ai)->energy();
+	  bendEner += (*ai)->energy();
+	}
+	totEner += filEner;
+	nPts++;
+      }
+      meanAng /= nPts;
+      double dnPts = (double)(nPts);
+      doublePair angPair = pair<double, double>(meanAng,totEner);
+      doublePair enerPair = pair<double, double>(bendEner,stretchEner);
+      angEnergyMap.insert(pair<doublePair,doublePair>(angPair,enerPair));
+      filAngles.erase(filAngles.begin(),lenItHigh);
+    }
+
+    assert(filAngles.size()==0);
+
+    return angEnergyMap;
+  }
+
+  template<int N>
+  std::multimap< double, std::vector<double> > SemiflexibleGel<N>::getDensityEnergyDistro(double scale) {
+    VectorND sysSize;
+    sysSize = _box->size();
+    int nBoxesX = (int)(sysSize[0]/scale);
+    int nBoxesY = (int)(sysSize[1]/scale);
+    VectorND gridSizes;
+    gridSizes[0] = sysSize[0]/nBoxesX;
+    gridSizes[1] = sysSize[1]/nBoxesY;
+    
+    double lengthdens[nBoxesX][nBoxesY];
+    double bendenergs[nBoxesX][nBoxesY];
+    double stretchenergs[nBoxesX][nBoxesY];
+    for(int nx=0; nx<nBoxesX; nx++) {
+      for(int ny=0; ny<nBoxesY;ny++) {
+	lengthdens[nx][ny] = 0.0;
+	bendenergs[nx][ny] = 0.0;
+	stretchenergs[nx][ny] = 0.0;
+      }
+    }
+    
+    multimap< double, vector<double> > finalData;
+
+    int nF = _filaments.size();
+    for(int i=0; i<nF; i++) {
+      Filament * f = filament(i);
+      int nNodes = f->nodes.size();
+      for(int j=0; j<nNodes-1; j++) {
+	DefNode * node1 = f->nodes[j];
+	DefNode * node2 = f->nodes[j+1];
+	VectorND com;
+	com = .5*(node1->position() + node2->position());
+	int nxbox = (int)(com[0]/gridSizes[0]);
+	int nybox = (int)(com[1]/gridSizes[1]);
+	if(nxbox<nBoxesX && nybox<nBoxesY) {
+	  double bondLength = norm2(node1->position()-node2->position());
+	  lengthdens[nxbox][nybox] += bondLength;
+	  stretchenergs[nxbox][nybox] += f->bonds[j]->energy();
+	}
+      }
+      for(int j=1; j<nNodes-1; j++) {
+	DefNode * node1 = f->nodes[j];
+	DefNode * node2 = f->nodes[j+1];
+	VectorND com;
+	com = node1->position();
+	int nxbox = (int)(com[0]/gridSizes[0]);
+	int nybox = (int)(com[1]/gridSizes[1]);
+	if(nxbox<nBoxesX && nybox<nBoxesY) {
+	  bendenergs[nxbox][nybox] += f->angles[j-1]->energy();
+	}
+      }
+    }
+    
+    for(int nx=0; nx<nBoxesX; nx++) {
+      for(int ny=0; ny<nBoxesY;ny++) {
+	std::vector<double> ens;
+	double totalE = bendenergs[nx][ny] + stretchenergs[nx][ny];
+	ens.push_back(totalE);
+	ens.push_back(bendenergs[nx][ny]);
+	ens.push_back(stretchenergs[nx][ny]);
+	double lengthDens = lengthdens[nx][ny]/(gridSizes[0]*gridSizes[1]);
+	finalData.insert(pair< double, vector<double> >(lengthDens,ens));
+      }
+    }
+
+    return finalData;
+  }
+
+  template<int N>
+  std::vector< std::pair<double, double> > SemiflexibleGel<N>::energyCorrelationFunction(double boxs, double maxlen) {
+    std::vector< std::pair<double, double> > enCorrs;
+
+    VectorND boxsize;
+    for(int i=0; i<N; i++) boxsize[i] = boxs;
+    tvmet::Vector<int,N> nCells;
+    int nBoxes = 1;
+    for(int i=0; i<N; i++) {
+      nCells[i] = (int)(_box->size()[i]/boxsize[i]);
+      boxsize[i] = _box->size()[i]/nCells[i];
+      nBoxes *= nCells[i];
+    }
+    
+    tvmet::Vector<int,N> mults;
+    int curMult = nBoxes;
+    for(int i=0; i<N; i++) {
+      curMult /= nCells[i];
+      mults[i] = curMult;
+    }
+    
+    std::vector<double> energies(nBoxes);
+    for(FilamentIterator f=_filaments.begin(); f!=_filaments.end(); f++) {
+      int nNodes = (*f)->nodes.size();
+      for(int b=0; b<nNodes-1; b++) {
+	VectorND com;
+	com = .5*((*f)->nodes[b]->position() + (*f)->nodes[b+1]->position());
+	_box->mapPoint(com);
+	tvmet::Vector<int,N> coords;
+	int idx = 0;
+	for(int i=0; i<N; i++) {
+	  coords[i] = (int)(com[i]/boxsize[i]);
+	  coords[i] = coords[i]%nCells[i];
+	  idx += mults[i]*coords[i];
+	}
+	// 	std::cout << "Troubleshoot: coords = (" 
+	// 		  << coords[0] << ", " << coords[1] << "); index = " 
+	// 		  << idx << "; grid dimensions = ("
+	// 		  << nCells[0] << ", " << nCells[1] << ")."
+	// 		  << std::endl;
+	assert(idx < nBoxes);
+	assert(idx >= 0);
+	energies[idx] += (*f)->bonds[b]->energy();
+      }
+      for(int a=1; a<nNodes-1; a++) {
+	VectorND com;
+	com = (*f)->nodes[a]->position();
+	_box->mapPoint(com);
+	tvmet::Vector<int,N> coords;
+	int idx = 0;
+	for(int i=0; i<N; i++) {
+	  coords[i] = (int)(com[i]/boxsize[i]);
+	  coords[i] = coords[i]%nCells[i];
+	  idx += mults[i]*coords[i];
+	}
+	assert(idx < nBoxes);
+	assert(idx >= 0);
+	energies[idx] += (*f)->angles[a-1]->energy();
+      }
+    }
+
+    double minr = 0.0;
+    double maxr = maxlen;
+    double stepr = 2.0*max(boxsize[0],boxsize[1]);
+    int nSteps = (int)((maxr-minr)/stepr);
+    VectorND curGridSize;
+    VectorND oldGridSize;
+    for(int k=0; k<N; k++) curGridSize[k] = stepr + 0.5*max(boxsize[0],boxsize[1]);
+    oldGridSize = curGridSize;
+
+    std::map<DefNode*,double> enmap;
+
+    NodeGrid* nodegrid = new Grid<DefNode,BaseDefNode,2>();
+    nodegrid->setBox(_box);
+    nodegrid->setPosFunc(&DeformationNode<2>::position);
+    nodegrid->setGridSpace(curGridSize);
+    nodegrid->setComputeNeighbors(false);
+
+    curGridSize = nodegrid->gridSpace();
+
+    NodeBase::DofIndexMap doidx(N);
+
+    double meanen = 0.0;
+    double corrval = 0.0;
+    for(int nn=0; nn<nBoxes; nn++) {
+      tvmet::Vector<int,N> coords;
+      VectorND centpos;
+      int nnleft = nn;
+      for(int k=0; k<N; k++) {
+	doidx[k] = nn*N + k;
+	coords[k] = nnleft/mults[k];
+	nnleft = nnleft - mults[k]*coords[k];
+	centpos[k] = (coords[k]+.5)*boxsize[k];
+      }
+      meanen += energies[nn];
+
+      //       std::cout << "Troubleshoot: index = "
+      // 		<< nn << "; coords = ("
+      // 		<< coords[0] << ", " << coords[1] << ")."
+      // 		<< std::endl;
+
+      DefNode * newNode = new BrownianNode<N>(nn,doidx,centpos,centpos);
+      newNode->setId(nn);
+      enmap.insert(pair<DefNode*,double>(newNode,energies[nn]));
+      nodegrid->addElem(newNode);
+    }
+    meanen /= nBoxes;
+
+    for(int nn=0; nn<nBoxes; nn++) corrval += sqr(energies[nn]-meanen);
+    corrval /= nBoxes;
+    
+    std::pair<double, double> firstPair = pair<double, double>(0.0,corrval);
+    enCorrs.push_back(firstPair);
+    
+    // get pairs, compute corrval, repeat with different grid sizes
+    for(int ns=1; ns<=nSteps; ns++) {
+      int nSamps = 0;
+      corrval = 0.0;
+      oldGridSize = curGridSize;
+      double curdist = ns*stepr;
+      for(int k=0; k<N; k++) curGridSize[k] = curdist + 0.5*max(boxsize[0],boxsize[1]);
+      nodegrid->resetGridSpace(curGridSize);
+      curGridSize = nodegrid->gridSpace();
+      std::cout << "Current desired node separation = " << curdist << "; current grid size = (" << curGridSize[0] << ", " << curGridSize[1] << ")." << std::endl;
+      assert(min(curGridSize[0],curGridSize[1]) >= curdist + 0.5*max(boxsize[0],boxsize[1]));
+      int nGridBoxes = nodegrid->nBoxes();
+      for(int nb=0; nb<nGridBoxes; nb++) {
+	std::map< DefNode*, std::set<DefNode*> > pairs = nodegrid->getNeighbors(nb);
+	for(typename map< DefNode*, set<DefNode*> >::iterator pairit=pairs.begin(); pairit!=pairs.end(); pairit++) {
+	  DefNode* node1 = pairit->first;
+	  for(typename set<DefNode*>::iterator partit=pairit->second.begin(); partit!=pairit->second.end(); partit++) {
+	    DefNode* node2 = *partit;
+	    if(node1<node2) {
+	      VectorND sep;
+	      sep = node1->position() - node2->position();
+	      _box->mapDistance(sep);
+	      if(fabs(norm2(sep)-curdist) < 0.5*max(boxsize[0],boxsize[1])) {
+		nSamps++;
+		corrval += (enmap[node1]-meanen)*(enmap[node2]-meanen);
+	      }
+	    }
+	  }
+	}
+      }
+      corrval /= nSamps;
+      std::pair<double,double> curPair = pair<double,double>(curdist,corrval);
+      enCorrs.push_back(curPair);
+    }
+    
+    for(typename map<DefNode*,double>::iterator ni=enmap.begin(); ni!=enmap.end(); ni++) {
+      delete ni->first;
+    }
+
+    return enCorrs;
+  }
+
+  template<int N>
+  void SemiflexibleGel<N>::computeCrossDistro(double kcl) {
+    _meanCLsep = 0.0;
+    double stdd = 0.0;
+    int totalCLseps = 0;
+    _crossDistFreqs.clear();
+    int nFils = _filaments.size();
+    if(kcl  > 0.0) {
+      for(int i=0; i<nFils; i++) {
+	Filament * fcur = filament(i);
+	for(std::vector< double >::iterator cls = fcur->clinks.begin()+1; cls!=fcur->clinks.end(); cls++) {
+	  double pos_prev = *(cls-1);
+	  double pos_cur = *(cls);
+	  int curSep = ((int)pos_cur) - ((int)pos_prev);
+	  if(_crossDistFreqs.find(curSep) == _crossDistFreqs.end()) {
+	    _crossDistFreqs.insert(pair< int, int >(curSep,1));
+	  }
+	  else {
+	    _crossDistFreqs[curSep] += 1;
+	  }
+	  totalCLseps++;
+	  _meanCLsep += (pos_cur - pos_prev);
+	}
+      }
+    }
+    else {
+      std::multiset<double> clLengths;
+      double maxl = -1.0;
+      double minl = 1.0e30;
+      for(int i=0; i<nFils; i++) {
+	Filament * fcur = filament(i);
+	double curDist;
+	bool hitFirstCL = false;
+	int nNodesHere = fcur->nodes.size();
+	for(int fn=0; fn<nNodesHere; fn++) {
+	  DefNode* dn = fcur->nodes[fn];
+	  if(_crossNodeMap.find(dn) != _crossNodeMap.end() || _crosslinkNodes.find(dn) != _crosslinkNodes.end()) {
+	    if(hitFirstCL) {
+	      _meanCLsep += curDist;
+	      stdd += sqr(curDist);
+	      clLengths.insert(curDist);
+	      if(curDist < minl) minl = curDist;
+	      if(curDist > maxl) maxl = curDist;
+	      if(fn!=nNodesHere-1) curDist = fcur->bonds[fn]->getLength();
+	      if(dn == _crossNodeMap[dn]) {
+                int nclsHere = _nSlavesMap[dn]-1;
+		for(int icl=0; icl<nclsHere; icl++) clLengths.insert(0.0);
+              }
+	    }
+	    else {
+	      if(fn!=nNodesHere-1) curDist = fcur->bonds[fn]->getLength();
+	      hitFirstCL = true;
+	      if(dn == _crossNodeMap[dn]) {
+                int nclsHere = _nSlavesMap[dn]-1;
+		for(int icl=0; icl<nclsHere; icl++) clLengths.insert(0.0);
+              }
+            }
+	  }
+	  else {
+	    if(hitFirstCL) {
+	      if(fn!=nNodesHere-1) curDist += fcur->bonds[fn]->getLength();
+	    }
+	  }
+	}
+      }
+      totalCLseps = clLengths.size();
+      stdd /= totalCLseps;
+      stdd = stdd - sqr(_meanCLsep/totalCLseps);
+      stdd = sqrt(stdd);
+      double binwidth = 3.49*stdd/pow(totalCLseps,1.0/3.0);
+      int nBins = (int)((maxl-minl)/binwidth) + 2;
+      double minVal = minl-.5*binwidth;
+      for(int i=0; i<nBins; i++) {
+        multiset<double>::iterator lenItHigh;
+        double curHigh = minVal + (i+1.0)*binwidth;
+        lenItHigh = clLengths.lower_bound(curHigh);
+        int numPts = clLengths.size();
+        clLengths.erase(clLengths.begin(),lenItHigh);
+        _crossDistFreqs.insert(pair<double,int>(curHigh-.5*binwidth,numPts-clLengths.size()));
+      }
+
+      assert(clLengths.size()==0);
+
+    }
+    _meanCLsep /= totalCLseps;
+  }
+
+  template<int N>
+  void SemiflexibleGel<N>::computeFilLenDistro() {
+    _filLenFreqs.clear();
+    _meanFilLen = 0.0;
+    double stdd = 0.0;
+    double minl = 1.0e30;
+    double maxl = -1.0;
+    int nFils = _filaments.size();
+    std::multiset<double> filLengths;
+    for(int i=0; i<nFils; i++) {
+      Filament * fil = filament(i);
+      double dist = 0.0;
+      for(BondIterator bi=fil->bonds.begin(); bi!=fil->bonds.end(); bi++) {
+	dist += (*bi)->getLength();
+      }
+      filLengths.insert(dist);
+      if(dist < minl) minl = dist;
+      if(dist > maxl) maxl = dist;
+      _meanFilLen += dist/nFils;
+      stdd += sqr(dist)/nFils;
+    }
+    stdd = stdd - sqr(_meanFilLen);
+    stdd = sqrt(stdd);
+    double binwidth = 3.49*stdd/pow(nFils,1.0/3.0);
+    int nBins = (int)((maxl-minl)/binwidth) + 2;
+    double minVal = minl-.5*binwidth;
+    for(int i=0; i<nBins; i++) {
+      multiset<double>::iterator lenItHigh;
+      double curHigh = minVal + (i+1.0)*binwidth;
+      lenItHigh = filLengths.lower_bound(curHigh);
+      int numPts = filLengths.size();
+      filLengths.erase(filLengths.begin(),lenItHigh);
+      _filLenFreqs.insert(pair<double,int>(curHigh-.5*binwidth,numPts-filLengths.size()));
+    }
+
+    //assert(filLengths.size()==0);
+  }
+
+  template<int N>
+  void SemiflexibleGel<N>::computeNematicOP() {
+    double nemOP;
+    VectorND nemDirector;
+    if(N==2) {
+      Tensor2D nemTensor(0.0);
+      int nFils = _filaments.size();
+      for(int i=0; i<nFils; i++) {
+	Filament * fil = filament(i);
+	VectorND e2e;
+	e2e = fil->nodes[fil->nodes.size()-1]->point() - fil->nodes[0]->point();
+	double ang = atan2(e2e[1],e2e[0]);
+	nemTensor(0,0) += (2.0*sqr(cos(ang)) - 1.0)/nFils;
+	nemTensor(1,1) += (2.0*sqr(sin(ang)) - 1.0)/nFils;
+	nemTensor(0,1) += (2.0*cos(ang)*sin(ang))/nFils;
+      }
+      nemTensor(1,0) = nemTensor(0,1);
+      
+      // now solve for largest eigenvalue and associated eigenvector //
+      double lam1 = .5*(nemTensor(0,0)+nemTensor(1,1) + sqrt(sqr(nemTensor(0,0)-nemTensor(1,1))+sqr(2.0*nemTensor(0,1))));
+      //double lam2 = .5*(nemTensor(0,0)+nemTensor(1,1) - sqrt(sqr(nemTensor(0,0)-nemTensor(1,1))+sqr(2.0*nemTensor(0,1))));
+      nemOP = lam1;
+      double v1 = 1.0/sqrt(1.0 + sqr((nemTensor(0,0)+nemTensor(0,1)-lam1)/(nemTensor(1,1)+nemTensor(0,1)-lam1)));
+      double v2 = -v1*(nemTensor(0,0)+nemTensor(0,1)-lam1)/(nemTensor(1,1)+nemTensor(0,1)-lam1);
+      nemDirector[0] = v1;
+      nemDirector[1] = v2;
+    }
+
+    _nematicOP = nemOP;
+    _nemDirector = nemDirector;
+  }
+
+  template<int N>
+  void SemiflexibleGel<N>::computeNematicDistro(double nemAngle) {
+    _nematicFreqs.clear();
+    _nematicOP = 0.0;
+    double avgAng = 0.0;
+    double stdd = 0.0;
+    double minl = -M_PI;
+    double maxl = M_PI;
+    int nFils = _filaments.size();
+    std::multiset<double> filAngles;
+    for(int i=0; i<nFils; i++) {
+      Filament * fil = filament(i);
+      VectorND e2e;
+      e2e = fil->nodes[fil->nodes.size()-1]->point() - fil->nodes[0]->point();
+      double ang = atan2(e2e[1],e2e[0]);
+      ang -= nemAngle;
+      if(ang <= -M_PI) ang += 2.0*M_PI;
+      else if(ang > M_PI) ang -= 2.0*M_PI;
+      assert(fabs(ang) <= M_PI);
+      filAngles.insert(ang);
+      _nematicOP += cos(2.0*ang)/nFils;
+      avgAng += ang/nFils;
+      stdd += sqr(ang)/nFils;
+    }
+    stdd = stdd - sqr(avgAng);
+    stdd = sqrt(stdd);
+    double binwidth = 3.49*stdd/pow(nFils,1.0/3.0);
+    int nBins = (int)(floor((maxl-minl)/binwidth)+.5);
+    binwidth = (maxl-minl)/nBins;
+    double minVal = minl;
+    for(int i=0; i<nBins; i++) {
+      multiset<double>::iterator lenItHigh;
+      double curHigh = minVal + (i+1.0)*binwidth;
+      lenItHigh = filAngles.lower_bound(curHigh);
+      int numPts = filAngles.size();
+      filAngles.erase(filAngles.begin(),lenItHigh);
+      _nematicFreqs.insert(pair<double,int>(curHigh-.5*binwidth,numPts-filAngles.size()));
+    }
+
+    assert(filAngles.size()==0);
+  }
+
+  template<int N>
+  void SemiflexibleGel<N>::printAngles(std::string & angleFile) {
+    std::vector<double> angs;
+    for(FilamentIterator fi=_filaments.begin(); fi!=_filaments.end(); fi++) {
+      if((*fi)->nodes.size() > 1) {
+	int nNodes = (*fi)->nodes.size();
+	VectorND e2e;
+	e2e = (*fi)->nodes[nNodes-1]->position() - (*fi)->nodes[0]->position();
+	double ang = atan2(e2e[1],e2e[0]);
+	angs.push_back(ang);
+      }
+    }
+    std::ofstream angFile(angleFile.c_str());
+    for(vector<double>::iterator ai=angs.begin(); ai!=angs.end(); ai++) {
+      angFile << *ai << std::endl;
+    }
+    angFile.close();
+  }
+  template<int N>
+  
+  std::vector< std::pair<double, std::pair< double, double > > > SemiflexibleGel<N>::affineMeasurementHeadLevine(double minLength, double stepSize, double maxLength, double shear, double largestFil, bool getAngularDist=false) {
+    std::cout << "Beginning Head/Levine affine measurement." << std::endl;
+
+    doublePairWErrorsContainer affdata;
+    DefNodeContainer nodes4triangulation;
+    // add nodes to container for triangulation //
+    //     Vector2D maxPos(_box->size());
+    //     Vector2D minPos(0.0);
+    //     for(FilamentIterator fi=_filaments.begin(); fi!=_filaments.end(); fi++) {
+    //       for(DefNodeIterator dni=(*fi)->nodes.begin(); dni!=(*fi)->nodes.end(); dni++) {
+    // 	if((*dni)->position()[0] > maxPos[0]) maxPos[0] = (*dni)->position()[0];
+    // 	if((*dni)->position()[1] > maxPos[1]) maxPos[1] = (*dni)->position()[1];
+    // 	if((*dni)->position()[0] < minPos[0]) minPos[0] = (*dni)->position()[0];
+    // 	if((*dni)->position()[1] < minPos[1]) minPos[1] = (*dni)->position()[1];
+    //       }
+    //     }
+
+    for(FilamentIterator fi=_filaments.begin(); fi!=_filaments.end(); fi++) {
+      bool itNodes = true;
+      if(largestFil > 0.0) {
+	int nNds = (*fi)->nodes.size();
+	VectorND e2e;
+	e2e = (*fi)->nodes[nNds-1]->position() - (*fi)->nodes[0]->position();
+	if(norm2(e2e) > largestFil) itNodes = false;
+      } 
+      if(itNodes) {
+	for(DefNodeIterator dni=(*fi)->nodes.begin(); dni!=(*fi)->nodes.end(); dni++) {
+	  // 	if(isMaster(*dni)) {
+	  // 	  Vector2D tmpPos;
+	  // 	  Vector2D tmpDef;
+	  // 	  tmpPos = (*dni)->position();
+	  // 	  tmpDef = (*dni)->point() - (*dni)->position();
+	  // 	  _box->mapPoint(tmpPos);
+	  // 	  tmpDef += tmpPos;
+	  // 	  DefNode* newNode = new BrownianNode<2>((*dni)->id(),(*dni)->index(),tmpPos,tmpDef);
+	  // 	  newNode->setId((*dni)->id());
+	  // 	  nodes4triangulation.push_back(newNode);
+	  // 	}
+	  if(!isSlave(*dni)) {
+	    // 	  Vector2D tmpPos;
+	    // 	  Vector2D tmpDef;
+	    //  	  tmpPos = (*dni)->position() - minPos;
+	    //  	  tmpDef = (*dni)->point() - minPos;
+	    // 	  //tmpPos = (*dni)->position();
+	    // 	  //_box->setShear(0.0);
+	    // 	  //_box->mapPoint(tmpPos);
+	    // 	  //tmpDef = (*dni)->point() - tmpPos;
+	    // 	  //_box->setShear(shear);
+	    // 	  //_box->mapDistance(tmpDef);
+	    // 	  //tmpDef += tmpPos;
+	    // 	  DefNode* newNode = new BrownianNode<2>((*dni)->id(),(*dni)->index(),tmpPos,tmpDef);
+	    // 	  newNode->setId((*dni)->id());
+	    nodes4triangulation.push_back(*dni);
+	  }
+	}
+      }
+    }
+
+    // figure out how many different box sizes to use //
+    //int nSteps = (int)(log2(syssize/(2.0*minLength)));
+    int nSteps = (int)((maxLength-minLength)/stepSize);
+
+    // create new grid with nodes' position (not point) as relevant location //
+    Vector2D gridSpace;
+    gridSpace[0] = minLength;
+    gridSpace[1] = minLength;
+    NodeGrid* nodegrid = new Grid<DefNode,BaseDefNode,2>();
+    //PeriodicBox tmpBox(0.0,0.0);
+    //Vector2D boxSize;
+    //boxSize = maxPos - minPos;
+    //if(boxSize[0] > boxSize[1]) boxSize[1] = boxSize[0];
+    //else boxSize[0] = boxSize[1];
+    //tmpBox.setSize(boxSize);
+    nodegrid->setBox(_box);
+    //nodegrid->setBox(&tmpBox);
+    nodegrid->setPosFunc(&DeformationNode<2>::position);
+    nodegrid->setGridSpace(gridSpace);
+    nodegrid->setComputeNeighbors(false);
+    nodegrid->addElems(nodes4triangulation);
+
+    char angdistfile[256];
+    if(getAngularDist) {
+      std::cout << "Please enter a file name in which to put the angular distribution data for each distance: ";
+      std::cin >> angdistfile;
+    }
+
+    
+    double oldGridSize = 0.0;
+    // for each length scale, find all pairs of points in range //
+    for(int j=0; j<nSteps; j++) {
+      // get new grid size, reset grid spacing, and add new elements //
+      //double gridSize = minLength*pow(2.0,j);
+      double gridSize = minLength + j*stepSize;
+      for(int i=0; i<2; i++) gridSpace[i] = gridSize;
+      nodegrid->resetGridSpace(gridSpace);
+      gridSpace = nodegrid->gridSpace();
+      gridSize = gridSpace[0];
+      if(abs(gridSize-oldGridSize) > 1.0e-6) {
+	oldGridSize = gridSize;
+	std::cout << "new grid size = (" << gridSpace[0] << ", " << gridSpace[1] << ")" << std::endl;
+	//nodegrid->addElems(nodes4triangulation);
+	// get pairs //
+	int nBoxes = nodegrid->nBoxes();
+	double meandev = 0.0;
+	double err = 0.0;
+	int nSamps = 0;
+	std::vector< std::pair<double,double> > angdata;
+	std::vector<int> nAngSamps;
+	if(getAngularDist) {
+	  angdata.clear();
+	  for(int ia=0; ia<16; ia++) {
+	    double centang = (ia*M_PI/16.0) + M_PI/32.0;
+	    std::pair<double,double> newPair = pair<double,double>(centang,0.0);
+	    angdata.push_back(newPair);
+	    nAngSamps.push_back(0);
+	  }
+	  ofstream angdatfile(angdistfile, ios::app);
+	  angdatfile << "#r = " << gridSpace[0] << std::endl;
+	  angdatfile.close();
+	}
+	for(int k=0; k<nBoxes; k++) {
+	  //std::map< DefNode*, std::set< DefNode * > > nodePairs = nodegrid->getNeighbors(k);
+	  std::set< DefNode * > & boxNodes = nodegrid->getBoxElems(k);
+	  DefNodeContainer neighbNodes = nodegrid->getBoxNeighbors(k);
+	  for(typename std::set< DefNode * >::iterator bn=boxNodes.begin(); bn!=boxNodes.end(); bn++) {
+	    //for(int nd1=0; nd1<nBoxNodes; nd1++) {
+	    //for(typename std::map< DefNode *, std::set< DefNode * > >::iterator npiter=nodePairs.begin(); npiter!=nodePairs.end(); npiter++) {
+	    //DefNode * node1 = npiter->first;
+	    DefNode * node1 = *bn;
+	    for(typename std::set< DefNode * >::iterator bn2=bn; bn2!=boxNodes.end(); bn2++) {
+	      if(bn2 != bn) {
+		DefNode * node2 = *bn2;
+		VectorND diff;
+		diff = node1->position() - node2->position();
+		if(fabs(norm2(diff)-gridSize)/gridSize < 1.0e-2) {
+		  nSamps++;
+		  double thetaAff = atan2(diff[1],diff[0]+(shear*diff[1]));
+		  VectorND finaldiff;
+		  finaldiff = node1->point() - node2->point();
+		  double thetaActual = atan2(finaldiff[1],finaldiff[0]);
+		  double dTheta = fabs(thetaActual-thetaAff) < M_PI ? thetaActual-thetaAff : 2.0*M_PI-fabs(thetaActual-thetaAff);
+		  dTheta = sqr(dTheta);
+		  meandev += dTheta;
+		  err += sqr(dTheta);
+		  if(getAngularDist) {
+		    double tht = atan2(diff[1],diff[0]);
+		    if(tht < 0) tht += M_PI;
+		    int angindex = (int)(16.0*tht/M_PI);
+		    angindex = angindex % 16;
+		    nAngSamps[angindex]++;
+		    angdata[angindex].second = angdata[angindex].second + dTheta;
+		  }
+		}
+		else {
+		  _box->setShear(0.0);
+		  _box->mapDistance(diff);
+		  if(fabs(norm2(diff)-gridSize)/gridSize < 1.0e-2) {
+		    nSamps++;
+		    double thetaAff = atan2(diff[1],diff[0]+(shear*diff[1]));
+		    VectorND finaldiff;
+		    finaldiff = node1->point() - node2->point();
+		    _box->setShear(shear);
+		    _box->mapDistance(finaldiff);
+		    double thetaActual = atan2(finaldiff[1],finaldiff[0]);
+		    double dTheta = fabs(thetaActual-thetaAff) < M_PI ? thetaActual-thetaAff : 2.0*M_PI-fabs(thetaActual-thetaAff);
+		    dTheta = sqr(dTheta);
+		    meandev += dTheta;
+		    err += sqr(dTheta);  
+		    _box->setShear(0.0);
+		    if(getAngularDist) {
+		      double tht = atan2(diff[1],diff[0]);
+		      if(tht < 0) tht += M_PI;
+		      int angindex = (int)(16.0*tht/M_PI);
+		      angindex = angindex % 16;
+		      nAngSamps[angindex]++;
+		      angdata[angindex].second = angdata[angindex].second + dTheta;
+		    }
+		  }
+		}
+	      }
+	    }
+	    int nNeighbNodes = neighbNodes.size();
+	    for(int nd2=0; nd2<nNeighbNodes; nd2++) {
+	      //for(typename std::set< DefNode * >::iterator partiter=npiter->second.begin(); partiter!=npiter->second.end(); partiter++) {
+	      //DefNode * node2 = *partiter;
+	      DefNode * node2 = neighbNodes[nd2];
+	      if(node1 < node2) {
+		VectorND diff;
+		diff = node1->position() - node2->position();
+		if(fabs(norm2(diff)-gridSize)/gridSize < 1.0e-2) {
+		  nSamps++;
+		  double thetaAff = atan2(diff[1],diff[0]+(shear*diff[1]));
+		  VectorND finaldiff;
+		  finaldiff = node1->point() - node2->point();
+		  double thetaActual = atan2(finaldiff[1],finaldiff[0]);
+		  double dTheta = fabs(thetaActual-thetaAff) < M_PI ? thetaActual-thetaAff : 2.0*M_PI-fabs(thetaActual-thetaAff);
+		  dTheta = sqr(dTheta);
+		  meandev += dTheta;
+		  err += sqr(dTheta);
+		  if(getAngularDist) {
+		    double tht = atan2(diff[1],diff[0]);
+		    if(tht < 0) tht += M_PI;
+		    int angindex = (int)(16.0*tht/M_PI);
+		    angindex = angindex % 16;
+		    nAngSamps[angindex]++;
+		    angdata[angindex].second = angdata[angindex].second + dTheta;
+		  }
+		}
+		else {
+		  _box->setShear(0.0);
+		  _box->mapDistance(diff);
+		  if(fabs(norm2(diff)-gridSize)/gridSize < 1.0e-2) {
+		    nSamps++;
+		    double thetaAff = atan2(diff[1],diff[0]+(shear*diff[1]));
+		    VectorND finaldiff;
+		    finaldiff = node1->point() - node2->point();
+		    _box->setShear(shear);
+		    _box->mapDistance(finaldiff);
+		    double thetaActual = atan2(finaldiff[1],finaldiff[0]);
+		    double dTheta = fabs(thetaActual-thetaAff) < M_PI ? thetaActual-thetaAff : 2.0*M_PI-fabs(thetaActual-thetaAff);
+		    dTheta = sqr(dTheta);
+		    meandev += dTheta;
+		    err += sqr(dTheta);  
+		    _box->setShear(0.0);
+		    if(getAngularDist) {
+		      double tht = atan2(diff[1],diff[0]);
+		      if(tht < 0) tht += M_PI;
+		      int angindex = (int)(16.0*tht/M_PI);
+		      angindex = angindex % 16;
+		      nAngSamps[angindex]++;
+		      angdata[angindex].second = angdata[angindex].second + dTheta;
+		    }
+		  }
+		}
+	      }
+	    }
+	  }
+	}
+
+	// compute mean and error of the mean //
+	meandev /= nSamps;
+	err /= nSamps;
+	err = err - sqr(meandev);
+	err *= (nSamps/(nSamps-1.0));
+	err = sqrt(err);
+	err /= sqrt(nSamps);
+	meandev /= sqr(shear);
+	err /= sqr(shear);
+	
+	// add data point to return value //
+	
+	std::pair<double, double> dp = pair<double,double>(meandev,err);
+	doublePairWErrors newdatpt = std::pair<double, std::pair<double, double> >(gridSize,dp);
+	affdata.push_back(newdatpt);
+	
+	if(getAngularDist) {
+	  ofstream angdatfile(angdistfile, ios::app);
+	  angdatfile << "#theta\tna_tot\tna_avg" << std::endl;
+	  int nAngSlices = angdata.size();
+	  for(int ait=0; ait<nAngSlices; ait++) {
+	    angdata[ait].second = angdata[ait].second/nAngSamps[ait];
+	    angdata[ait].second /= sqr(shear);
+	    angdatfile << angdata[ait].first << "\t" << nAngSamps[ait]*angdata[ait].second << "\t" << angdata[ait].second << std::endl;
+	  }
+	  angdatfile << std::endl;
+	  angdatfile.close();
+	}
+      }
+    }
+    
+    return affdata;
+  }
+
+  template<int N>
+  
+  std::vector< std::pair<double, std::pair< double, double > > > SemiflexibleGel<N>::affineMeasurementHeadLevineInterpolated(double minLength, double stepSize, double maxLength, double shear, double largestFil) {
+    std::cout << "Beginning Head/Levine affine measurement with node interpolation." << std::endl;
+    
+    doublePairWErrorsContainer affdata;
+    FilamentContainer fils4affmeasure;
+    
+    for(FilamentIterator fi=_filaments.begin(); fi!=_filaments.end(); fi++) {
+      bool itFil = true;
+      if(largestFil > 0.0) {
+	int nNds = (*fi)->nodes.size();
+	VectorND e2e;
+	e2e = (*fi)->nodes[nNds-1]->position() - (*fi)->nodes[0]->position();
+	if(norm2(e2e) > largestFil) itFil = false;
+      } 
+      if(itFil) fils4affmeasure.push_back(*fi);
+    }
+  
+      
+    // figure out how many different box sizes to use //
+    //int nSteps = (int)(log2(syssize/(2.0*minLength)));
+    int nSteps = (int)((maxLength-minLength)/stepSize);
+
+    int nFils4measure = fils4affmeasure.size();
+    
+
+    for(int n=0; n<nSteps; n++) {
+      double cursep = minLength + n*stepSize;
+      double meandev = 0.0;
+      std::cout << "current length scale: " << cursep << "." << std::endl;
+      double err = 0.0;
+      int nSamps = 0;
+      for(int i=0; i<nFils4measure; i++) {
+	Filament * f1 = fils4affmeasure[i];
+	int nNodes1 = f1->nodes.size();
+	VectorND f1e2e;
+	f1e2e = f1->nodes[nNodes1-1]->position() - f1->nodes[0]->position();
+	double f1len = norm2(f1e2e);
+	VectorND f1com;
+	f1com = .5*(f1->nodes[nNodes1-1]->position() + f1->nodes[0]->position());
+	for(int j=i; j<nFils4measure; j++) {
+	  Filament * f2 = fils4affmeasure[j];
+	  int nNodes2 = f2->nodes.size();
+	  VectorND f2e2e;
+	  f2e2e = f2->nodes[nNodes2-1]->position() - f2->nodes[0]->position();
+	  double f2len = norm2(f2e2e);
+	  VectorND f2com;
+	  f2com = .5*(f2->nodes[nNodes2-1]->position() + f2->nodes[0]->position());
+	  VectorND sep;
+	  sep = f1com - f2com;
+	  _box->setShear(0.0);
+	  _box->mapDistance(sep);
+	  if(norm2(sep) <= .5*(f1len+f2len)+(1.0+1.0e-2)*cursep) {
+	    if(i==j) {
+	      for(int ni=0; ni<nNodes1; ni++) {
+		if(!isSlave(f1->nodes[ni])) {
+		  VectorND n1pos; 
+		  n1pos= f1->nodes[ni]->position();
+		  VectorND dfrome;
+		  dfrome = n1pos - f1->nodes[0]->position();
+		  double eps = (norm2(dfrome)+cursep)/f1len;
+		  if(eps < 1.0) {
+		    int ilow = 0;
+		    int ihigh = nNodes1-1;
+		    while(ihigh-ilow > 1) {
+		      int icur = (ihigh+ilow)/2;
+		      VectorND n2pos;
+		      n2pos = f2->nodes[icur]->position();
+		      VectorND nodesep;
+		      nodesep = n2pos - f1->nodes[0]->position();
+		      if(norm2(nodesep)/f1len < eps) ilow = icur;
+		      else ihigh = icur;
+		    }
+		    if(!isSlave(f2->nodes[ilow]) && !isSlave(f2->nodes[ihigh])) {
+		      VectorND lowend;
+		      lowend = f2->nodes[ilow]->position() - f2->nodes[0]->position();
+		      double loweps = norm2(lowend)/f2len;
+		      double extradist = f2len*(eps-loweps);
+		      VectorND seg;
+		      seg = f2->nodes[ihigh]->position() - f2->nodes[ilow]->position();
+		      eps = extradist/norm2(seg);
+		      assert(eps <= 1.0);
+		      VectorND interpoint;
+		      interpoint = eps*(f2->nodes[ihigh]->position()) + (1.0-eps)*(f2->nodes[ilow]->position());
+		      VectorND initsep;
+		      initsep = interpoint - n1pos;
+		      assert(abs(norm2(initsep)-cursep) < 1.0e-6);
+		      double thetaAff = atan2(initsep[1],initsep[0]+(shear*initsep[1]));
+		      VectorND finalpoint;
+		      finalpoint = eps*(f2->nodes[ihigh]->point()) + (1.0-eps)*(f2->nodes[ilow]->point());
+		      VectorND finalsep;
+		      finalsep = finalpoint - f1->nodes[ni]->point();
+		      double thetaActual = atan2(finalsep[1],finalsep[0]);
+		      double dTheta = fabs(thetaActual-thetaAff) < M_PI ? thetaActual-thetaAff : 2.0*M_PI-fabs(thetaActual-thetaAff);
+		      dTheta = sqr(dTheta);
+		      meandev += dTheta;
+		      err += sqr(dTheta);
+		      nSamps++;
+		    }
+		  }
+		  
+		}
+	      }
+		
+	    } // end "if filaments are the same..."
+	    else {
+	      for(int ni=0; ni<nNodes1; ni++) {
+		if(!isSlave(f1->nodes[ni])) {
+		  VectorND n1pos; 
+		  n1pos= f1->nodes[ni]->position();
+		  VectorND a;
+		  a = f2->nodes[0]->position() - n1pos;
+		  _box->setShear(0.0);
+		  _box->mapDistance(a);
+		  double dotp = dot(f2e2e,a);
+		  double inrootq = ((sqr(cursep)-sqr(norm2(a)))*sqr(f2len)) + sqr(dotp);
+		  if(inrootq >= 0.0) inrootq = sqrt(inrootq);
+		  double eps1 = -dotp + inrootq;
+		  double eps2 = -dotp - inrootq;
+		  eps1 /= sqr(f2len);
+		  eps2 /= sqr(f2len);
+		  int oldilow = -1;
+		  if(eps1<1.0 && eps1>0.0 && inrootq>=0.0) {
+		    int ilow = 0;
+		    int ihigh = nNodes2-1;
+		    while(ihigh-ilow > 1) {
+		      int icur = (ihigh+ilow)/2;
+		      VectorND n2pos;
+		      n2pos = f2->nodes[icur]->position();
+		      VectorND nodesep;
+		      nodesep = n2pos - f2->nodes[0]->position();
+		      if(norm2(nodesep)/f2len < eps1) ilow = icur;
+		      else ihigh = icur;
+		    }
+		    assert(ilow>=0);
+		    assert(ihigh<=nNodes2-1);
+		    assert(ihigh-ilow==1);
+		    // now compute measure with interpolated point...
+		    if(!isSlave(f2->nodes[ilow]) && !isSlave(f2->nodes[ihigh])) {
+		      VectorND lowend;
+		      lowend = f2->nodes[ilow]->position() - f2->nodes[0]->position();
+		      double loweps = norm2(lowend)/f2len;
+		      double extradist = f2len*(eps1-loweps);
+		      VectorND seg;
+		      seg = f2->nodes[ihigh]->position() - f2->nodes[ilow]->position();
+		      eps1 = extradist/norm2(seg);
+		      assert(eps1 <= 1.0);
+		      VectorND interpoint;
+		      interpoint = eps1*(f2->nodes[ihigh]->position()) + (1.0-eps1)*(f2->nodes[ilow]->position());
+		      VectorND initsep;
+		      initsep = interpoint - n1pos;
+		      _box->mapDistance(initsep);
+		      assert(abs(norm2(initsep)-cursep) < 1.0e-6);
+		      double thetaAff = atan2(initsep[1],initsep[0]+(shear*initsep[1]));
+		      VectorND finalpoint;
+		      finalpoint = eps1*(f2->nodes[ihigh]->point()) + (1.0-eps1)*(f2->nodes[ilow]->point());
+		      VectorND finalsep;
+		      finalsep = finalpoint - f1->nodes[ni]->point();
+		      _box->setShear(shear);
+		      _box->mapDistance(finalsep);
+		      _box->setShear(0.0);
+		      double thetaActual = atan2(finalsep[1],finalsep[0]);
+		      double dTheta = fabs(thetaActual-thetaAff) < M_PI ? thetaActual-thetaAff : 2.0*M_PI-fabs(thetaActual-thetaAff);
+		      dTheta = sqr(dTheta);
+		      meandev += dTheta;
+		      err += sqr(dTheta);
+		      nSamps++;
+		      oldilow = ilow;
+		    }
+		    
+		  }
+		  if(eps2<1.0 && eps2>0.0 && inrootq>=0.0) {
+		    int ilow = 0;
+		    int ihigh = nNodes2-1;
+		    while(ihigh-ilow > 1) {
+		      int icur = (ihigh+ilow)/2;
+		      VectorND n2pos;
+		      n2pos = f2->nodes[icur]->position();
+		      VectorND nodesep;
+		      nodesep = n2pos - f2->nodes[0]->position();
+		      if(norm2(nodesep)/f2len < eps2) ilow = icur;
+		      else ihigh = icur;
+		    }
+		    assert(ilow>=0);
+		    assert(ihigh<=nNodes2-1);
+		    assert(ihigh-ilow==1);
+		    // now compute measure with interpolated point...
+		    if(ilow != oldilow && !isSlave(f2->nodes[ilow]) && !isSlave(f2->nodes[ihigh])) {
+		      VectorND lowend;
+		      lowend = f2->nodes[ilow]->position() - f2->nodes[0]->position();
+		      double loweps = norm2(lowend)/f2len;
+		      double extradist = f2len*(eps2-loweps);
+		      VectorND seg;
+		      seg = f2->nodes[ihigh]->position() - f2->nodes[ilow]->position();
+		      eps2 = extradist/norm2(seg);
+		      assert(eps2 <= 1.0);
+		      VectorND interpoint;
+		      interpoint = eps2*(f2->nodes[ihigh]->position()) + (1.0-eps2)*(f2->nodes[ilow]->position());
+		      VectorND initsep;
+		      initsep = interpoint - n1pos;
+		      _box->mapDistance(initsep);
+		      assert(abs(norm2(initsep)-cursep) < 1.0e-6);
+		      double thetaAff = atan2(initsep[1],initsep[0]+(shear*initsep[1]));
+		      VectorND finalpoint;
+		      finalpoint = eps2*(f2->nodes[ihigh]->point()) + (1.0-eps2)*(f2->nodes[ilow]->point());
+		      VectorND finalsep;
+		      finalsep = finalpoint - f1->nodes[ni]->point();
+		      _box->setShear(shear);
+		      _box->mapDistance(finalsep);
+		      _box->setShear(0.0);
+		      double thetaActual = atan2(finalsep[1],finalsep[0]);
+		      double dTheta = fabs(thetaActual-thetaAff) < M_PI ? thetaActual-thetaAff : 2.0*M_PI-fabs(thetaActual-thetaAff);
+		      dTheta = sqr(dTheta);
+		      meandev += dTheta;
+		      err += sqr(dTheta);
+		      nSamps++;
+		    }
+		    
+		  }
+		}
+	      }
+	    } //end "if filaments are different..."
+	  } // end "if filaments are close enough..."
+	  
+	}
+      }
+      // compute mean deviation and error
+      meandev /= nSamps;
+      err /= nSamps;
+      err = err - sqr(meandev);
+      err *= (nSamps/(nSamps-1.0));
+      err = sqrt(err);
+      err /= sqrt(nSamps);
+      meandev /= sqr(shear);
+      err /= sqr(shear);
+
+      std::pair<double, double> dp = pair<double,double>(meandev,err);
+      doublePairWErrors newdatpt = std::pair<double, std::pair<double, double> >(cursep,dp);
+      affdata.push_back(newdatpt);
+    }
+
+    return affdata;
+  }
+  
+  template<int N>
+  void SemiflexibleGel<N>::affineBoxesMeasurement(VectorND & boxsize, double pairDist, double shear, double largestFil, std::string fileName, bool doCorrTest) {
+    DefNodeContainer nodes4triangulation;
+    for(FilamentIterator fi=_filaments.begin(); fi!=_filaments.end(); fi++) {
+      bool itNodes = true;
+      if(largestFil > 0.0) {
+	int nNds = (*fi)->nodes.size();
+	VectorND e2e;
+	e2e = (*fi)->nodes[nNds-1]->position() - (*fi)->nodes[0]->position();
+	if(norm2(e2e) > largestFil) itNodes = false;
+      } 
+      if(itNodes) {
+	for(DefNodeIterator dni=(*fi)->nodes.begin(); dni!=(*fi)->nodes.end(); dni++) {
+	  // 	if(isMaster(*dni)) {
+	  // 	  Vector2D tmpPos;
+	  // 	  Vector2D tmpDef;
+	  // 	  tmpPos = (*dni)->position();
+	  // 	  tmpDef = (*dni)->point() - (*dni)->position();
+	  // 	  _box->mapPoint(tmpPos);
+	  // 	  tmpDef += tmpPos;
+	  // 	  DefNode* newNode = new BrownianNode<2>((*dni)->id(),(*dni)->index(),tmpPos,tmpDef);
+	  // 	  newNode->setId((*dni)->id());
+	  // 	  nodes4triangulation.push_back(newNode);
+	  // 	}
+	  if(!isSlave(*dni)) {
+	    // 	  Vector2D tmpPos;
+	    // 	  Vector2D tmpDef;
+	    //  	  tmpPos = (*dni)->position() - minPos;
+	    //  	  tmpDef = (*dni)->point() - minPos;
+	    // 	  //tmpPos = (*dni)->position();
+	    // 	  //_box->setShear(0.0);
+	    // 	  //_box->mapPoint(tmpPos);
+	    // 	  //tmpDef = (*dni)->point() - tmpPos;
+	    // 	  //_box->setShear(shear);
+	    // 	  //_box->mapDistance(tmpDef);
+	    // 	  //tmpDef += tmpPos;
+	    // 	  DefNode* newNode = new BrownianNode<2>((*dni)->id(),(*dni)->index(),tmpPos,tmpDef);
+	    // 	  newNode->setId((*dni)->id());
+	    nodes4triangulation.push_back(*dni);
+	  }
+	}
+      }
+    }
+
+    NodeGrid* nodegrid = new Grid<DefNode,BaseDefNode,2>();
+    nodegrid->setBox(_box);
+    nodegrid->setPosFunc(&DeformationNode<2>::position);
+    nodegrid->setGridSpace(boxsize);
+    nodegrid->setComputeNeighbors(false);
+    nodegrid->addElems(nodes4triangulation);
+
+    VectorND actualGridSize;
+    actualGridSize = nodegrid->gridSpace();
+
+    std::cout << "Do you want to store the nonaffinities of all collected point pairs (1 for yes)? ";
+    int collectPairs;
+    std::cin >> collectPairs;
+    
+    int nBoxes = nodegrid->nBoxes();
+    std::vector<double> affMeasures(nBoxes);
+    std::vector<double> nonaffs;
+    std::cout << "Computing affinity measure in " << nBoxes << " boxes." << std::endl;
+    for(int k=0; k<nBoxes; k++) {
+      if(k%10 == 0) std::cout << "Finished " << k << " boxes." << std::endl;
+      affMeasures[k] = 0.0;
+      double nSamps = 0.0;
+      //std::map< DefNode*, std::set< DefNode * > > nodePairs = nodegrid->getNeighbors(k);
+      std::set< DefNode * > & boxNodes = nodegrid->getBoxElems(k);
+      DefNodeContainer neighbNodes = nodegrid->getBoxNeighbors(k);
+      for(typename std::set< DefNode * >::iterator bn=boxNodes.begin(); bn!=boxNodes.end(); bn++) {
+	//for(int nd1=0; nd1<nBoxNodes; nd1++) {
+	//for(typename std::map< DefNode *, std::set< DefNode * > >::iterator npiter=nodePairs.begin(); npiter!=nodePairs.end(); npiter++) {
+	//DefNode * node1 = npiter->first;
+	DefNode * node1 = *bn;
+	for(typename std::set< DefNode * >::iterator bn2=bn; bn2!=boxNodes.end(); bn2++) {
+	  if(bn2 != bn) {
+	    DefNode * node2 = *bn2;
+	    VectorND diff;
+	    diff = node1->position() - node2->position();
+	    if(fabs(norm2(diff)-pairDist)/pairDist < 1.0e-2) {
+	      nSamps += 1.0;
+	      double thetaAff = atan2(diff[1],diff[0]+(shear*diff[1]));
+	      VectorND finaldiff;
+	      finaldiff = node1->point() - node2->point();
+	      double thetaActual = atan2(finaldiff[1],finaldiff[0]);
+	      double dTheta = fabs(thetaActual-thetaAff) < M_PI ? thetaActual-thetaAff : 2.0*M_PI-fabs(thetaActual-thetaAff);
+	      dTheta = sqr(dTheta);
+	      affMeasures[k] += dTheta;
+	      if(collectPairs==1) nonaffs.push_back(dTheta/sqr(shear));
+	    }
+	    else {
+	      _box->setShear(0.0);
+	      _box->mapDistance(diff);
+	      if(fabs(norm2(diff)-pairDist)/pairDist < 1.0e-2) {
+		nSamps += 1.0;
+		double thetaAff = atan2(diff[1],diff[0]+(shear*diff[1]));
+		VectorND finaldiff;
+		finaldiff = node1->point() - node2->point();
+		_box->setShear(shear);
+		_box->mapDistance(finaldiff);
+		double thetaActual = atan2(finaldiff[1],finaldiff[0]);
+		double dTheta = fabs(thetaActual-thetaAff) < M_PI ? thetaActual-thetaAff : 2.0*M_PI-fabs(thetaActual-thetaAff);
+		dTheta = sqr(dTheta);
+		affMeasures[k] += dTheta;
+		if(collectPairs==1) nonaffs.push_back(dTheta/sqr(shear));
+		_box->setShear(0.0);
+	      }
+	    }
+	  }
+	}
+	int nNeighbNodes = neighbNodes.size();
+	for(int nd2=0; nd2<nNeighbNodes; nd2++) {
+	  //for(typename std::set< DefNode * >::iterator partiter=npiter->second.begin(); partiter!=npiter->second.end(); partiter++) {
+	  //DefNode * node2 = *partiter;
+	  DefNode * node2 = neighbNodes[nd2];
+	  VectorND diff;
+	  diff = node1->position() - node2->position();
+	  if(fabs(norm2(diff)-pairDist)/pairDist < 1.0e-2) {
+	    nSamps += 0.5;
+	    double thetaAff = atan2(diff[1],diff[0]+(shear*diff[1]));
+	    VectorND finaldiff;
+	    finaldiff = node1->point() - node2->point();
+	    double thetaActual = atan2(finaldiff[1],finaldiff[0]);
+	    double dTheta = fabs(thetaActual-thetaAff) < M_PI ? thetaActual-thetaAff : 2.0*M_PI-fabs(thetaActual-thetaAff);
+	    dTheta = sqr(dTheta);
+	    affMeasures[k] += 0.5*dTheta;
+	    if(collectPairs==1 && node1>node2) nonaffs.push_back(dTheta/sqr(shear));
+	  }
+	  else {
+	    _box->setShear(0.0);
+	    _box->mapDistance(diff);
+	    if(fabs(norm2(diff)-pairDist)/pairDist < 1.0e-2) {
+	      nSamps += 0.5;
+	      double thetaAff = atan2(diff[1],diff[0]+(shear*diff[1]));
+	      VectorND finaldiff;
+	      finaldiff = node1->point() - node2->point();
+	      _box->setShear(shear);
+	      _box->mapDistance(finaldiff);
+	      double thetaActual = atan2(finaldiff[1],finaldiff[0]);
+	      double dTheta = fabs(thetaActual-thetaAff) < M_PI ? thetaActual-thetaAff : 2.0*M_PI-fabs(thetaActual-thetaAff);
+	      dTheta = sqr(dTheta);
+	      affMeasures[k] += 0.5*dTheta;
+	      if(collectPairs==1 && node1>node2) nonaffs.push_back(dTheta/sqr(shear));
+	      _box->setShear(0.0);
+	    }
+	  }
+	  
+	}
+      }
+      
+      if(nSamps > 0.0) {
+	affMeasures[k] /= nSamps;
+	affMeasures[k] /= sqr(shear);
+      }
+      else affMeasures[k] = 0.0;
+    }
+
+    if(collectPairs!=1) {
+      // print out average value of nonaffinity and standard deviation
+    
+      double meanna = 0.0;
+      double stdna = 0.0;
+      for(int nk=0; nk<nBoxes; nk++) {
+	meanna += affMeasures[nk];
+	stdna += sqr(affMeasures[nk]);
+      }
+      meanna /= nBoxes;
+      stdna /= nBoxes;
+      stdna -= sqr(meanna);
+      stdna = sqrt(stdna);
+      
+      meanna /= sqr(shear);
+      stdna /= sqr(shear);
+      
+      std::cout << "Average value of nonaffinity = " << meanna << "; standard deviation = " << stdna << "." << std::endl;
+    }
+
+    else {
+      std::cout << "Enter the name of a file in which to put the nonaffinities: ";
+      char naf[256];
+      std::cin >> naf;
+      std::ofstream naffile(naf);
+      naffile << "#nonaffinities, r = " << pairDist << std::endl;
+      for(vector<double>::iterator pdi=nonaffs.begin(); pdi!=nonaffs.end(); pdi++) {
+	naffile << *pdi << std::endl;
+      }
+      naffile.close();
+    }
+
+    // now write vtk file with rectangles containing one scalar--the nonaffinity measure
+
+    std::string fName = fileName + ".vtk";
+    std::ofstream ofs(fName.c_str());
+    if (!ofs) {
+      std::cout << "Error: can not open paraview output file "
+		<< fName
+		<< std::endl;
+      return;
+    }
+
+    tvmet::Vector<int,N> nBoxesDim;
+    nBoxesDim = nodegrid->nBoxesDim();
+    int nBTest = 1;
+    for(int n=0; n<N; n++) {
+      nBTest *= nBoxesDim[n];
+    }
+    assert(nBoxes == nBTest);
+
+    int nPts = 1;
+    for(int n=0; n<N; n++) {
+      nPts *= (nBoxesDim[n]+1);
+    }
+    
+    ofs << "# vtk DataFile Version 2.0\n"
+	<< "Test example" << std::endl
+	<< "ASCII" << std::endl
+	<< "DATASET POLYDATA" << std::endl
+	<< "POINTS  " << nPts << "  double" << std::endl;
+    
+    if(N==2) {
+      for(int p=0; p<=nBoxesDim[0]; p++) {
+	for(int q=0; q<=nBoxesDim[1]; q++) {
+	  ofs << std::setprecision(16) 
+	      << p*actualGridSize[0] << "  "
+	      << 0.0 << "  "
+	      << q*actualGridSize[1] << std::endl;
+	}
+      }
+
+      ofs << "POLYGONS  " << nBoxes << "  "
+	  << 5*nBoxes << std::endl;
+      
+      for(int p=0; p<nBoxesDim[0]; p++) {
+	for(int q=0; q<nBoxesDim[1]; q++) {
+	  int lowerCorner = p*(nBoxesDim[1]+1) + q;
+	  ofs << 4 << "  "
+	      << std::setw(10) << lowerCorner
+	      << std::setw(10) << lowerCorner+1
+	      << std::setw(10) << lowerCorner+nBoxesDim[1]+2
+	      << std::setw(10) << lowerCorner+nBoxesDim[1]+1
+	      << std::endl;
+	}
+      }
+      
+      ofs << "CELL_DATA    " << nBoxes << std::endl;
+      ofs << "SCALARS    Nonaffinity    double    1" << std::endl;
+      ofs << "LOOKUP_TABLE default" << std::endl;
+      for(int p=0; p<nBoxes; p++) ofs << affMeasures[p] << std::endl;
+      
+    }
+    
+    ofs.close();
+
+    if(doCorrTest) {
+      std::cout << "Do you also want to compute the long filament length density/Head-Levine nonaffinity correlation function?\n(1) yes\n(2) no\n:";
+      int ldnacorr;
+      std::cin >> ldnacorr;
+      std::vector<double> longld(nBoxes,0.0);
+      double maxdist;
+      if(ldnacorr==1) {
+	std::cout << "Please input a maximum distance on which to compute correlations: ";
+	std::cin >> maxdist;
+	_box->setShear(0.0);
+	for(FilamentIterator f=_filaments.begin(); f!=_filaments.end(); f++) {
+	  int nNodes = (*f)->nodes.size();
+	  bool isLong = false;
+	  VectorND fe2e;
+	  fe2e = (*f)->nodes[nNodes-1]->position() - (*f)->nodes[0]->position();
+	  double fillen = norm2(fe2e);
+	  if(fillen > largestFil) isLong = true;
+	  if(isLong) {
+	    for(int b=0; b<nNodes-1; b++) {
+	      VectorND com;
+	      com = .5*((*f)->nodes[b]->position() + (*f)->nodes[b+1]->position());
+	      _box->mapPoint(com);
+	      tvmet::Vector<int,N> coords;
+	      int idx = 0;
+	      for(int i=0; i<N; i++) {
+		coords[i] = (int)(com[i]/actualGridSize[i]);
+		coords[i] = coords[i]%nBoxesDim[i];
+	      }
+	      if(N==2) idx = nBoxesDim[1]*coords[0] + coords[1];
+	      VectorND e2e;
+	      e2e = (*f)->nodes[b]->position() - (*f)->nodes[b+1]->position();
+	      double len = norm2(e2e);
+	      longld[idx] += len;
+	    }
+	  }
+	}
+	double boxVol = 1.0;
+	for(int dim=0; dim<N; dim++) boxVol *= actualGridSize[dim];
+	for(int nb=0; nb<nBoxes; nb++) longld[nb] /= boxVol;
+      }
+ 
+      std::map<DefNode*,double> dataPts;
+      std::map< DefNode*, std::pair<double,double> > lendensNonaffData;
+      for(int k=0; k<nBoxes; k++) {
+	if(affMeasures[k] > 0.0) {
+	  NodeBase::DofIndexMap idx(N);
+	  for(int j=0; j<N; j++) idx[j] = k*N + j;
+	  if(N==2) {
+	    VectorND cellCenter;
+	    int row = k/nBoxesDim[1];
+	    int column = k%nBoxesDim[1];
+	    cellCenter[0] = (row+0.5)*actualGridSize[0];
+	    cellCenter[1] = (column+0.5)*actualGridSize[1];
+	    DefNode* newNode = new BrownianNode<2>(k,idx,cellCenter,cellCenter);
+	    dataPts.insert(pair<DefNode*,double>(newNode,affMeasures[k]));
+	    if(ldnacorr==1) {
+	      std::pair<double,double> newPair = pair<double,double>(affMeasures[k],longld[k]);
+	      lendensNonaffData.insert(pair< DefNode*, pair<double,double> >(newNode,newPair));
+	    }
+	  }
+	}
+      }
+      if(N==2) {
+	std::vector< pair<double,double> > corrData = computeCorrelationFunction(dataPts,max(actualGridSize[0],actualGridSize[1]),min(_box->size()[0],_box->size()[1])/3.0,max(actualGridSize[0],actualGridSize[1]),min(actualGridSize[0],actualGridSize[1])/2.0);
+	std::cout << "Please input a file name in which to output the nonaffinity correlation data: ";
+	char affCorrFN[256];
+	std::cin >> affCorrFN;
+	std::ofstream affCorrFile(affCorrFN);
+	affCorrFile << "#r\tcorr\n";
+	for(typename vector< pair<double,double> >::iterator pi=corrData.begin(); pi!=corrData.end(); pi++) {
+	  affCorrFile << pi->first << "\t" << pi->second << "\n";
+	}
+	affCorrFile.close();
+	
+	if(ldnacorr==1) {
+	  std::cout << "Please enter a file name in which to store the long filament lengt density/Head-Levine nonaffinity correlaion data: ";
+	  char naldf[256];
+	  std::cin >> naldf;
+	  
+	  double maxdim = max(actualGridSize[0],actualGridSize[1]);
+	  //double maxdist = min(_box->size()[0],_box->size()[1])/3.0;
+	  std::vector< std::pair<double,double> > corr = computeCrossCorrelationFunction(lendensNonaffData,2.0*maxdim,maxdist,2.0*maxdim,maxdim/2.0);
+	  
+	  std::ofstream nonAffLD(naldf);
+	  nonAffLD << "#r\tcorr" << std::endl;
+	  
+	  for(typename vector< pair<double,double> >::iterator datait=corr.begin(); datait!=corr.end(); datait++) {
+	    nonAffLD << datait->first << "\t" << datait->second << std::endl;
+	  }
+	  
+	  nonAffLD.close();
+	}
+      }
+      
+
+
+ 
+    }
+  }
+
+  template<int N>
+  void SemiflexibleGel<N>::computeBucklingMap(VectorND & boxsize, double shear, double bendfrac, std::string fileName, bool doCorrTest) {
+
+    tvmet::Vector<int,N> nBox;
+    int nBoxes = 1;
+    VectorND gridSpace;
+    for(int jd=0;jd<N; jd++) {
+      nBox[jd] = (int)(_box->size()[jd]/boxsize[jd]);
+      gridSpace[jd] = _box->size()[jd]/nBox[jd];
+      nBoxes *= nBox[jd];
+    }
+
+    tvmet::Vector<int,N> mults;
+    int curMult = nBoxes;
+    for(int i=0; i<N; i++) {
+      curMult /= nBox[i];
+      mults[i] = curMult;
+    }
+
+    std::vector<double> compressedFD(nBoxes,0.0);
+    std::vector<double> buckledFD(nBoxes,0.0);
+    _box->setShear(0.0);
+    for(FilamentIterator f=_filaments.begin(); f!=_filaments.end(); f++) {
+      int nNodes = (*f)->nodes.size();
+      for(int b=0; b<nNodes-1; b++) {
+	VectorND com;
+	com = .5*((*f)->nodes[b]->position() + (*f)->nodes[b+1]->position());
+	_box->mapPoint(com);
+	tvmet::Vector<int,N> coords;
+	int idx = 0;
+	for(int i=0; i<N; i++) {
+	  coords[i] = (int)(com[i]/gridSpace[i]);
+	  coords[i] = coords[i]%nBox[i];
+	  idx += mults[i]*coords[i];
+	}
+	VectorND e2e;
+	e2e = (*f)->nodes[b]->position() - (*f)->nodes[b+1]->position();
+	double len = norm2(e2e);
+
+	// check if the segment is under compression //
+	double origLength = (*f)->bonds[b]->getLength();
+	(*f)->bonds[b]->resetLength();
+	double newLength = (*f)->bonds[b]->getLength();
+	(*f)->bonds[b]->resetLength(origLength);
+	if(newLength < origLength) {
+	  // get stretching energy
+	  double stretchE = (*f)->bonds[b]->energy();
+	  double bendE = 0.0;
+	  //get bending energy
+	  if(nNodes>2) {
+	    int nAngs = (*f)->angles.size();
+	    assert(nAngs == nNodes-2);
+	    if(b==0) {
+	      bendE = .5*(*f)->angles[0]->energy();
+	    }
+	    else if(b==nNodes-2) {
+	      bendE = .5*(*f)->angles[nAngs-1]->energy();
+	    }
+	    else {
+	      bendE = .5*(*f)->angles[b-1]->energy();
+	      bendE += .5*(*f)->angles[b]->energy();
+	    }
+	  }
+	  
+	  double totalE = stretchE + bendE;
+	    
+	  compressedFD[idx] += len;
+	  if(bendE/totalE >= bendfrac) buckledFD[idx] += len;
+
+	}
+      }      
+    }
+
+    double boxVol = 1.0;
+    for(int dim=0; dim<N; dim++) boxVol *= gridSpace[dim];
+    for(int nb=0; nb<nBoxes; nb++) {
+      compressedFD[nb] /= boxVol;
+      buckledFD[nb] /= boxVol;
+    }
+    
+    std::map<DefNode*, double> data;
+    std::map<DefNode*, double> dataNormalized;
+    for(int k=0; k<nBoxes; k++) {
+      NodeBase::DofIndexMap idx(N);
+      for(int j=0; j<N; j++) idx[j] = k*N + j;
+      if(N==2) {
+	VectorND cellCenter;
+	int row = k/nBox[1];
+	int column = k%nBox[1];
+	cellCenter[0] = (row+0.5)*gridSpace[0];
+	cellCenter[1] = (column+0.5)*gridSpace[1];
+	DefNode* newNode = new BrownianNode<2>(k,idx,cellCenter,cellCenter);
+	//std::pair<double,double> dpr = pair<double,double>(compressedFD[k],buckledFD[k]);
+	data.insert(std::pair<DefNode*,double>(newNode,buckledFD[k]));
+	dataNormalized.insert(std::pair<DefNode*,double>(newNode,buckledFD[k]/compressedFD[k]));
+      }
+    }
+    
+    double maxdim = 0.0;
+    for(int dim=0; dim<N; dim++) {
+      if(gridSpace[dim] > maxdim) maxdim = gridSpace[dim];
+    }
+
+    // now write vtk file with rectangles containing one scalar--the nonaffinity measure
+
+    std::string fName = fileName + ".vtk";
+    std::ofstream ofs(fName.c_str());
+    if (!ofs) {
+      std::cout << "Error: can not open paraview output file "
+		<< fName
+		<< std::endl;
+      return;
+    }
+
+    int nPts = 1;
+    for(int n=0; n<N; n++) {
+      nPts *= (nBox[n]+1);
+    }
+    
+    ofs << "# vtk DataFile Version 2.0\n"
+	<< "Test example" << std::endl
+	<< "ASCII" << std::endl
+	<< "DATASET POLYDATA" << std::endl
+	<< "POINTS  " << nPts << "  double" << std::endl;
+    
+    if(N==2) {
+      for(int p=0; p<=nBox[0]; p++) {
+	for(int q=0; q<=nBox[1]; q++) {
+	  ofs << std::setprecision(16) 
+	      << p*gridSpace[0] << "  "
+	      << 0.0 << "  "
+	      << q*gridSpace[1] << std::endl;
+	}
+      }
+
+      ofs << "POLYGONS  " << nBoxes << "  "
+	  << 5*nBoxes << std::endl;
+      
+      for(int p=0; p<nBox[0]; p++) {
+	for(int q=0; q<nBox[1]; q++) {
+	  int lowerCorner = p*(nBox[1]+1) + q;
+	  ofs << 4 << "  "
+	      << std::setw(10) << lowerCorner
+	      << std::setw(10) << lowerCorner+1
+	      << std::setw(10) << lowerCorner+nBox[1]+2
+	      << std::setw(10) << lowerCorner+nBox[1]+1
+	      << std::endl;
+	}
+      }
+      
+      ofs << "CELL_DATA    " << nBoxes << std::endl;
+      ofs << "SCALARS    CompressedLenDens    double    1" << std::endl;
+      ofs << "LOOKUP_TABLE default" << std::endl;
+      for(int p=0; p<nBoxes; p++) ofs << compressedFD[p] << std::endl;
+
+      ofs << std::endl;
+
+      ofs << "SCALARS    BuckledLenDens    double    1" << std::endl;
+      ofs << "LOOKUP_TABLE default" << std::endl;
+      for(int p=0; p<nBoxes; p++) ofs << buckledFD[p] << std::endl;      
+      
+    }
+    
+    ofs.close();
+
+    if(doCorrTest) {
+      
+ 
+      if(N==2) {
+	std::vector< pair<double,double> > corrData = computeCorrelationFunction(data,maxdim,min(_box->size()[0],_box->size()[1])/3.0,maxdim,maxdim/4.0);
+	std::vector< pair<double,double> > corrDataNormal = computeCorrelationFunction(dataNormalized,maxdim,min(_box->size()[0],_box->size()[1])/3.0,maxdim,maxdim/4.0);
+	
+	std::cout << "Please input a file name in which to output the buckling correlation data: ";
+	char buckCorrFN[256];
+	std::cin >> buckCorrFN;
+	std::ofstream buckCorrFile(buckCorrFN);
+	buckCorrFile << "#r\tcorr\n";
+	typename vector< pair<double,double> >::iterator pi2 = corrDataNormal.begin();
+	for(typename vector< pair<double,double> >::iterator pi=corrData.begin(); pi!=corrData.end(); pi++) {
+	  buckCorrFile << pi->first << "\t" << pi->second << "\t" << pi2->second << "\n";
+	  pi2++;
+	}
+	buckCorrFile.close();
+	
+
+      }
+ 
+    }
+  }
+
+  template<int N>
+  void SemiflexibleGel<N>::buckleOPCalc(double gridSize, std::map<double,std::string> strainedGelFiles, bool doCorrs) {
+    Vector2D bondGridSize;
+    bondGridSize[0] = gridSize;
+    bondGridSize[1] = gridSize;
+    int nBx = (int)(_box->size()[0]/bondGridSize[0]);
+    int nBy = (int)(_box->size()[1]/bondGridSize[1]);
+    bondGridSize[0] = _box->size()[0]/nBx;
+    bondGridSize[1] = _box->size()[1]/nBy;
+    double maxdim = 0.0;
+    
+    for(int dim=0; dim<N; dim++) {
+      if(bondGridSize[dim] > maxdim) maxdim = bondGridSize[dim];
+    }
+    
+    int nBoxes = nBx*nBy;
+    double lastEtot = 0.0;
+    double curEtot = 0.0;
+    double lastEcomp = 0.0;
+    double curEcomp = 0.0;
+    double lastEtotaffine = 0.0;
+    double curEtotaffine = 0.0;
+    double curEcompaffine = 0.0;
+    double lastEcompaffine = 0.0;
+    std::vector<double> lastEtots(nBoxes);
+    std::vector<double> curEtots(nBoxes);
+    std::vector<double> lastEcomps(nBoxes);
+    std::vector<double> curEcomps(nBoxes);
+    std::vector<double> lastEtotsaffine(nBoxes);
+    std::vector<double> curEtotsaffine(nBoxes);
+    std::vector<double> lastEcompsaffine(nBoxes);
+    std::vector<double> curEcompsaffine(nBoxes);
+    std::vector<int> nElems(nBoxes);
+    std::vector<int> nElemsCompressed(nBoxes);
+    std::set<int> compFils;
+    typename std::map< double, std::string >::iterator fileIt = strainedGelFiles.begin();
+    updateNodalPoints(fileIt->second);
+    _box->setShearX(fileIt->first);
+    compute(true,true,false);
+    _box->setShearX(0.0);
+    for(int ii=0; ii<nBoxes; ii++) {
+      lastEtots[ii] = 0.0;
+      curEtots[ii] = 0.0;
+      lastEcomps[ii] = 0.0;
+      curEcomps[ii] = 0.0;
+      lastEtotsaffine[ii] = 0.0;
+      curEtotsaffine[ii] = 0.0;
+      lastEcompsaffine[ii] = 0.0;
+      curEcompsaffine[ii] = 0.0;
+      nElems[ii] = 0;
+    }
+    std::cout << "Enter the name of a directory in which to store the vtk and correlation data files:\n";
+    char dnm[256];
+    std::cin >> dnm;
+    std::string buckDir(dnm);
+    if(buckDir.find("/")==string::npos) {
+      buckDir += "/";
+    }
+
+    char totOPfl[256];
+    sprintf(totOPfl,"buckleOPtotal.dat");
+    std::string totOPFile(totOPfl);
+    totOPFile.insert(0,buckDir);
+
+    std::ofstream overallbuckFile(totOPFile.c_str());
+    overallbuckFile << "#shear\t\tdEc/dEtot\t\tbuckOP\t\tdEc/dEtotaff\t\tbuckOPaff\t\tbuckOPcompaff" << std::endl;
+    overallbuckFile.close();
+
+    for(int nFil=0; nFil<_filaments.size(); nFil++) {
+      int nNodesFil = filament(nFil)->nodes.size();
+      VectorND start,end;
+      start = filament(nFil)->nodes[0]->position();
+      end = filament(nFil)->nodes[nNodesFil-1]->position();
+      VectorND end2end;
+      end2end = end - start;
+      double filAng = atan2(end2end[1],end2end[0]);
+      if(filAng < 0.0) filAng += M_PI;
+      if(filAng > M_PI/2.0) {
+	compFils.insert(nFil);
+      }
+      int nBonds = filament(nFil)->bonds.size();
+      int nAngles = filament(nFil)->angles.size();
+      for(int nbond=0; nbond<nBonds; nbond++) {
+	VectorND bondPt;
+	bondPt = 0.5*(filament(nFil)->nodes[nbond]->position() + filament(nFil)->nodes[nbond+1]->position());
+	_box->mapPoint(bondPt);
+	int xbox = (int)(bondPt[0]/bondGridSize[0]);
+	int ybox = (int)(bondPt[1]/bondGridSize[1]);
+	int indx = xbox*nBy + ybox;
+	lastEtots[indx] += filament(nFil)->bonds[nbond]->energy();
+	nElems[indx]++;
+	lastEtot += filament(nFil)->bonds[nbond]->energy();
+	if(compFils.find(nFil) != compFils.end()) {
+	  lastEcomps[indx] += filament(nFil)->bonds[nbond]->energy();
+	  nElemsCompressed[indx]++;
+	  lastEcomp += filament(nFil)->bonds[nbond]->energy();
+	}
+      }
+      for(int nang=0; nang<nAngles; nang++) {
+	VectorND angPt;
+	angPt = filament(nFil)->nodes[nang+1]->position();
+	_box->mapPoint(angPt);
+	int xbox = (int)(angPt[0]/bondGridSize[0]);
+	int ybox = (int)(angPt[1]/bondGridSize[1]);
+	int indx = xbox*nBy + ybox;
+	lastEtots[indx] += filament(nFil)->angles[nang]->energy();
+	nElems[indx]++;
+	lastEtot += filament(nFil)->angles[nang]->energy();
+      }
+      
+    }
+
+    affineShearX(fileIt->first);
+    _box->setShear(fileIt->first);
+    compute(true,true,false);
+    _box->setShear(0.0);
+    
+    // get affine data //
+    
+    for(int nFil=0; nFil<_filaments.size(); nFil++) {
+      int nBonds = filament(nFil)->bonds.size();
+      int nAngles = filament(nFil)->angles.size();
+      for(int nbond=0; nbond<nBonds; nbond++) {
+	VectorND bondPt;
+	bondPt = 0.5*(filament(nFil)->nodes[nbond]->position() + filament(nFil)->nodes[nbond+1]->position());
+	_box->mapPoint(bondPt);
+	int xbox = (int)(bondPt[0]/bondGridSize[0]);
+	int ybox = (int)(bondPt[1]/bondGridSize[1]);
+	int indx = xbox*nBy + ybox;
+	lastEtotsaffine[indx] += filament(nFil)->bonds[nbond]->energy();
+	lastEtotaffine += filament(nFil)->bonds[nbond]->energy();
+	if(compFils.find(nFil) != compFils.end()) {
+	  lastEcompsaffine[indx] += filament(nFil)->bonds[nbond]->energy();
+	  lastEcompaffine += filament(nFil)->bonds[nbond]->energy();
+	}
+      }
+      for(int nang=0; nang<nAngles; nang++) {
+	VectorND angPt;
+	angPt = filament(nFil)->nodes[nang+1]->position();
+	_box->mapPoint(angPt);
+	int xbox = (int)(angPt[0]/bondGridSize[0]);
+	int ybox = (int)(angPt[1]/bondGridSize[1]);
+	int indx = xbox*nBy + ybox;
+	lastEtotsaffine[indx] += filament(nFil)->angles[nang]->energy();
+	lastEtotaffine += filament(nFil)->angles[nang]->energy();
+      }
+      
+    }
+
+    double lastShear = fileIt->first;
+    fileIt++;
+    updateNodalPoints(fileIt->second);
+    _box->setShearX(fileIt->first);
+    compute(true,true,false);
+    _box->setShearX(0.0);
+    for(int nFil=0; nFil<_filaments.size(); nFil++) {
+      int nBonds = filament(nFil)->bonds.size();
+      int nAngles = filament(nFil)->angles.size();
+      for(int nbond=0; nbond<nBonds; nbond++) {
+	VectorND bondPt;
+	bondPt = 0.5*(filament(nFil)->nodes[nbond]->position() + filament(nFil)->nodes[nbond+1]->position());
+	_box->mapPoint(bondPt);
+	int xbox = (int)(bondPt[0]/bondGridSize[0]);
+	int ybox = (int)(bondPt[1]/bondGridSize[1]);
+	int indx = xbox*nBy + ybox;
+	curEtots[indx] += filament(nFil)->bonds[nbond]->energy();
+	curEtot += filament(nFil)->bonds[nbond]->energy();
+	if(compFils.find(nFil) != compFils.end()) {
+	  curEcomps[indx] += filament(nFil)->bonds[nbond]->energy();
+	  curEcomp += filament(nFil)->bonds[nbond]->energy();
+	}
+      }
+      for(int nang=0; nang<nAngles; nang++) {
+	VectorND angPt;
+	angPt = filament(nFil)->nodes[nang+1]->position();
+	_box->mapPoint(angPt);
+	int xbox = (int)(angPt[0]/bondGridSize[0]);
+	int ybox = (int)(angPt[1]/bondGridSize[1]);
+	int indx = xbox*nBy + ybox;
+	curEtots[indx] += filament(nFil)->angles[nang]->energy();
+	curEtot += filament(nFil)->angles[nang]->energy();
+      }
+    }
+    
+    std::vector<double> firstStepVals(nBoxes);
+    for(int bx=0; bx<nBoxes; bx++) {
+      double dEtot,dEcomp;
+      dEtot = curEtots[bx] - lastEtots[bx];
+      dEcomp = curEcomps[bx] - lastEcomps[bx];
+      firstStepVals[bx] = dEcomp/dEtot;
+      if(nElems[bx] == 0 || dEtot == 0.0 || nElemsCompressed[bx] == 0) firstStepVals[bx] = -1.1e6;
+    }
+
+    double dEtot = curEtot - lastEtot;
+    double dEcomp = curEcomp - lastEcomp;
+
+    double firstVal = dEcomp/dEtot;
+
+    for(fileIt; fileIt!=strainedGelFiles.end(); fileIt++) {
+      std::map<DefNode*,double> buckleOP;
+      std::map<DefNode*,double> buckleOPnormalized;
+      std::map<DefNode*,double> buckleOPnormalizedbyaffine;
+      std::vector<double> buckleOPvals(nBoxes);
+      std::vector<double> buckleOPvalsnormalized(nBoxes);
+      std::vector<double> buckleOPvalsnormalizedbyaffine(nBoxes);
+      updateNodalPoints(fileIt->second);
+      _box->setShearX(fileIt->first);
+      compute(true,true,false);
+      _box->setShearX(0.0);
+      for(int ii=0; ii<nBoxes; ii++) {
+	curEtots[ii] = 0.0;
+	curEcomps[ii] = 0.0;
+	curEtot = 0.0;
+	curEcomp = 0.0;
+
+	curEtotsaffine[ii] = 0.0;
+	curEcompsaffine[ii] = 0.0;
+	curEtotaffine = 0.0;
+	curEcompaffine = 0.0;
+      }
+      for(int nFil=0; nFil<_filaments.size(); nFil++) {
+	int nBonds = filament(nFil)->bonds.size();
+	int nAngles = filament(nFil)->angles.size();
+	for(int nbond=0; nbond<nBonds; nbond++) {
+	  VectorND bondPt;
+	  bondPt = 0.5*(filament(nFil)->nodes[nbond]->position() + filament(nFil)->nodes[nbond+1]->position());
+	  _box->mapPoint(bondPt);
+	  int xbox = (int)(bondPt[0]/bondGridSize[0]);
+	  int ybox = (int)(bondPt[1]/bondGridSize[1]);
+	  int indx = xbox*nBy + ybox;
+	  curEtots[indx] += filament(nFil)->bonds[nbond]->energy();
+	  curEtot += filament(nFil)->bonds[nbond]->energy();
+	  if(compFils.find(nFil) != compFils.end()) {
+	    curEcomps[indx] += filament(nFil)->bonds[nbond]->energy();
+	    curEcomp += filament(nFil)->bonds[nbond]->energy();
+	  }
+	}
+	for(int nang=0; nang<nAngles; nang++) {
+	  VectorND angPt;
+	  angPt = filament(nFil)->nodes[nang+1]->position();
+	  _box->mapPoint(angPt);
+	  int xbox = (int)(angPt[0]/bondGridSize[0]);
+	  int ybox = (int)(angPt[1]/bondGridSize[1]);
+	  int indx = xbox*nBy + ybox;
+	  curEtots[indx] += filament(nFil)->angles[nang]->energy();
+	  curEtot += filament(nFil)->angles[nang]->energy();
+	}
+      }
+
+      // now get affine data //
+
+      affineShearX(fileIt->first);
+      _box->setShear(fileIt->first);
+      compute(true,true,false);
+      _box->setShearX(0.0);
+
+      for(int nFil=0; nFil<_filaments.size(); nFil++) {
+	int nBonds = filament(nFil)->bonds.size();
+	int nAngles = filament(nFil)->angles.size();
+	for(int nbond=0; nbond<nBonds; nbond++) {
+	  VectorND bondPt;
+	  bondPt = 0.5*(filament(nFil)->nodes[nbond]->position() + filament(nFil)->nodes[nbond+1]->position());
+	  _box->mapPoint(bondPt);
+	  int xbox = (int)(bondPt[0]/bondGridSize[0]);
+	  int ybox = (int)(bondPt[1]/bondGridSize[1]);
+	  int indx = xbox*nBy + ybox;
+	  curEtotsaffine[indx] += filament(nFil)->bonds[nbond]->energy();
+	  curEtotaffine += filament(nFil)->bonds[nbond]->energy();
+	  if(compFils.find(nFil) != compFils.end()) {
+	    curEcompsaffine[indx] += filament(nFil)->bonds[nbond]->energy();
+	    curEcompaffine += filament(nFil)->bonds[nbond]->energy();
+	  }
+	}
+	for(int nang=0; nang<nAngles; nang++) {
+	  VectorND angPt;
+	  angPt = filament(nFil)->nodes[nang+1]->position();
+	  _box->mapPoint(angPt);
+	  int xbox = (int)(angPt[0]/bondGridSize[0]);
+	  int ybox = (int)(angPt[1]/bondGridSize[1]);
+	  int indx = xbox*nBy + ybox;
+	  curEtotsaffine[indx] += filament(nFil)->angles[nang]->energy();
+	  curEtotaffine += filament(nFil)->angles[nang]->energy();
+	}
+      }
+
+      updateNodalPoints(fileIt->second);
+      _box->setShearX(fileIt->first);
+      compute(true,true,false);
+      _box->setShearX(0.0);
+
+      char tmpFNameList[256];
+      sprintf(tmpFNameList,"buckleOPlist-shear=%f.dat",fileIt->first);
+      std::string fNameList(tmpFNameList);
+      fNameList.insert(0,buckDir);
+      std::ofstream ofslist(fNameList.c_str());
+
+      ofslist << "#x\t\ty\t\tbuck\t\tbuck_norm\t\tbuck_norm_aff\t\tbuck_comp_aff" << std::endl;
+
+      // now normalize by first step //
+      for(int bx=0; bx<nBoxes; bx++) {
+	bool includePt = true;
+	if(nElems[bx] <= 0) includePt = false;
+	double dEtot,dEcomp;
+	dEtot = curEtots[bx] - lastEtots[bx];
+	dEcomp = curEcomps[bx] - lastEcomps[bx];
+	double dat = dEcomp/dEtot;
+	//if(nElems[bx] == 0 || dEtot == 0.0) dat = -1.1e6;
+	if(std::isnan(dat) || !includePt) dat = -1.1e6;
+	//if(dat != dat) dat = -1.1e6;
+	buckleOPvals[bx] = dat;
+	dat /= firstStepVals[bx];
+	//if(firstStepVals[bx] < -1.0e6 || nElemsCompressed[bx] == 0 || dEtot == 0.0 || nElems[bx] == 0) dat = -1.1e6;
+	if(std::isnan(dat) || !includePt) dat = -1.1e6;
+	//if(dat != dat) dat = -1.1e6;
+	if(firstStepVals[bx] < -1.0e6) dat = -1.1e6;
+	buckleOPvalsnormalized[bx] = dat;
+
+	dat = dEcomp/dEtot;
+	double dEcompaffine,dEtotaffine;
+	dEcompaffine = curEcompsaffine[bx] - lastEcompsaffine[bx];
+	dEtotaffine = curEtotsaffine[bx] - lastEtotsaffine[bx];
+	double dataffine = dEcompaffine/dEtotaffine;
+
+	if(std::isnan(dat) || std::isnan(dataffine) || !includePt) dat = -1.1e6;
+	else dat /= dataffine;
+
+	if(std::isnan(dat) || !includePt) dat = -1.1e6;
+
+	buckleOPvalsnormalizedbyaffine[bx] = dat;
+
+	// create node, insert data //
+	int xbox = bx/nBy;
+	int ybox = bx%nBy;
+	VectorND datPoint;
+	datPoint[0] = bondGridSize[0]*(xbox+0.5);
+	datPoint[1] = bondGridSize[1]*(ybox+0.5);
+	
+	NodeBase::DofIndexMap idx(N);
+	for(int j=0; j<N; j++) idx[j] = bx*N + j;
+
+	ofslist << datPoint[0] << "\t\t" << datPoint[1] << "\t\t" << buckleOPvals[bx] << "\t\t" << buckleOPvalsnormalized[bx] << "\t\t" << buckleOPvalsnormalizedbyaffine[bx];
+
+	
+	DefNode* datNode = new BrownianNode<2>(bx,idx,datPoint,datPoint);
+	if(buckleOPvals[bx] >= -1.0e6) {
+	  buckleOP.insert(pair<DefNode*,double>(datNode,buckleOPvals[bx]));
+	}
+	if(buckleOPvalsnormalized[bx] >= -1.0e6) {
+	  buckleOPnormalized.insert(pair<DefNode*,double>(datNode,buckleOPvalsnormalized[bx]));
+	}
+	if(buckleOPvalsnormalizedbyaffine[bx] >= -1.0e6) {
+	  buckleOPnormalizedbyaffine.insert(pair<DefNode*,double>(datNode,buckleOPvalsnormalizedbyaffine[bx]));
+	}
+
+	double datcompaffine = dEcomp/dEcompaffine;
+
+	if(std::isnan(datcompaffine) || !includePt) datcompaffine = -1.1e6;
+
+	ofslist << "\t\t" << datcompaffine << std::endl;
+	
+	
+      }
+
+      ofslist.close();
+
+
+      // get overall gel value of OP //
+      double dEtot = curEtot - lastEtot;
+      double dEcomp = curEcomp - lastEcomp;
+      double curVal = dEcomp/dEtot;
+      double curOP = curVal/firstVal;
+      double dEtotaffine = curEtotaffine - lastEtotaffine;
+      double dEcompaffine = curEcompaffine - lastEcompaffine;
+      double curValaffine = dEcompaffine/dEtotaffine;
+      double curOPaff = curVal/curValaffine;
+
+      std::cout << "dEtot affine = " << dEtotaffine << ", dEcomp affine = " << dEcompaffine << std::endl;
+
+      std::ofstream overallFS(totOPFile.c_str(),ios_base::app);
+      overallFS << fileIt->first << "\t\t" << curVal << "\t\t" << curOP << "\t\t" << curValaffine << "\t\t" << curOPaff << "\t\t" << dEcomp/dEcompaffine << std::endl;
+      overallFS.close();
+
+      // write out vtk //
+
+      char tmpFName[256];
+      sprintf(tmpFName,"buckleOPmap-shear=%f",fileIt->first);
+      std::string fileName(tmpFName);
+      std::string fName = fileName + ".vtk";
+      fName.insert(0,buckDir);
+      std::ofstream ofs(fName.c_str());
+
+
+      if (!ofs) {
+	std::cout << "Error: can not open paraview output file "
+		  << fName
+		  << std::endl;
+	return;
+      }
+      
+      tvmet::Vector<int,N> nBox;
+      nBox[0] = nBx;
+      nBox[1] = nBy;
+
+      int nPts = 1;
+      for(int n=0; n<N; n++) {
+	nPts *= (nBox[n]+1);
+      }
+      
+      ofs << "# vtk DataFile Version 2.0\n"
+	  << "Test example" << std::endl
+	  << "ASCII" << std::endl
+	  << "DATASET POLYDATA" << std::endl
+	  << "POINTS  " << nPts << "  double" << std::endl;
+      
+      if(N==2) {
+	for(int p=0; p<=nBox[0]; p++) {
+	  for(int q=0; q<=nBox[1]; q++) {
+	    ofs << std::setprecision(16) 
+		<< p*bondGridSize[0] << "  "
+		<< 0.0 << "  "
+		<< q*bondGridSize[1] << std::endl;
+
+	  }
+	}
+	
+	ofs << "POLYGONS  " << nBoxes << "  "
+	    << 5*nBoxes << std::endl;
+	
+	for(int p=0; p<nBox[0]; p++) {
+	  for(int q=0; q<nBox[1]; q++) {
+	    int lowerCorner = p*(nBox[1]+1) + q;
+	    ofs << 4 << "  "
+		<< std::setw(10) << lowerCorner
+		<< std::setw(10) << lowerCorner+1
+		<< std::setw(10) << lowerCorner+nBox[1]+2
+		<< std::setw(10) << lowerCorner+nBox[1]+1
+		<< std::endl;
+	  }
+	}
+	
+	ofs << "CELL_DATA    " << nBoxes << std::endl;
+	ofs << "SCALARS    buckleOP    double    1" << std::endl;
+	ofs << "LOOKUP_TABLE default" << std::endl;
+	for(int p=0; p<nBoxes; p++) {
+	  ofs << buckleOPvals[p] << std::endl; 
+	}	
+	ofs << "SCALARS    buckleOPnorm    double    1" << std::endl;
+	ofs << "LOOKUP_TABLE default" << std::endl;
+	for(int p=0; p<nBoxes; p++) ofs << buckleOPvalsnormalized[p] << std::endl;
+
+	ofs << "SCALARS    buckleOPnormbyaffine    double    1" << std::endl;
+	ofs << "LOOKUP_TABLE default" << std::endl;
+	for(int p=0; p<nBoxes; p++) ofs << buckleOPvalsnormalizedbyaffine[p] << std::endl;
+
+	ofs << "SCALARS    numSegs    int    1" << std::endl;
+	ofs << "LOOKUP_TABLE default" << std::endl;
+	for(int p=0; p<nBoxes; p++) ofs << nElems[p] << std::endl; 
+
+	ofs << "SCALARS    numSegsComp    int    1" << std::endl;
+	ofs << "LOOKUP_TABLE default" << std::endl;
+	for(int p=0; p<nBoxes; p++) ofs << nElemsCompressed[p] << std::endl;     
+	
+      }
+      
+      ofs.close();
+
+      // write out location and buckleOP vals for each point //
+
+      
+    
+      //       int nPts = 1;
+      //       for(int n=0; n<N; n++) {
+      // 	nPts *= (nBox[n]+1);
+      //       }
+      
+      //       ofs << "# vtk DataFile Version 2.0\n"
+      // 	  << "Test example" << std::endl
+      // 	  << "ASCII" << std::endl
+      // 	  << "DATASET POLYDATA" << std::endl
+      // 	  << "POINTS  " << nPts << "  double" << std::endl;
+      
+      //       if(N==2) {
+      // 	for(int p=0; p<=nBox[0]; p++) {
+      // 	  for(int q=0; q<=nBox[1]; q++) {
+      // 	    ofs << std::setprecision(16) 
+      // 		<< p*bondGridSize[0] << "  "
+      // 		<< 0.0 << "  "
+      // 		<< q*bondGridSize[1] << std::endl;
+      // 	  }
+      // 	}
+	
+      // 	ofs << "POLYGONS  " << nBoxes << "  "
+      // 	    << 5*nBoxes << std::endl;
+	
+      // 	for(int p=0; p<nBox[0]; p++) {
+      // 	  for(int q=0; q<nBox[1]; q++) {
+      // 	    int lowerCorner = p*(nBox[1]+1) + q;
+      // 	    ofs << 4 << "  "
+      // 		<< std::setw(10) << lowerCorner
+      // 		<< std::setw(10) << lowerCorner+1
+      // 		<< std::setw(10) << lowerCorner+nBox[1]+2
+      // 		<< std::setw(10) << lowerCorner+nBox[1]+1
+      // 		<< std::endl;
+      // 	  }
+      // 	}
+	
+      // 	ofs << "CELL_DATA    " << nBoxes << std::endl;
+      // 	ofs << "SCALARS    buckleOP    double    1" << std::endl;
+      // 	ofs << "LOOKUP_TABLE default" << std::endl;
+      // 	for(int p=0; p<nBoxes; p++) ofs << buckleOPvals[p] << std::endl; 
+
+      // 	ofs << std::endl;
+
+      // 	ofs << "SCALARS    buckleOPnormalized    double    1" << std::endl;
+      // 	ofs << "LOOKUP_TABLE default" << std::endl;
+      // 	for(int p=0; p<nBoxes; p++) ofs << buckleOPvalsnormalized[p] << std::endl; 
+
+	
+      //       }
+      
+      //       ofs.close();
+
+      if(doCorrs) {
+	if(N==2) {
+	  std::vector< pair<double,double> > corrData = computeCorrelationFunction(buckleOP,maxdim,min(_box->size()[0],_box->size()[1])/4.0,maxdim,maxdim/4.0);
+
+	  std::vector< pair<double,double> > corrDataNorm = computeCorrelationFunction(buckleOPnormalized,maxdim,min(_box->size()[0],_box->size()[1])/4.0,maxdim,maxdim/4.0);
+
+	  std::vector< pair<double,double> > corrDataNormAff = computeCorrelationFunction(buckleOPnormalizedbyaffine,maxdim,min(_box->size()[0],_box->size()[1])/4.0,maxdim,maxdim/4.0);
+	  
+	  char buckCorrFN[256];
+	  sprintf(buckCorrFN,"buckleOPcorr-shear=%f.dat",fileIt->first);
+	  std::string buckCorrFileString(buckCorrFN);
+	  buckCorrFileString.insert(0,buckDir);
+	  std::ofstream buckCorrFile(buckCorrFileString.c_str());
+	  buckCorrFile << "#r\tcorr\tcorrnorm\n";
+	  typename vector< pair<double,double> >::iterator pi2 = corrDataNorm.begin();
+	  typename vector< pair<double,double> >::iterator pi3 = corrDataNormAff.begin();
+	  for(typename vector< pair<double,double> >::iterator pi=corrData.begin(); pi!=corrData.end(); pi++) {
+	    buckCorrFile << pi->first << "\t" << pi->second << "\t" << pi2->second << "\t" << pi3->second << "\n";
+	    pi2++;
+	    pi3++;
+	  }
+	  buckCorrFile.close();
+	  
+	  
+	}
+      }
+      
+    
+      
+      lastEtots = curEtots;
+      lastEcomps = curEcomps;
+      
+      lastEtot = curEtot;
+      lastEcomp = curEcomp;
+
+      lastEtotsaffine = curEtotsaffine;
+      lastEcompsaffine = curEcompsaffine;
+      
+      lastEtotaffine = curEtotaffine;
+      lastEcompaffine = curEcompaffine;
+      
+      lastShear = fileIt->first;
+    }
+  }
+
+  template<int N>
+  void SemiflexibleGel<N>::cooperativeBuckleMeasure(double gridSize, double bendfrac, double lB, std::map<double,std::string> strainedGelFiles, bool doCorrs) {
+    // get segments, order by expected buckling strain //
+
+    std::set<Segment*,buckleComp> segments;
+
+    int nFils = _filaments.size();
+    for(int nf=0; nf<nFils; nf++) {
+      Filament* f = filament(nf);
+      int nNodes = f->nodes.size();
+      std::vector<int> clinds;
+      for(int nn=0; nn<nNodes; nn++) {
+	DefNode* n = f->nodes[nn];
+	if(_crossNodeMap.find(n) != _crossNodeMap.end()) {
+	  clinds.push_back(nn);
+	}
+      }
+      int nSegs = clinds.size()-1;
+      for(int ns=0; ns<nSegs; ns++) {
+	Segment* newSeg = new Segment();
+	newSeg->filID = nf;
+	newSeg->nodeID1 = clinds[ns];
+	newSeg->nodeID2 = clinds[ns+1];
+	newSeg->buckleStrain = -1.0;
+	VectorND segPos,segPoint;
+	segPos = .5*(f->nodes[newSeg->nodeID1]->position() + f->nodes[newSeg->nodeID2]->position());
+	segPoint = .5*(f->nodes[newSeg->nodeID1]->point() + f->nodes[newSeg->nodeID2]->point());
+	newSeg->pos = segPos;
+	newSeg->pt = segPoint;
+
+	// compute critical strain //
+
+	VectorND e2e;
+	e2e = f->nodes[newSeg->nodeID2]->position() - f->nodes[newSeg->nodeID1]->position();
+	newSeg->length = norm2(e2e);
+	double theta = atan2(e2e[1],e2e[0]);
+	if(theta < 0.0) theta += M_PI;
+	// check to see if this is a segment that should buckle...//
+	if(theta > M_PI/2.0 && newSeg->nodeID2 != newSeg->nodeID1 + 1) {
+	  newSeg->critStrain = sqr(M_PI*lB/norm2(e2e))/abs(cos(theta)*sin(theta));
+	}
+	else {
+	  newSeg->critStrain = -sqr(M_PI*lB/norm2(e2e))/abs(cos(theta)*sin(theta));
+	}
+	segments.insert(newSeg);
+      }
+    }
+
+
+    // we now have a list of segments ordered by expected buckling strain; now construct grid //
+    Vector2D curGridSize;
+    curGridSize[0] = gridSize;
+    curGridSize[1] = gridSize;
+    Grid<Segment,Segment,2> * grid = new Grid<Segment,Segment,2>(_box,curGridSize,&Segment::position,false);
+    curGridSize = grid->gridSpace();
+
+    typename std::set<Segment*,buckleComp>::iterator sit;
+    for(sit=segments.begin(); sit!=segments.end(); sit++) {
+      grid->addElem(*sit);
+    }
+
+    typename std::map< double,std::string >::iterator fileIt;
+    double lastShear = 0.0;
+    for(fileIt = strainedGelFiles.begin(); fileIt != strainedGelFiles.end(); fileIt++) {
+      updateNodalPoints(fileIt->second);
+      _box->setShearX(fileIt->first);
+      compute(true,true,false);
+
+      // now check to see which segments are newly buckled and change their buckleStrain fields //
+      typename std::set<Segment*,buckleComp>::iterator segs = segments.begin();
+      for(segs; segs!=segments.end(); segs++) {
+	if((*segs)->buckleStrain < 0.0 && (*segs)->critStrain > 0.0) {
+	  (*segs)->bendE = 0.0;
+	  (*segs)->stretchE = 0.0;
+	  for(int nodeNum=(*segs)->nodeID1; nodeNum<(*segs)->nodeID2; nodeNum++) {
+	    double newStretchE = filament((*segs)->filID)->bonds[nodeNum]->energy();
+	    (*segs)->stretchE += newStretchE;
+	  }
+	  for(int nodeNum=(*segs)->nodeID1; nodeNum<(*segs)->nodeID2-1; nodeNum++) {
+	    double newBendE = filament((*segs)->filID)->angles[nodeNum]->energy();
+	    (*segs)->bendE += newBendE;
+	  }
+	  if(((*segs)->bendE)/((*segs)->bendE + (*segs)->stretchE) > bendfrac) {
+	    (*segs)->buckleStrain = .5*(lastShear+fileIt->first);
+	  }
+	}
+      }
+      lastShear = fileIt->first;
+     
+    }
+    typename std::map< double,std::string >::reverse_iterator fileIt2 = strainedGelFiles.rbegin();
+    double maxShear = fileIt2->first;
+    
+    // now that all shear files have been read in, compute measure
+
+    std::cout << "Enter the name of a directory in which to store the vtk and correlation data files:\n";
+    char dnm[256];
+    std::cin >> dnm;
+    std::string buckDir(dnm);
+    if(buckDir.find("/")==string::npos) {
+      buckDir += "/";
+    }
+
+    for(fileIt = strainedGelFiles.begin(); fileIt != strainedGelFiles.end(); fileIt++) {
+      double curShear = fileIt->first;
+      double dgamma = curShear - lastShear;
+      int nBoxes = grid->nBoxes();
+      double boxVol = grid->boxVol();
+      map<DefNode*,double> dataLength;
+      map<DefNode*,double> dataLengthFraction;
+      map<DefNode*,double> dataNumber;
+      map<DefNode*,double> dataNumberFraction;
+      map<DefNode*,double> buckleOP;
+      std::vector<int> nUnbuckled(nBoxes);
+      std::vector<int> nTotal(nBoxes);
+      std::vector<double> ldUnbuckled(nBoxes);
+      std::vector<double> ldTotal(nBoxes);
+      //std::vector<double> buckMeasures(nBoxes);
+      for(int nb=0; nb<nBoxes; nb++) {
+	int nTotalSegments = 0;
+	int nUnbuckledSegments = 0;
+	double ldUnbuck = 0.0;
+	double ldTot = 0.0;
+	std::set<Segment*> boxSegs = grid->getBoxElems(nb);
+	std::vector<VectorND> boxCorners;
+	boxCorners = grid->gridCorners(nb);
+	VectorND cellCenter(0.0);
+	int nCorners = boxCorners.size();
+	for(int nc=0; nc<nCorners; nc++) {
+	  cellCenter += (boxCorners[nc]/nCorners);
+	}
+	double buckMeasure = 0.0;
+	typename std::set<Segment*>::iterator segi;
+	int nSegsinBox = boxSegs.size();
+	for(segi=boxSegs.begin(); segi!=boxSegs.end(); segi++) {
+	  if((*segi)->critStrain > 0.0) {
+	    nTotalSegments++;
+	    ldTot += (*segi)->length;
+	    // 	    if((*segi)->buckleStrain > 0.0) {
+	    // 	      //buckMeasure += ((*segi)->critStrain-(*segi)->buckleStrain)/(*segi)->critStrain;
+	    // 	    }
+	    if(((*segi)->buckleStrain >= 0.0 && (*segi)->buckleStrain > curShear) || (*segi)->buckleStrain < 0.0) {
+	      nUnbuckledSegments++;
+	      ldUnbuck += (*segi)->length;
+	    }
+	    // 	    else {
+	    // 	      nUnbuckledSegments++;
+	    // 	      //buckMeasure += (critStrain-maxShear)/critStrain;
+	    // 	    }
+	  }
+	}
+	nUnbuckled[nb] = nUnbuckledSegments;
+	nTotal[nb] = nTotalSegments;
+	ldUnbuckled[nb] = ldUnbuck/boxVol;
+	ldTotal[nb] = ldTot/boxVol;
+ 	if(nTotalSegments > 0) {
+	  //buckMeasure /= nTotalSegments;
+	  //buckMeasures[nb] = buckMeasure;
+	  double numFracBuck = 1.0 - (((double)nUnbuckled[nb])/((double)nTotal[nb]));
+	  NodeBase::DofIndexMap idx(N);
+	  for(int j=0; j<N; j++) idx[j] = nb*N + j;
+	  if(N==2) {
+	    DefNode* newNode = new BrownianNode<2>(nb,idx,cellCenter,cellCenter);
+	    //std::pair<double,double> dpr = pair<double,double>(compressedFD[k],buckledFD[k]);
+	    dataLength.insert(std::pair<DefNode*,double>(newNode,ldTotal[nb]-ldUnbuckled[nb]));
+	    dataLengthFraction.insert(std::pair<DefNode*,double>(newNode,1.0-(ldUnbuckled[nb]/ldTotal[nb])));
+	    dataNumber.insert(std::pair<DefNode*,double>(newNode,(double)(nTotal[nb]-nUnbuckled[nb])));
+	    dataNumberFraction.insert(std::pair<DefNode*,double>(newNode,numFracBuck));
+	  }
+	}
+	//else buckMeasures[nb] = -1.0e10;
+      }
+      // now we have box measures and data; first make vtk map //
+
+      double maxdim = 0.0;
+      for(int dim=0; dim<N; dim++) {
+	if(curGridSize[dim] > maxdim) maxdim = curGridSize[dim];
+      }
+      
+      // now write vtk file with box data
+      
+      char tmpFName[256];
+      sprintf(tmpFName,"bucklemap-shear=%f",curShear);
+      std::string fileName(tmpFName);
+      std::string fName = fileName + ".vtk";
+      fName.insert(0,buckDir);
+      std::ofstream ofs(fName.c_str());
+      if (!ofs) {
+	std::cout << "Error: can not open paraview output file "
+		  << fName
+		  << std::endl;
+	return;
+      }
+      
+      tvmet::Vector<int,N> nBox = grid->nBoxesDim();
+      
+      int nPts = 1;
+      for(int n=0; n<N; n++) {
+	nPts *= (nBox[n]+1);
+      }
+      
+      ofs << "# vtk DataFile Version 2.0\n"
+	  << "Test example" << std::endl
+	  << "ASCII" << std::endl
+	  << "DATASET POLYDATA" << std::endl
+	  << "POINTS  " << nPts << "  double" << std::endl;
+      
+      if(N==2) {
+	for(int p=0; p<=nBox[0]; p++) {
+	  for(int q=0; q<=nBox[1]; q++) {
+	    ofs << std::setprecision(16) 
+		<< p*curGridSize[0] << "  "
+		<< 0.0 << "  "
+		<< q*curGridSize[1] << std::endl;
+	  }
+	}
+	
+	ofs << "POLYGONS  " << nBoxes << "  "
+	    << 5*nBoxes << std::endl;
+	
+	for(int p=0; p<nBox[0]; p++) {
+	  for(int q=0; q<nBox[1]; q++) {
+	    int lowerCorner = p*(nBox[1]+1) + q;
+	    ofs << 4 << "  "
+		<< std::setw(10) << lowerCorner
+		<< std::setw(10) << lowerCorner+1
+		<< std::setw(10) << lowerCorner+nBox[1]+2
+		<< std::setw(10) << lowerCorner+nBox[1]+1
+		<< std::endl;
+	  }
+	}
+	
+	ofs << "CELL_DATA    " << nBoxes << std::endl;
+	ofs << "SCALARS    nBucklableSegments    int    1" << std::endl;
+	ofs << "LOOKUP_TABLE default" << std::endl;
+	for(int p=0; p<nBoxes; p++) ofs << nTotal[p] << std::endl;
+	
+	ofs << std::endl;
+	
+	ofs << "SCALARS    nBuckledSegments    int    1" << std::endl;
+	ofs << "LOOKUP_TABLE default" << std::endl;
+	for(int p=0; p<nBoxes; p++) ofs << nTotal[p]-nUnbuckled[p] << std::endl;
+	
+	ofs << std::endl;
+	
+	ofs << "SCALARS    BucklableLengthDensity    double    1" << std::endl;
+	ofs << "LOOKUP_TABLE default" << std::endl;
+	for(int p=0; p<nBoxes; p++) ofs << ldTotal[p] << std::endl;    
+
+	ofs << std::endl;
+	
+	ofs << "SCALARS    BuckledLengthDensity    double    1" << std::endl;
+	ofs << "LOOKUP_TABLE default" << std::endl;
+	for(int p=0; p<nBoxes; p++) ofs << ldTotal[p]-ldUnbuckled[p] << std::endl;  
+	
+      }
+      
+      ofs.close();
+
+      if(doCorrs) {
+	if(N==2) {
+	  std::vector< pair<double,double> > corrData = computeCorrelationFunction(dataLength,maxdim,min(_box->size()[0],_box->size()[1])/4.0,maxdim,maxdim/4.0);
+	  
+	  std::cout << "Please input a file name in which to output the buckling strain correlation data: ";
+	  char buckCorrFN[256];
+	  std::cin >> buckCorrFN;
+	  std::ofstream buckCorrFile(buckCorrFN);
+	  buckCorrFile << "#r\tcorr\n";
+	  //typename vector< pair<double,double> >::iterator pi2 = corrDataNormal.begin();
+	  for(typename vector< pair<double,double> >::iterator pi=corrData.begin(); pi!=corrData.end(); pi++) {
+	    buckCorrFile << pi->first << "\t" << pi->second << "\n";
+	    //pi2++;
+	  }
+	  buckCorrFile.close();
+	  
+	  
+	}
+      }
+      
+    }
+    
+    //     double maxdim = 0.0;
+    //     for(int dim=0; dim<N; dim++) {
+    //       if(curGridSize[dim] > maxdim) maxdim = curGridSize[dim];
+    //     }
+
+    //     // now write vtk file with segment data
+
+    //     std::cout << "Please enter a file name in which to store the map of buckled segments (leave out the vtk extension): ";
+    //     char fNm[256];
+    //     std::cin >> fNm;
+    //     std::string fileName(fNm);
+
+    //     std::string fName = fileName + ".vtk";
+    //     std::ofstream ofs(fName.c_str());
+    //     if (!ofs) {
+    //       std::cout << "Error: can not open paraview output file "
+    // 		<< fName
+    // 		<< std::endl;
+    //       return;
+    //     }
+
+    //     tvmet::Vector<int,N> nBox = grid->nBoxesDim();
+
+    //     int nPts = 1;
+    //     for(int n=0; n<N; n++) {
+    //       nPts *= (nBox[n]+1);
+    //     }
+    
+    //     ofs << "# vtk DataFile Version 2.0\n"
+    // 	<< "Test example" << std::endl
+    // 	<< "ASCII" << std::endl
+    // 	<< "DATASET POLYDATA" << std::endl
+    // 	<< "POINTS  " << nPts << "  double" << std::endl;
+    
+    //     if(N==2) {
+    //       for(int p=0; p<=nBox[0]; p++) {
+    // 	for(int q=0; q<=nBox[1]; q++) {
+    // 	  ofs << std::setprecision(16) 
+    // 	      << p*curGridSize[0] << "  "
+    // 	      << 0.0 << "  "
+    // 	      << q*curGridSize[1] << std::endl;
+    // 	}
+    //       }
+
+    //       ofs << "POLYGONS  " << nBoxes << "  "
+    // 	  << 5*nBoxes << std::endl;
+      
+    //       for(int p=0; p<nBox[0]; p++) {
+    // 	for(int q=0; q<nBox[1]; q++) {
+    // 	  int lowerCorner = p*(nBox[1]+1) + q;
+    // 	  ofs << 4 << "  "
+    // 	      << std::setw(10) << lowerCorner
+    // 	      << std::setw(10) << lowerCorner+1
+    // 	      << std::setw(10) << lowerCorner+nBox[1]+2
+    // 	      << std::setw(10) << lowerCorner+nBox[1]+1
+    // 	      << std::endl;
+    // 	}
+    //       }
+      
+    //       ofs << "CELL_DATA    " << nBoxes << std::endl;
+    //       ofs << "SCALARS    buckMeasure    double    1" << std::endl;
+    //       ofs << "LOOKUP_TABLE default" << std::endl;
+    //       for(int p=0; p<nBoxes; p++) ofs << buckMeasures[p] << std::endl;
+
+    //       ofs << std::endl;
+
+    //       ofs << "SCALARS    nBucklableSegments    int    1" << std::endl;
+    //       ofs << "LOOKUP_TABLE default" << std::endl;
+    //       for(int p=0; p<nBoxes; p++) ofs << nTotal[p] << std::endl;
+
+    //       ofs << std::endl;
+
+    //       ofs << "SCALARS    nUnbuckledSegments    int    1" << std::endl;
+    //       ofs << "LOOKUP_TABLE default" << std::endl;
+    //       for(int p=0; p<nBoxes; p++) ofs << nUnbuckled[p] << std::endl;      
+      
+    //     }
+    
+    //     ofs.close();
+ 
+    //     if(N==2) {
+    //       std::vector< pair<double,double> > corrData = computeCorrelationFunction(data,maxdim,min(_box->size()[0],_box->size()[1])/3.0,maxdim,maxdim/4.0);
+      
+    //       std::cout << "Please input a file name in which to output the buckling strain correlation data: ";
+    //       char buckCorrFN[256];
+    //       std::cin >> buckCorrFN;
+    //       std::ofstream buckCorrFile(buckCorrFN);
+    //       buckCorrFile << "#r\tcorr\n";
+    //       //typename vector< pair<double,double> >::iterator pi2 = corrDataNormal.begin();
+    //       for(typename vector< pair<double,double> >::iterator pi=corrData.begin(); pi!=corrData.end(); pi++) {
+    // 	buckCorrFile << pi->first << "\t" << pi->second << "\n";
+    // 	//pi2++;
+    //       }
+    //       buckCorrFile.close();
+      
+      
+    //     }
+  }
+  
+  template<int N>
+  std::vector< std::pair<double,double> > SemiflexibleGel<N>::computeNemCorrelations(double minSep, double step, double tol) {
+    double maxSep = .25*(_box->size()[0] + _box->size()[1]);
+    int nSteps = (int)((maxSep-minSep)/step) - 1;
+    std::vector< std::pair<double,double> > corrData;
+    
+    VectorND curGridSize;
+    for(int k=0; k<N; k++) curGridSize[k] = minSep;
+    Grid<Filament,Filament,2> * grid = new Grid<Filament,Filament,2>(_box,curGridSize,&Filament::point,false);
+    curGridSize = grid->gridSpace();
+
+    double corrval = 1.0;
+    //     for(typename map<DefNode*,double>::iterator mi=dataPts.begin(); mi!=dataPts.end(); mi++) {
+    //       meanval += mi->second;
+    //       corrval += sqr(mi->second);
+    //       nodegrid->addElem(mi->first);
+    //     }
+    for(FilamentIterator fi=_filaments.begin(); fi!=_filaments.end(); fi++) {
+      grid->addElem(*fi);
+    }
+    int nFils =_filaments.size();
+
+    pair<double,double> corrPt = pair<double,double>(0.0,corrval);
+    corrData.push_back(corrPt);
+    
+    for(int ns=0; ns<nSteps; ns++) {
+      int nSamps = 0;
+      corrval = 0.0;
+      VectorND oldGridSize;
+      oldGridSize = curGridSize;
+      double curdist = minSep + ns*step;
+      for(int k=0; k<N; k++) curGridSize[k] = curdist + tol;
+      grid->resetGridSpace(curGridSize);
+      curGridSize = grid->gridSpace();
+      std::cout << "Current desired node separation = " << curdist << "; current grid size = (" << curGridSize[0] << ", " << curGridSize[1] << ")." << std::endl;
+      assert(min(curGridSize[0],curGridSize[1]) >= curdist + tol);
+      int nGridBoxes = grid->nBoxes();
+      for(int nb=0; nb<nGridBoxes; nb++) {
+	std::map< Filament*, std::set<Filament*> > pairs = grid->getNeighbors(nb);
+	for(typename map< Filament*, set<Filament*> >::iterator pairit=pairs.begin(); pairit!=pairs.end(); pairit++) {
+	  Filament* node1 = pairit->first;
+	  for(typename set<Filament*>::iterator partit=pairit->second.begin(); partit!=pairit->second.end(); partit++) {
+	    Filament* node2 = *partit;
+	    if(node1<node2) {
+	      VectorND sep;
+	      sep = node1->point() - node2->point();
+	      _box->mapDistance(sep);
+	      if(fabs(norm2(sep)-curdist) < tol) {
+		nSamps++;
+		VectorND e2e1;
+		e2e1 = node1->nodes[0]->point() - node1->nodes[node1->nodes.size()-1]->point();
+		double len1 = norm2(e2e1);
+		e2e1 /= len1;
+		VectorND e2e2;
+		e2e2 = node2->nodes[0]->point() - node2->nodes[node2->nodes.size()-1]->point();
+		double len2 = norm2(e2e2);
+		e2e2 /= len2;
+		corrval += 2.0*sqr(dot(e2e1,e2e2)) - 1.0;
+	      }
+	    }
+	  }
+	}
+      }
+      if(nSamps > 0) {
+	corrval /= nSamps;
+	std::pair<double,double> curPair = pair<double,double>(curdist,corrval);
+	corrData.push_back(curPair);
+      }
+    }
+    
+    delete grid;
+
+    return corrData;
+  }
+
+  template<int N>
+  std::vector< std::pair<double,double> > SemiflexibleGel<N>::computeCorrelationFunction(std::map<BrownianNode<N> *, double> & dataPts, double minSep, double maxSep, double step, double tol) {
+    int nSteps = (int)((maxSep-minSep)/step);
+    std::vector< std::pair<double,double> > corrData;
+    
+    VectorND curGridSize;
+    for(int k=0; k<N; k++) curGridSize[k] = minSep;
+    NodeGrid* nodegrid = new Grid<DefNode,BaseDefNode,2>();
+    nodegrid->setBox(_box);
+    nodegrid->setPosFunc(&DeformationNode<2>::position);
+    nodegrid->setGridSpace(curGridSize);
+    nodegrid->setComputeNeighbors(false);
+    curGridSize = nodegrid->gridSpace();
+
+    double meanval = 0.0;
+    double corrval = 0.0;
+    for(typename map<DefNode*,double>::iterator mi=dataPts.begin(); mi!=dataPts.end(); mi++) {
+      meanval += mi->second;
+      corrval += sqr(mi->second);
+      nodegrid->addElem(mi->first);
+    }
+    meanval /= dataPts.size();
+    corrval /= dataPts.size();
+    corrval -= sqr(meanval);
+    pair<double,double> corrPt = pair<double,double>(0.0,corrval);
+    corrData.push_back(corrPt);
+    
+    for(int ns=0; ns<nSteps; ns++) {
+      int nSamps = 0;
+      corrval = 0.0;
+      VectorND oldGridSize;
+      oldGridSize = curGridSize;
+      double curdist = minSep + ns*step;
+      for(int k=0; k<N; k++) curGridSize[k] = curdist + tol;
+      nodegrid->resetGridSpace(curGridSize);
+      curGridSize = nodegrid->gridSpace();
+      std::cout << "Current desired node separation = " << curdist << "; current grid size = (" << curGridSize[0] << ", " << curGridSize[1] << ")." << std::endl;
+      assert(min(curGridSize[0],curGridSize[1]) >= curdist + tol);
+      int nGridBoxes = nodegrid->nBoxes();
+      for(int nb=0; nb<nGridBoxes; nb++) {
+	std::map< DefNode*, std::set<DefNode*> > pairs = nodegrid->getNeighbors(nb);
+	for(typename map< DefNode*, set<DefNode*> >::iterator pairit=pairs.begin(); pairit!=pairs.end(); pairit++) {
+	  DefNode* node1 = pairit->first;
+	  for(typename set<DefNode*>::iterator partit=pairit->second.begin(); partit!=pairit->second.end(); partit++) {
+	    DefNode* node2 = *partit;
+	    if(node1<node2) {
+	      VectorND sep;
+	      sep = node1->position() - node2->position();
+	      _box->mapDistance(sep);
+	      if(fabs(norm2(sep)-curdist) < tol) {
+		nSamps++;
+		corrval += (dataPts[node1]-meanval)*(dataPts[node2]-meanval);
+	      }
+	    }
+	  }
+	}
+      }
+      corrval /= nSamps;
+      std::pair<double,double> curPair = pair<double,double>(curdist,corrval);
+      corrData.push_back(curPair);
+    }
+    
+    delete nodegrid;
+
+    return corrData;
+  }
+
+  template<int N>
+  std::vector< std::pair<double,double> > SemiflexibleGel<N>::computeCrossCorrelationFunction(std::map< BrownianNode<N> *, std::pair<double,double> > & dataPts, double minSep, double maxSep, double step, double tol) {
+    int nSteps = (int)((maxSep-minSep)/step);
+    std::vector< std::pair<double,double> > corrData;
+    
+    VectorND curGridSize;
+    for(int k=0; k<N; k++) curGridSize[k] = minSep;
+    NodeGrid* nodegrid = new Grid<DefNode,BaseDefNode,2>();
+    nodegrid->setBox(_box);
+    nodegrid->setPosFunc(&DeformationNode<2>::position);
+    nodegrid->setGridSpace(curGridSize);
+    nodegrid->setComputeNeighbors(false);
+    curGridSize = nodegrid->gridSpace();
+
+    double meanval1 = 0.0;
+    double meanval2 = 0.0;
+    double corrval = 0.0;
+    for(typename map< DefNode*,pair<double,double> >::iterator mi=dataPts.begin(); mi!=dataPts.end(); mi++) {
+      meanval1 += mi->second.first;
+      meanval2 += mi->second.second;
+      corrval += ((mi->second.first)*(mi->second.second));
+      nodegrid->addElem(mi->first);
+    }
+    meanval1 /= dataPts.size();
+    meanval2 /= dataPts.size();
+    corrval /= dataPts.size();
+    corrval -= (meanval1*meanval2);
+    pair<double,double> corrPt = pair<double,double>(0.0,corrval);
+    corrData.push_back(corrPt);
+    
+    for(int ns=0; ns<nSteps; ns++) {
+      int nSamps = 0;
+      corrval = 0.0;
+      VectorND oldGridSize;
+      oldGridSize = curGridSize;
+      double curdist = minSep + ns*step;
+      for(int k=0; k<N; k++) curGridSize[k] = curdist + tol;
+      nodegrid->resetGridSpace(curGridSize);
+      curGridSize = nodegrid->gridSpace();
+      std::cout << "Current desired node separation = " << curdist << "; current grid size = (" << curGridSize[0] << ", " << curGridSize[1] << ")." << std::endl;
+      assert(min(curGridSize[0],curGridSize[1]) >= curdist + tol);
+      int nGridBoxes = nodegrid->nBoxes();
+      for(int nb=0; nb<nGridBoxes; nb++) {
+	std::map< DefNode*, std::set<DefNode*> > pairs = nodegrid->getNeighbors(nb);
+	for(typename map< DefNode*, set<DefNode*> >::iterator pairit=pairs.begin(); pairit!=pairs.end(); pairit++) {
+	  DefNode* node1 = pairit->first;
+	  for(typename set<DefNode*>::iterator partit=pairit->second.begin(); partit!=pairit->second.end(); partit++) {
+	    DefNode* node2 = *partit;
+	    if(node1<node2) {
+	      VectorND sep;
+	      sep = node1->position() - node2->position();
+	      _box->mapDistance(sep);
+	      if(fabs(norm2(sep)-curdist) < tol) {
+		nSamps++;
+		corrval += (dataPts[node1].first-meanval1)*(dataPts[node2].second-meanval2);
+	      }
+	    }
+	  }
+	}
+      }
+      corrval /= nSamps;
+      std::pair<double,double> curPair = pair<double,double>(curdist,corrval);
+      corrData.push_back(curPair);
+    }
+    
+    delete nodegrid;
+
+    return corrData;
+  }
+
+  template<int N>
+  double SemiflexibleGel<N>::computeCorrelation(std::vector<double> & dat1, std::vector<double> & dat2) {
+    assert(dat1.size() == dat2.size());
+    int nPts = dat1.size();
+    double mn1 = 0.0;
+    double mn2 = 0.0;
+    double std1 = 0.0;
+    double std2 = 0.0;
+    double corr = 0.0;
+
+    for(int i=0; i<nPts; i++) {
+      mn1 += dat1[i];
+      mn2 += dat2[i];
+      std1 += sqr(dat1[i]);
+      std2 += sqr(dat2[i]);
+      corr += dat1[i]*dat2[i];
+    }
+
+    mn1 /= nPts;
+    mn2 /= nPts;
+    std1 /= nPts;
+    std2 /= nPts;
+    std1 -= sqr(mn1);
+    std2 -= sqr(mn2);
+    std1 *= nPts/(nPts-1.0);
+    std2 *= nPts/(nPts-1.0);
+    std1 = sqrt(std1);
+    std2 = sqrt(std2);
+    corr /= nPts;
+    corr -= mn1*mn2;
+    corr /= (std1*std2);
+    corr *= nPts/(nPts-1.0);
+
+    return corr;
+  }
+
+  template<int N>
+  void SemiflexibleGel<N>::computeCrossCorrelations(double len, double shear, std::string & fileName) {
+    std::vector<double> nonaffinities;
+
+    VectorND boxsize;
+    for(int i=0; i<N; i++) boxsize[i] = len;
+
+    std::cout << "Enter the maximum filament length from which to take nodes for the affinity measure: ";
+    double maxFL;
+    std::cin >> maxFL;
+
+    std::cout << "Enter a pair distance to use for computing nonaffinity: ";
+    double pairDist;
+    std::cin >> pairDist;
+    assert(pairDist < len);
+    assert(pairDist > 0.0);
+    
+    DefNodeContainer nodes4triangulation;
+    for(FilamentIterator fi=_filaments.begin(); fi!=_filaments.end(); fi++) {
+      bool itNodes = true;
+      if(maxFL > 0.0) {
+	int nNds = (*fi)->nodes.size();
+	VectorND e2e;
+	e2e = (*fi)->nodes[nNds-1]->position() - (*fi)->nodes[0]->position();
+	if(norm2(e2e) > maxFL) itNodes = false;
+      } 
+      if(itNodes) {
+	for(DefNodeIterator dni=(*fi)->nodes.begin(); dni!=(*fi)->nodes.end(); dni++) {
+	  // 	if(isMaster(*dni)) {
+	  // 	  Vector2D tmpPos;
+	  // 	  Vector2D tmpDef;
+	  // 	  tmpPos = (*dni)->position();
+	  // 	  tmpDef = (*dni)->point() - (*dni)->position();
+	  // 	  _box->mapPoint(tmpPos);
+	  // 	  tmpDef += tmpPos;
+	  // 	  DefNode* newNode = new BrownianNode<2>((*dni)->id(),(*dni)->index(),tmpPos,tmpDef);
+	  // 	  newNode->setId((*dni)->id());
+	  // 	  nodes4triangulation.push_back(newNode);
+	  // 	}
+	  if(!isSlave(*dni)) {
+	    // 	  Vector2D tmpPos;
+	    // 	  Vector2D tmpDef;
+	    //  	  tmpPos = (*dni)->position() - minPos;
+	    //  	  tmpDef = (*dni)->point() - minPos;
+	    // 	  //tmpPos = (*dni)->position();
+	    // 	  //_box->setShear(0.0);
+	    // 	  //_box->mapPoint(tmpPos);
+	    // 	  //tmpDef = (*dni)->point() - tmpPos;
+	    // 	  //_box->setShear(shear);
+	    // 	  //_box->mapDistance(tmpDef);
+	    // 	  //tmpDef += tmpPos;
+	    // 	  DefNode* newNode = new BrownianNode<2>((*dni)->id(),(*dni)->index(),tmpPos,tmpDef);
+	    // 	  newNode->setId((*dni)->id());
+	    nodes4triangulation.push_back(*dni);
+	  }
+	}
+      }
+    }
+
+    NodeGrid* nodegrid = new Grid<DefNode,BaseDefNode,2>();
+    nodegrid->setBox(_box);
+    nodegrid->setPosFunc(&DeformationNode<2>::position);
+    nodegrid->setGridSpace(boxsize);
+    nodegrid->setComputeNeighbors(false);
+    nodegrid->addElems(nodes4triangulation);
+
+    boxsize = nodegrid->gridSpace();
+    
+    int nBoxes = nodegrid->nBoxes();
+    for(int k=0; k<nBoxes; k++) {
+      double nSamps = 0.0;
+      nonaffinities.push_back(0.0);
+      //std::map< DefNode*, std::set< DefNode * > > nodePairs = nodegrid->getNeighbors(k);
+      std::set< DefNode * > & boxNodes = nodegrid->getBoxElems(k);
+      DefNodeContainer neighbNodes = nodegrid->getBoxNeighbors(k);
+      for(typename std::set< DefNode * >::iterator bn=boxNodes.begin(); bn!=boxNodes.end(); bn++) {
+	//for(int nd1=0; nd1<nBoxNodes; nd1++) {
+	//for(typename std::map< DefNode *, std::set< DefNode * > >::iterator npiter=nodePairs.begin(); npiter!=nodePairs.end(); npiter++) {
+	//DefNode * node1 = npiter->first;
+	DefNode * node1 = *bn;
+	for(typename std::set< DefNode * >::iterator bn2=bn; bn2!=boxNodes.end(); bn2++) {
+	  if(bn2 != bn) {
+	    DefNode * node2 = *bn2;
+	    VectorND diff;
+	    diff = node1->position() - node2->position();
+	    if(fabs(norm2(diff)-pairDist)/pairDist < 1.0e-2) {
+	      nSamps += 1.0;
+	      double thetaAff = atan2(diff[1],diff[0]+(shear*diff[1]));
+	      VectorND finaldiff;
+	      finaldiff = node1->point() - node2->point();
+	      double thetaActual = atan2(finaldiff[1],finaldiff[0]);
+	      double dTheta = fabs(thetaActual-thetaAff) < M_PI ? thetaActual-thetaAff : 2.0*M_PI-fabs(thetaActual-thetaAff);
+	      dTheta = sqr(dTheta);
+	      nonaffinities[k] += dTheta;
+	    }
+	    else {
+	      _box->setShear(0.0);
+	      _box->mapDistance(diff);
+	      if(fabs(norm2(diff)-pairDist)/pairDist < 1.0e-2) {
+		nSamps += 1.0;
+		double thetaAff = atan2(diff[1],diff[0]+(shear*diff[1]));
+		VectorND finaldiff;
+		finaldiff = node1->point() - node2->point();
+		_box->setShear(shear);
+		_box->mapDistance(finaldiff);
+		double thetaActual = atan2(finaldiff[1],finaldiff[0]);
+		double dTheta = fabs(thetaActual-thetaAff) < M_PI ? thetaActual-thetaAff : 2.0*M_PI-fabs(thetaActual-thetaAff);
+		dTheta = sqr(dTheta);
+		nonaffinities[k] += dTheta;
+		_box->setShear(0.0);
+	      }
+	    }
+	  }
+	}
+	int nNeighbNodes = neighbNodes.size();
+	for(int nd2=0; nd2<nNeighbNodes; nd2++) {
+	  //for(typename std::set< DefNode * >::iterator partiter=npiter->second.begin(); partiter!=npiter->second.end(); partiter++) {
+	  //DefNode * node2 = *partiter;
+	  DefNode * node2 = neighbNodes[nd2];
+	  VectorND diff;
+	  diff = node1->position() - node2->position();
+	  if(fabs(norm2(diff)-pairDist)/pairDist < 1.0e-2) {
+	    nSamps += 0.5;
+	    double thetaAff = atan2(diff[1],diff[0]+(shear*diff[1]));
+	    VectorND finaldiff;
+	    finaldiff = node1->point() - node2->point();
+	    double thetaActual = atan2(finaldiff[1],finaldiff[0]);
+	    double dTheta = fabs(thetaActual-thetaAff) < M_PI ? thetaActual-thetaAff : 2.0*M_PI-fabs(thetaActual-thetaAff);
+	    dTheta = sqr(dTheta);
+	    nonaffinities[k] += 0.5*dTheta;
+	  }
+	  else {
+	    _box->setShear(0.0);
+	    _box->mapDistance(diff);
+	    if(fabs(norm2(diff)-pairDist)/pairDist < 1.0e-2) {
+	      nSamps += 0.5;
+	      double thetaAff = atan2(diff[1],diff[0]+(shear*diff[1]));
+	      VectorND finaldiff;
+	      finaldiff = node1->point() - node2->point();
+	      _box->setShear(shear);
+	      _box->mapDistance(finaldiff);
+	      double thetaActual = atan2(finaldiff[1],finaldiff[0]);
+	      double dTheta = fabs(thetaActual-thetaAff) < M_PI ? thetaActual-thetaAff : 2.0*M_PI-fabs(thetaActual-thetaAff);
+	      dTheta = sqr(dTheta);
+	      nonaffinities[k] += 0.5*dTheta;  
+	      _box->setShear(0.0);
+	    }
+	  }
+	  
+	}
+      }
+      
+      if(nSamps > 0.0) {
+	nonaffinities[k] /= nSamps;
+	nonaffinities[k] /= sqr(shear);
+      }
+      else nonaffinities[k] = 0.0;
+    }
+
+
+    tvmet::Vector<int,N> nCells;
+    nCells = nodegrid->nBoxesDim();
+    
+    tvmet::Vector<int,N> mults;
+    int curMult = nBoxes;
+    for(int i=0; i<N; i++) {
+      curMult /= nCells[i];
+      mults[i] = curMult;
+    }
+
+
+    std::vector<double> energies(nBoxes,0.0);
+    std::vector<double> bendenergies(nBoxes,0.0);
+    std::vector<double> stretchenergies(nBoxes,0.0);
+    std::vector<double> lengthdensity(nBoxes,0.0);
+    std::vector<double> longfillengthdensity(nBoxes,0.0);    
+    for(FilamentIterator f=_filaments.begin(); f!=_filaments.end(); f++) {
+      int nNodes = (*f)->nodes.size();
+      bool isLong = false;
+      VectorND fe2e;
+      fe2e = (*f)->nodes[nNodes-1]->position() - (*f)->nodes[0]->position();
+      double fillen = norm2(fe2e);
+      if(fillen > maxFL) isLong = true;
+      for(int b=0; b<nNodes-1; b++) {
+	VectorND com;
+	com = .5*((*f)->nodes[b]->position() + (*f)->nodes[b+1]->position());
+	_box->mapPoint(com);
+	tvmet::Vector<int,N> coords;
+	int idx = 0;
+	for(int i=0; i<N; i++) {
+	  coords[i] = (int)(com[i]/boxsize[i]);
+	  coords[i] = coords[i]%nCells[i];
+	  idx += mults[i]*coords[i];
+	}
+	// 	std::cout << "Troubleshoot: coords = (" 
+	// 		  << coords[0] << ", " << coords[1] << "); index = " 
+	// 		  << idx << "; grid dimensions = ("
+	// 		  << nCells[0] << ", " << nCells[1] << ")."
+	// 		  << std::endl;
+	assert(idx < nBoxes);
+	assert(idx >= 0);
+	energies[idx] += (*f)->bonds[b]->energy();
+	stretchenergies[idx] += (*f)->bonds[b]->energy();
+	VectorND e2e;
+	e2e = (*f)->nodes[b]->position() - (*f)->nodes[b+1]->position();
+	double len = norm2(e2e);
+	lengthdensity[idx] += len;
+	if(isLong) longfillengthdensity[idx] += len;
+      }
+      for(int a=1; a<nNodes-1; a++) {
+	VectorND com;
+	com = (*f)->nodes[a]->position();
+	_box->mapPoint(com);
+	tvmet::Vector<int,N> coords;
+	int idx = 0;
+	for(int i=0; i<N; i++) {
+	  coords[i] = (int)(com[i]/boxsize[i]);
+	  coords[i] = coords[i]%nCells[i];
+	  idx += mults[i]*coords[i];
+	}
+	assert(idx < nBoxes);
+	assert(idx >= 0);
+	energies[idx] += (*f)->angles[a-1]->energy();
+	bendenergies[idx] += (*f)->angles[a-1]->energy();
+      }
+    }
+    
+    double boxVol = 1.0;
+    for(int nd=0; nd<N; nd++) boxVol *= boxsize[nd];
+    for(int ni=0; ni<nBoxes; ni++) {
+      lengthdensity[ni] /= boxVol;
+      longfillengthdensity[ni] /= boxVol;
+    }
+    
+    double endenscorr = computeCorrelation(energies,lengthdensity);
+    double bendendenscorr = computeCorrelation(bendenergies,lengthdensity);
+    double stretchendenscorr = computeCorrelation(stretchenergies,lengthdensity);
+    double affdenscorr = computeCorrelation(nonaffinities,lengthdensity);
+    double affldenscorr = computeCorrelation(nonaffinities,longfillengthdensity);
+    double affbendencorr = computeCorrelation(nonaffinities,bendenergies);
+    
+    std::ofstream corrFile(fileName.c_str());
+
+    corrFile << "#Box Size = (" << boxsize[0] << ", " << boxsize[1] << ")" << std::endl 
+	     << "#Pair Separation = " << pairDist << std::endl << std::endl;
+
+    corrFile << "#Energy-Length Density\n" << endenscorr << std::endl << std::endl
+	     << "#Bending Energy-Length Density\n" << bendendenscorr << std::endl << std::endl
+	     << "#Stretcing Energy-Length Density\n" << stretchendenscorr << std::endl << std::endl
+	     << "#Nonaffinity-Length Density\n" << affdenscorr << std::endl << std::endl
+	     << "#Nonaffinity-Long Filament Length Density\n" << affldenscorr << std::endl << std::endl
+	     << "#Nonaffinity-Bending Energy\n" << affbendencorr << std::endl;
+    
+    corrFile.close();
+    
+    delete nodegrid;
+    
+  }
+
+  template<int N>
+  void SemiflexibleGel<N>::checkParallelForces() {
+    for(FilamentIterator f=_filaments.begin(); f!=_filaments.end(); f++) {
+      DefNode* n1 = (*f)->nodes[0];
+      DefNode* n2 = (*f)->nodes[(*f)->nodes.size()-1];
+      const VectorND & p1 = n1->point();
+      const VectorND & p2 = n2->point();
+      const VectorND & force1 = n1->force();
+      const VectorND & force2 = n2->force();
+      VectorND diff;
+      diff = p2 - p1;
+      double f1parallel = dot(diff,force1);
+      double f2parallel = dot(diff,force2);
+      if(abs(f1parallel-f2parallel)/(abs(f1parallel)+abs(f2parallel)) > 1.0e-6) {
+	std::cerr << "Error: parallel forces on rod ends are unequal." << std::endl
+		  << "F_par on end 1 = " << f1parallel << std::endl
+		  << "F_par on end 2 = " << f2parallel << std::endl << std::endl;
+      }
+    }
+  }
+
+  template<int N>
+  void SemiflexibleGel<N>::printCLFilDist() {
+    std::map<int,int> CLFilDist;
+    typename std::map<DefNode*,int>::iterator cli = _nSlavesMap.begin();
+    for(cli; cli!=_nSlavesMap.end(); cli++) {
+      int nFilsCL = cli->second + 1;
+      if(CLFilDist.find(nFilsCL) == CLFilDist.end()) CLFilDist.insert(pair<int,int>(nFilsCL,1));
+      else CLFilDist[nFilsCL]++;
+    }
+    std::cout << std::endl << "Printing out distribution of # of filaments in crosslinks." << std::endl << std::endl;
+    std::cout << "# of fils\t# of cls" << std::endl;
+    for(typename map<int,int>::iterator clfdi = CLFilDist.begin(); clfdi!=CLFilDist.end(); clfdi++) {
+      std::cout << clfdi->first << "\t" << clfdi->second << std::endl;
+    }
+    std::cout << std::endl;
+  }
+
+  template<int N>
+  void SemiflexibleGel<N>::printInitialBends() {
+    double meanAng = 0.0;
+    double stdd = 0.0;
+    int nAngs = 0;
+    std::multiset<double> angs;
+    double mina = M_PI;
+    double maxa = -M_PI;
+    for(FilamentIterator fi=_filaments.begin(); fi!=_filaments.end(); fi++) {
+      for(AngleIterator ai=(*fi)->angles.begin(); ai!=(*fi)->angles.end(); ai++) {
+        double angABC = (*ai)->getAngleABC();
+	meanAng += angABC;
+	stdd += sqr(angABC);
+	nAngs++;
+	angs.insert(angABC);
+	if(angABC < mina) mina = angABC;
+	if(angABC > maxa) maxa = angABC;
+      }
+    }
+    meanAng /= nAngs;
+    stdd /= nAngs;
+    stdd -= sqr(meanAng);
+    stdd = sqrt(stdd);
+
+    double binwidth = 3.49*stdd/pow(nAngs,1.0/3.0);
+    int nBins = (int)(floor((maxa-mina)/binwidth)+.5);
+    binwidth = (maxa-mina)/nBins;
+    double minVal = mina;
+    std::cout << "Printing distribution of initial bending angles." << std::endl << std::endl;
+    std::cout << "theta\t#angles" << std::endl;
+    for(int i=0; i<nBins; i++) {
+      multiset<double>::iterator lenItHigh;
+      double curHigh = minVal + (i+1.0)*binwidth;
+      lenItHigh = angs.lower_bound(curHigh);
+      int numPts = angs.size();
+      angs.erase(angs.begin(),lenItHigh);
+      std::cout << curHigh - 0.5*binwidth << "\t" << numPts-angs.size() << std::endl;
+    }
+  }
+
+  template<int N>
+  void SemiflexibleGel<N>::printBigBends() {
+    int nLargeAngles = 0;
+    double crit = M_PI/2.0;
+    for(FilamentIterator fi=_filaments.begin(); fi!=_filaments.end(); fi++) {
+      for(AngleIterator ai=(*fi)->angles.begin(); ai!=(*fi)->angles.end(); ai++) {
+        double angABC = (*ai)->getAngleABC();
+	if(abs(angABC) > crit) nLargeAngles++;
+      }
+    }
+    std::cout << nLargeAngles << " angles greater than " << crit << " in gel." << std::endl;
+  }
+
+  template<int N>
+  double SemiflexibleGel<N>::computeBucklingEnergy(double shear, double kap, double mu) {
+    int nFils = _filaments.size();
+    double en2return = 0.0;
+    double lB = sqrt(kap/mu);
+    double crit = sqr(M_PI)*sqr(lB)/shear;
+    for(int i=0; i<nFils; i++) {
+      Filament* f = filament(i);
+      int nNodes = f->nodes.size();
+      VectorND e2e;
+      e2e = f->nodes[0]->position() - f->nodes[nNodes-1]->position();
+      double ang = atan2(e2e[1],e2e[0]);
+      double cossin = cos(ang)*sin(ang);
+      double curLen = 0.0;
+      for(int j=0; j<nNodes-1; j++) { 
+	if(_crossNodeMap.find(f->nodes[j+1]) != _crossNodeMap.end()) {
+	  curLen += f->bonds[j]->getLength();
+	  if(cossin < 0.0) {
+	    if(sqr(curLen)*fabs(cossin) > crit) {
+	      double benden = 12.0*kap*shear*fabs(cossin)/curLen;
+	      en2return += benden;
+	    }
+	    else en2return += mu*sqr(shear)*curLen*sqr(cossin)/2.0;
+	  }
+	  else{
+	    en2return += mu*sqr(shear)*curLen*sqr(cossin)/2.0;
+	  }
+	  curLen = 0.0;
+	}
+	else curLen += f->bonds[j]->getLength();
+      }
+    }
+    
+    return en2return;
+  }
+};
