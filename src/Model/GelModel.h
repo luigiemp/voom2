@@ -34,13 +34,13 @@
 #include "PinchForce.h"
 #include "NematicProbTable.h"
 #include "GelInput.h"
-
+#include "Model.h"
 
 namespace voom{
-  class EPModel : public Model {
-  protected:
-    //! Diffusion tensor data for each element
-    vector<Matrix3d>   _diffusion;
+  class GelModel : public Model {
+  private:
+    //! Periodic box for Lees-Edward BC
+    PeriodicBox * _box;
 
   public:
     //! Constructor
