@@ -19,15 +19,15 @@ namespace voom
       UNIQUEmaterials.insert(materials[i]);
     uint TotNumMatProp =  UNIQUEmaterials.size()*(materials[0]->getMaterialParameters()).size();
 
-    // Create Eigen Elliptic results
-    EigenEllipticResult myResults( PbDoF, TotNumMatProp );
+    // Create Eigen results
+    EigenResult myResults( PbDoF, TotNumMatProp );
 
     switch (UKN)
     {
     case 0: // Displacements
       {	
 	myResults.setRequest(1); 
-	_myModel->compute(myResults);
+	_myModel->compute(&myResults);
 	cout << "Model energy before solving " << myResults.getEnergy() << endl << endl;
 	
 	// Initialize solver parameters
@@ -39,7 +39,7 @@ namespace voom
 	{
 	  // Compute stiffness and residual
 	  myResults.setRequest(6);
-	  _myModel->compute(myResults);
+	  _myModel->compute(&myResults);
 	  
 	  // Apply essential boundary conditions
 	  this->applyEBC(myResults);
@@ -96,7 +96,7 @@ namespace voom
 	  iter++;
 	  error = Deltax.norm();
 	  myResults.setRequest(ENERGY | FORCE);
-	  _myModel->compute(myResults);
+	  _myModel->compute(&myResults);
 	  cout << "Energy = " << myResults.getEnergy() << "   - NR iter = " << iter << "   -  NR error = " << error;
 	  cout << " Residual = " << (myResults._residual)->norm() << endl;
 	} // while loop
@@ -116,7 +116,7 @@ namespace voom
 	{
 	  // Compute stiffness and residual
 	  myResults.setRequest(8);
-	  _myModel->compute(myResults);
+	  _myModel->compute(&myResults);
 
 	  VectorXd DeltaAlpha;
 	  // No choice of solver for now - Only cholesky
@@ -138,7 +138,7 @@ namespace voom
 	  iter++;
 	  error = DeltaAlpha.norm();
 	  myResults.setRequest(1);
-	  _myModel->compute(myResults);
+	  _myModel->compute(&myResults);
 	  cout << "Energy = " << myResults.getEnergy() << "   - NR iter = " << iter << "   -  NR error = " << error << endl;
 	
 	} // while loop
@@ -154,7 +154,7 @@ namespace voom
 
 
 
-  void EigenNRsolver::applyEBC(EigenEllipticResult & myResults) {
+  void EigenNRsolver::applyEBC(EigenResult & myResults) {
     
 // | A    B |  | x       |   | f |
 // |        |  |         | = |   |

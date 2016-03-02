@@ -1,4 +1,4 @@
-bin_PROGRAMS = TestBVP TestPressure TestMultiStepsBVP TestCube_Plastic TestStrip StripLV EllipsoidLV
+bin_PROGRAMS = EllipsoidLV TestStrip # TestBVP TestPressure TestMultiStepsBVP TestCube_Plastic StripLV
 INCLUDES =		-I./ -I./../ -I./../../	-I./../../Mesh -I./../../Solver  	\
 	 		-I./../../VoomMath/ -I./../../Shape -I./../../Quadrature	\
 			-I./../../Model -I./../../Potential -I./../../Material 		\
@@ -13,10 +13,10 @@ LDADD = -lSolver -lModel -lMesh -lElement              \
 	-lPotentials -lViscousPotentials -lMaterials		       \
 	-lgfortran
 
-TestBVP_SOURCES = TestBVP.cc
-TestPressure_SOURCES = TestPressure.cc
-TestMultiStepsBVP_SOURCES = TestMultiStepsBVP.cc
-TestCube_Plastic_SOURCES = TestCube_Plastic.cc
+# TestBVP_SOURCES = TestBVP.cc
+# TestPressure_SOURCES = TestPressure.cc
+# TestMultiStepsBVP_SOURCES = TestMultiStepsBVP.cc
+# TestCube_Plastic_SOURCES = TestCube_Plastic.cc
 TestStrip_SOURCES = TestStrip.cc
-StripLV_SOURCES = StripLV.cc
+# StripLV_SOURCES = StripLV.cc
 EllipsoidLV_SOURCES = EllipsoidLV.cc

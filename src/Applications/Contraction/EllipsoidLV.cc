@@ -9,7 +9,7 @@
 #include "BlankViscousPotential.h"
 #include "NewtonianViscousPotential.h"
 #include "FEMesh.h"
-// #include "EigenResult.h"
+//#include "EigenResult.h"
 #include "MechanicsModel.h"
 #include "EigenNRsolver.h"
 // #include "LBFGSB.h"
@@ -18,22 +18,22 @@ using namespace voom;
 
 int main(int argc, char** argv)
 {
+
   cout << string(50, '\n'); // Clear Screen
+
 
   // Timing
   time_t start, end;
   time(&start);
 
-  // Activation Sequence? Set True to make activation a function of x
+  // Activation Sequence? Set True to make activation a function of z
   bool activationSequence = true;
 
-  // Fibers across the wall thickness in Strip? Set True if non-unidirectional fibers
+  // Fibers across the wall thickness?
   bool fibersAcrossWall = true;
-  double theta_min = 60.0;
-  double theta_max = -60.0;
 
   // Conduction Velocity (cm/ms)
-  double cv = 0.006;
+  double cv = 0.06;
   
   // Simulation Time (in ms)
   double simTime = 2000;  
@@ -42,33 +42,34 @@ int main(int argc, char** argv)
   double deltaT = 0.01;
 
   // OutputString
-  string outputString = "Strip_LV_CV_";
+  string outputString = "Ellipsoid_CV_3_";
 
   // Fiber Visualization String
-  string fiberPlotString = "Strip_LV_CV_Fiber.vtk";
+  string fiberPlotString = "Ellipsoid_CV_Fiber.vtk";
+
+
 
   // Initialize Mesh
   // Assumptions to use this main as is: strip has a face at z=0; tetrahedral mesh
-  // FEMesh Cube("Cube1.node", "Cube1.ele");
-  // FEMesh surfMesh("Cube1.node", "Cube1Surf.ele");
-  // Real xmax = 1.0;
-  // FEMesh Cube("Strip36.node", "Strip36.ele");
-  // FEMesh surfMesh("Strip36.node", "Strip36Surf.ele");
-  FEMesh Cube("Strip144.node", "Strip144.ele");
-  FEMesh surfMesh("Strip144.node", "Strip144Surf.ele");
-  Real xmax = 6.0; 
+  FEMesh Cube("Mesh/Small_A.node", "Mesh/Small_A.ele");
+  FEMesh surfMesh("Mesh/Small_A.node", "Mesh/Small_A.surfEle");
+  string FiberFile = "Mesh/Small_A.fiber";
+  string BCfile = "Mesh/Small_A.bc";
+  ifstream FiberInp(FiberFile.c_str());
 
+  double z_min = 0.0;
+  for (int node_iter = 0; node_iter < Cube.getNumberOfNodes(); node_iter++)
+  {
+    VectorXd tempNodalPos = Cube.getX(node_iter);
+    if(tempNodalPos[2] < z_min)
+      z_min = tempNodalPos[2];
+  }
 
-  // ***************************************** //
-  // **************Begin Computing************ //
-  // ***************************************** //
   cout << endl;
-  cout << "\033[1;32mNumber Of Nodes \t : \033[0m" << Cube.getNumberOfNodes() << endl;
-  cout << "\033[1;32mNumber Of Element \t : \033[0m" << Cube.getNumberOfElements() << endl;
-  cout << "\033[1;32mMesh Dimension \t\t : \033[0m" << Cube.getDimension() << endl << endl;
+  cout << "Number Of Nodes   : " << Cube.getNumberOfNodes() << endl;
+  cout << "Number Of Element : " << Cube.getNumberOfElements() << endl;
+  cout << "Mesh Dimension    : " << Cube.getDimension() << endl << endl;
   
-  
-   
   // Initialize Material
   uint NumMat =  Cube.getNumberOfElements();
   vector<GeomElement*> meshElements = Cube.getElements();
@@ -76,14 +77,14 @@ int main(int argc, char** argv)
   vector<MechanicsMaterial * > PLmaterials;
   PLmaterials.reserve(NumMat);
 
-  CompNeoHookean PassiveMat(0, 4.0, 0.4);
-  CompNeoHookean ActiveMat(0, 4.0, 0.4);
-  // APForceVelPotential TestPotential(1.0, 500.0);
+  CompNeoHookean PassiveMat(0, 0.4, 0.04);
+  CompNeoHookean ActiveMat(0, 0.4, 0.04);
+  APForceVelPotential TestPotential(1.0, 500.0);
   // HillForceVelPotential TestPotential(4.4*pow(10,-3), .01*0.59, 25);
   // BlankPotential TestPotential;
 
-  // BlankViscousPotential ViscPotential;
-  NewtonianViscousPotential ViscPotential(0.05, 0.5);
+  BlankViscousPotential ViscPotential;
+  Vector3d HardParam(0.,0.,0.);
 
   // Visualize Fiber directions
   ofstream out;
@@ -99,14 +100,12 @@ int main(int argc, char** argv)
   vector <Vector3d> sheetVectors;
   vector <Vector3d> sheetNormalVectors;
 
-  Vector3d HardParam(0.,0.,0.);
-
   // Read in Activation File:
   ifstream myfile;
   myfile.open ("ActivationFunction_1ms.dat");
-  vector <double> Time(398, 0.0);
-  vector <double> ActivationFactor(398, 0.0);
-  for (int i = 0; i < 398; i++)
+  vector <double> Time(795, 0.0);
+  vector <double> ActivationFactor(795, 0.0);
+  for (int i = 0; i < 795; i++)
   {
     myfile >> Time[i];
     myfile >> ActivationFactor[i];
@@ -114,12 +113,13 @@ int main(int argc, char** argv)
   myfile.close();
 
   deltaT = Time[1] - Time[0];
-  
-  // Cycle Length (in ms)
+
+   // Cycle Length (in ms)
   double cycleLength = Time[397];
 
   // Calculate the activation time for each quadrature point in each element:
   vector <double> activationTimesQP(NumMat, 0.0);
+
 
   for (int el_iter = 0; el_iter < meshElements.size(); el_iter++) {
     int el_numQuadPoints = meshElements[el_iter]->getNumberOfQuadPoints();
@@ -136,23 +136,21 @@ int main(int argc, char** argv)
     
     // Activation Time Calculations:
     if(activationSequence)
-      activationTimesQP[el_iter] = quadPointX/cv;
+      activationTimesQP[el_iter] = (quadPointZ - z_min)/cv;
     else
       activationTimesQP[el_iter] = 0;  // Everything gets activated right away
       
     out << quadPointX << " " << quadPointY << " " << quadPointZ << endl;
+    // cout << activationTimesQP[el_iter] << endl;
 
     vector <Vector3d> el_vectors(3, Vector3d::Zero(3,1));
       
     if (fibersAcrossWall)
     {
-      // Compute Theta based on x-position
-      double el_theta = (theta_max - theta_min)/xmax * quadPointX + theta_min;
-      
-      // Set three directional vectors based on Theta.
-      el_vectors[0] << 0., cos(el_theta*3.14159 / 180.), sin(el_theta*3.14159 / 180.);
-      el_vectors[1] << 0., -sin(el_theta*3.14159 / 180.), cos(el_theta*3.14159 / 180.);
-      el_vectors[2] << 1., 0., 0.;
+      // Load Fiber Data:
+      FiberInp >> el_vectors[0][0]; FiberInp >> el_vectors[0][1]; FiberInp >> el_vectors[0][2];
+      FiberInp >> el_vectors[1][0]; FiberInp >> el_vectors[1][1]; FiberInp >> el_vectors[1][2];
+      FiberInp >> el_vectors[2][0]; FiberInp >> el_vectors[2][1]; FiberInp >> el_vectors[2][2];
     }
     else
     {
@@ -212,8 +210,9 @@ int main(int argc, char** argv)
   // Before checking consistency, the perturbed deformation state must be 
   // set to the current deformation state.
 
-  // myModel.checkConsistency(&myResults, perturbationFactor, myRequest, myH, myTol);
+  // myModel.checkConsistency(myResults, perturbationFactor, myRequest, myH, myTol);
   // myModel.checkDmat(myResults, perturbationFactor, myH, myTol);
+
 
     // Print initial configuration
     myModel.writeOutputVTK(outputString, 0);
@@ -232,40 +231,33 @@ int main(int argc, char** argv)
     cout << endl << "Pressure = " << pX << " " << pY << " " << pZ << endl << endl;
      
     // EBC
-    vector<int > DoFid;
-    vector<Real > DoFvalues;
-    vector<int > DoFxmax;
-    int ind = 0;
-    for(int i = 0; i < Cube.getNumberOfNodes(); i++) {
-      // All nodes at x = 0
-      if ( Cube.getX(i, 0) < 1.0e-12 ) {
-	DoFid.push_back(i*3);
-	ind++;
-	// All nodes at y = 0
-	if ( Cube.getX(i, 1) < 1.0e-12 ) {
-	  DoFid.push_back(i*3 + 1);
-	  ind++;
-	}
-	// All nodes at z = 0
-	if ( Cube.getX(i, 2) < 1.0e-12 ) {
-	  DoFid.push_back(i*3 + 2);
-	  ind++;
-	}
+    cout << "********" << " Setting up EBCs " << "********" << endl;
+    int NumBC = 0, node = 0, ind = 0;;
+    vector<int > BCnodes;
+    vector<int > BCid;
+    vector<Real > BCvalues;
+    ifstream BCinp(BCfile.c_str());
+   
+    if (BCinp.is_open())
+	cout << "BC File Opened Successfully!" << endl; 
+    else
+	cout << "ERROR: BC File Failed to Open!" << endl;
+   
+    BCinp >> NumBC;
+    cout << "Number of Nodes with EBC: " << NumBC << endl;
+    BCid.reserve(NumBC*3);
+    BCvalues.reserve(NumBC*3);
+    for(int i = 0; i < NumBC; i++) {
+      BCinp >> node;
+      BCnodes.push_back(node);
+      for (int j = 0; j < 3; j++) {
+        BCid.push_back(node*3 + j);
+        BCvalues.push_back(Cube.getX(node, j));
+        cout << BCid[ind] << " " <<  BCvalues[ind] << endl;
+        ind++;
       }
-
-      // All nodes at x = xmax
-      if ( Cube.getX(i, 0) > xmax - 1.0e-12 ) {
-	DoFid.push_back(i*3);
-	DoFxmax.push_back(ind);
-	ind++;
-      }
+    }
     
-    }
- 
-    for(int i = 0; i < DoFid.size(); i++) {
-      DoFvalues.push_back( Cube.getX(floor(double(DoFid[i])/3.0) ,DoFid[i]%3) );
-      // cout << DoFid[i] << " " <<  DoFvalues[i] << endl;
-    }
 
     // Lin tet cube - applied displacements //
     // for (uint i = 18; i < 27; i++) { 
@@ -276,42 +268,17 @@ int main(int argc, char** argv)
     // Solver
     Real NRtol = 1.0e-12;
     uint NRmaxIter = 100;
-    EigenNRsolver mySolver(&myModel, DoFid, DoFvalues, CHOL, NRtol, NRmaxIter);
+    EigenNRsolver mySolver(&myModel, BCid, BCvalues, CHOL, NRtol, NRmaxIter);
 
     ind = 0;
-    int NumPassiveInc = 00;
-    Real DeltaX = 0.2*xmax/NumPassiveInc;
-    // cout << DoFxmax.size() << endl;
-    for (int s = 0; s < NumPassiveInc; s++) {
-      // Impose BC
-      for (int i = 0; i < DoFxmax.size(); i++) {
-	DoFvalues[DoFxmax[i]] += DeltaX;
-      }
-      ind++;
-      mySolver.solve(DISP);
-      for (int k = 0; k < NumMat; k++)
-      {
-	(PLmaterials[k])->updateStateVariables();
-      }
-      myModel.writeOutputVTK(outputString, ind);
-    }
-
     for (int s = 0; s < simTime/deltaT; s++) {
-      cout << endl << "============================" << endl;
       cout << "Step " << s << endl;
       // cout << "Activation Factor: " << ActivationFactor[s] << endl;
       
       if (s == 0)  // Free Contraction = 0, Fixed = 200
       {
-	for (int i = 0; i < DoFxmax.size(); i++)
-	{
-	  DoFid.erase(DoFid.begin() + DoFxmax[i] - i);
-	  DoFvalues.erase(DoFvalues.begin() + DoFxmax[i] - i);
 	  ViscPotential.setViscosity(0.0E-5);
-	  // High  = 1E-4, Low = 1E-5
-	}
       }
-
       for (int k = 0; k < NumMat; k++)
       {
     	(PLmaterials[k])->setTimestep(deltaT/1000);
@@ -335,13 +302,23 @@ int main(int argc, char** argv)
       }
       myModel.writeOutputVTK(outputString, ind);
       // myModel.writeField("CubeSmall_", 1);
+      
+      /*
+      // Check EBCs after Solve:
+      // Get the Field from model
+      vector <double > tempField(Cube.getNumberOfNodes() * 3, 0.0);
+      myModel.getField(tempField);
+      for (int node_iter = 0; node_iter < NumBC; node_iter++)
+      {
+        for (int dim_iter = 0; dim_iter < 3; dim_iter++)
+          cout << BCnodes[node_iter] * 3 + dim_iter << "\t" << tempField[BCnodes[node_iter] * 3 + dim_iter] - Cube.getX(BCnodes[node_iter], dim_iter) << endl;
+      }
+      */
     }
 
   // Timing
   time (&end);
   cout << endl << "BVP solved in " << difftime(end,start) << " s" << endl;
-
-
 
   return 0;
 }

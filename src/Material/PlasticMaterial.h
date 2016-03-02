@@ -28,6 +28,9 @@ namespace voom
     // TODO: Change Compute Function to take three vectors.
     void compute(FKresults & R, const Matrix3d & F, Vector3d * fiber = NULL);
 
+    //! Helper function prior to doing the compute
+    void preComputeHelper(const Matrix3d & F);
+
     //! Functions for Internal Variable Optimization
     Vector3d computedWdQ();
     Matrix3d computed2WdQ2();
@@ -43,6 +46,9 @@ namespace voom
     //! Get active deformation gradient at previous timestep
     Matrix3d getActiveDeformationGradient() {return _Fa;}
 
+    //! Get current n+1 active deformation gradient
+    Matrix3d getCurrentActiveDeformationGradient() {return _Fanp1;}
+
     //! Set active deformation gradient at previous timestep
     void setActiveDeformationGradient(Matrix3d Fa) {_Fa = Fa;}
 
@@ -54,6 +60,9 @@ namespace voom
 
     //! Get Hardening Parameters
     Vector3d getHardeningParameters() {return _Q;}
+
+    //! Get current n+1 Hardening Parameters
+    Vector3d getCurrentHardeningParameters() {return _Qnp1;}
 
     //! Set Hardening Parameters
     void setHardeningParameters(Vector3d Q){_Q = Q;}

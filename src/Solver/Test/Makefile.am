@@ -1,4 +1,4 @@
-bin_PROGRAMS = TestEigen TestLB
+bin_PROGRAMS = TestEigen # TestLB
 INCLUDES =		-I./ -I./../ -I./../../	-I./../../Mesh -I./../Element		\
 	 		-I./../../VoomMath/ -I./../../Shape -I./../../Quadrature	\
 			-I./../../Model -I./../../Material -I./../../Element		\
@@ -14,7 +14,7 @@ LDADD = -lSolver -lModel -lMesh -lElement              \
 	-lgfortran
 
 TestEigen_SOURCES = TestEigen.cc
-TestBVP_SOURCES = TestBVP.cc
-TestLV_SOURCES = TestLV.cc
-TestPressure_SOURCES = TestPressure.cc
-TestLB_SOURCES = TestLB.cc
+# TestBVP_SOURCES = TestBVP.cc
+# TestLV_SOURCES = TestLV.cc
+# TestPressure_SOURCES = TestPressure.cc
+# TestLB_SOURCES = TestLB.cc

@@ -4,7 +4,7 @@
 namespace voom {
 
   // Consistency Checks //
-  void Model::checkConsistency(Result & R, Real perturbationFactor, int request,
+  void Model::checkConsistency(Result* R, Real perturbationFactor, int request,
 				       Real h, Real tol)
   {
     // Check only for local nodes
@@ -30,32 +30,32 @@ namespace voom {
     if ( request & FORCE ) {
       Real error = 0.0, norm = 0.0;
 
-      R.setRequest(3); // First compute forces numerically
+      R->setRequest(3); // First compute forces numerically
       this->compute(R);
 
-      R.setRequest(1); // Reset result request so that only energy is computed 
+      R->setRequest(1); // Reset result request so that only energy is computed 
       // this->compute(R);
 
-      cout << "Model energy at test start = " <<  R.getEnergy() << endl;
+      cout << "Model energy at test start = " <<  R->getEnergy() << endl;
 
       for(int a = 0; a < nodeNum; a++) {
 	for(int i = 0; i < _nodeDoF; i++) {
 	  // Perturb +h
 	  this->linearizedUpdate(a, i, h);
 	  this->compute(R);
-	  Real Wplus = R.getEnergy();
+	  Real Wplus = R->getEnergy();
 	  
 	  // Perturb -2h
 	  this->linearizedUpdate(a, i, -2*h);
 	  this->compute(R);
-	  Real Wminus = R.getEnergy();
+	  Real Wminus = R->getEnergy();
 	  
 	  // Bring back to original position
 	  this->linearizedUpdate(a, i, h);
 	  
 	  error += pow( (Wplus-Wminus)/(2.*h) - 
-			R.getResidual(a*_nodeDoF + i), 2);
-	  norm += pow(R.getResidual(a*_nodeDoF + i), 2);
+			R->getResidual(a*_nodeDoF + i), 2);
+	  norm += pow(R->getResidual(a*_nodeDoF + i), 2);
 	} // Loop over dimension
       } // Loop over nodes
       error = sqrt(error);
@@ -77,10 +77,10 @@ namespace voom {
     if ( request & STIFFNESS ) {
       Real error = 0.0, norm = 0.0;
 
-      R.setRequest(4); // First compute stiffness numerically
+      R->setRequest(4); // First compute stiffness numerically
       this->compute(R);
 
-      R.setRequest(2); // Reset result request so that only forces are computed 
+      R->setRequest(2); // Reset result request so that only forces are computed 
       for(int a = 0; a < nodeNum; a++) {
 	for(int i = 0; i < _nodeDoF; i++) {
 	  for(int b = 0; b < nodeNum; b++) {
@@ -88,20 +88,20 @@ namespace voom {
 	      // Perturb +h
 	      this->linearizedUpdate(b, j, h);
 	      this->compute(R);
-	      Real Fplus = R.getResidual(a*_nodeDoF + i);
+	      Real Fplus = R->getResidual(a*_nodeDoF + i);
 
 	      // Perturb -2h
 	      this->linearizedUpdate(b, j, -2*h);
 	      this->compute(R);
-	      Real Fminus = R.getResidual(a*_nodeDoF + i);
+	      Real Fminus = R->getResidual(a*_nodeDoF + i);
 
 	      // Bring back to original position
 	      this->linearizedUpdate(b, j, h);
 
 	      // Computing Error and Norm;
-	      error += pow((Fplus - Fminus)/(2.*h) - R.getStiffness(a*_nodeDoF+i, b*_nodeDoF+j), 2.0);
-	      norm += pow( R.getStiffness(a*_nodeDoF+i, b*_nodeDoF+j), 2.0); 
-	      cout << R.getStiffness(a*_nodeDoF+i, b*_nodeDoF+j) << "\t" << (Fplus - Fminus)/(2.*h) << endl;
+	      error += pow((Fplus - Fminus)/(2.*h) - R->getStiffness(a*_nodeDoF+i, b*_nodeDoF+j), 2.0);
+	      norm += pow( R->getStiffness(a*_nodeDoF+i, b*_nodeDoF+j), 2.0); 
+	      // cout << R->getStiffness(a*_nodeDoF+i, b*_nodeDoF+j) << "\t" << (Fplus - Fminus)/(2.*h) << endl;
 	    } // j loop
 	  } // b loop
 	} // i loop

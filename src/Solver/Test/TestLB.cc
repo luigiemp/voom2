@@ -1,4 +1,4 @@
-#include "EigenEllipticResult.h"
+#include "EigenResult.h"
 
 #include "LoopShellMesh.h"
 #include "LandauBrazovskii.h"
@@ -49,7 +49,7 @@ int main(int argc, char** argv) {
     // Set Requests
     uint PbDoF = icosa_mesh.getNumberOfNodes();
     int TotNumMatProp = NumMat*1;
-    EigenEllipticResult myResults(PbDoF, TotNumMatProp);
+    EigenResult myResults(PbDoF, TotNumMatProp);
 
     //Load Initial configuration
     if (false){
@@ -110,7 +110,7 @@ int main(int argc, char** argv) {
       int counter = 0;
       model.writeOutputVTK("Udynamics_",counter);
       for (Real t=0; t<=T; t=t+dt){
-	model.compute( myResults );
+	model.compute(&myResults );
 	for (int i=0; i< PbDoF; i++){
 	  model.linearizedUpdate(i, -dt*myResults.getResidual(i));
 	  //cout << " update: " <<  myResults.getResidual(i) <<endl;

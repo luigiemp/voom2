@@ -5,7 +5,7 @@ namespace voom {
   // Constructor
   LoopShellModel::LoopShellModel(Mesh* aMesh, vector<SCElastic * > materials, 
 				 const uint NodeDoF):
-    EllipticModel(aMesh, NodeDoF), _materials(materials)
+    Model(aMesh, NodeDoF), _materials(materials)
   {
     // THERE IS ONE MATERIAL PER ELEMENT - CAN BE CHANGEd - DIFFERENT THAN BEFORE
     // Resize and initialize (default function) _field vector
@@ -16,7 +16,7 @@ namespace voom {
   
 
   // Compute Function - Compute Energy, Force, Stiffness
-  void LoopShellModel::compute(EllipticResult & R)
+  void LoopShellModel::compute(Result & R)
   {
     const vector<GeomElement* > elements = _myMesh->getElements();
     const int AvgNodePerEl = ((elements[0])->getNodesID()).size();

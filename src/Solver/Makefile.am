@@ -8,5 +8,5 @@ INCLUDES     = 	-I./ 						\
 		-I./../Geometry
 
 lib_LIBRARIES = libSolver.a
-libSolver_a_SOURCES = EigenNRsolver.cc LBFGSB.cc LBFGSB.cc lbfgsb-routines-3.0.f blas.f \
+libSolver_a_SOURCES = EigenNRsolver.cc LBFGSB.cc lbfgsb-routines.f blas.f \
 		linpack.f timer.f

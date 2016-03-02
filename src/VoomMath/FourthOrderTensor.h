@@ -22,6 +22,16 @@ namespace voom
     { 
       CurrentPos = A.begin();
     };
+
+    double& operator()(uint i, uint j, uint k, uint l)
+    {
+      return A[i + _sizeI*(j + _sizeJ*(k + l*_sizeK))];
+    }
+
+    double operator()(uint i, uint j, uint k, uint l) const
+    {
+      return A[i + _sizeI*(j + _sizeJ*(k + l*_sizeK))];
+    }
     
     void resize(uint sizeI, uint sizeJ, uint sizeK, uint sizeL)
     {

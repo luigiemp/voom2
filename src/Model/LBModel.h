@@ -2,15 +2,15 @@
 #ifndef __LBModel_h__
 #define __LBModel_h__
 
-#include "EllipticModel.h"
+#include "Model.h"
 #include "LandauBrazovskii.h"
 #include "ShellGeometry.h"
-#include "EigenEllipticResult.h"
+#include "EigenResult.h"
 
 namespace voom{
 
   // Model Results
-  class LBModel: public EllipticModel {
+  class LBModel: public Model {
 
   public:
 
@@ -140,7 +140,7 @@ namespace voom{
     void writeOutputVTK(const string OutputFile, int step); 
 
     //! Solve the system
-    void compute(EllipticResult & R);
+    void compute(Result & R);
     
     void setImplicitDynamicsFlag(bool flag){
       

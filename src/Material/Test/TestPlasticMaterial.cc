@@ -64,13 +64,13 @@ int main()
   Rm.request = 7;
   Matrix3d F;
   F << 1., 0.0, 0.0, 0.0, 1., 0.0, 0.0, 0.0, 1.;
-  F << 1.0008, .0015, .0100, .0023, 1.0083, .0008, .0091, .0054, 1.0044;
-  /*
+  // F << 1.0008, .0015, .0100, .0023, 1.0083, .0008, .0091, .0054, 1.0044;
+  
   srand(time(NULL));
   for (unsigned int i = 0; i<3; i++) 
     for (unsigned int J = 0; J<3; J++) 
       F(i,J) += 0.1*(double(rand())/RAND_MAX); 
-  */
+  
   cout << "determinant(F) = " << F.determinant() << endl;
     
 

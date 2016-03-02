@@ -33,10 +33,10 @@ namespace voom {
     virtual ~Model() {};
 
     //! Model compute function
-    virtual void compute(Result & R) = 0;
+    virtual void compute(voom::Result * R) = 0;
 
     //! Check consistency - common to all models
-    void checkConsistency(Result & R, Real perturbationFactor, int request = 6,
+    void checkConsistency(Result* R, Real perturbationFactor, int request = 6,
 			  Real h = 1e-6, Real tol = 1e-6);
 
     //! Return number of unique material pointers

@@ -8,7 +8,8 @@ namespace voom
 		
 		int iter = 0;
 
-		cout << "| \t Iter \t | \t Norm(dW/dQ) \t | \t dQ \t |" << endl;
+		// cout << "Qn+1: " << _Qnp1(0) << " " << _Qnp1(1) << " " << _Qnp1(2) << endl;
+		// cout << "| \t Iter \t | \t Norm(dW/dQ) \t | \t dQ \t |" << endl;
 		for (iter = 0; iter < _maxIter; iter++)
 		{
 			Vector3d dWdQ = computedWdQ();
@@ -17,17 +18,22 @@ namespace voom
 			Vector3d dQ = -1. * d2WdQ2.inverse() * dWdQ;
 			_Qnp1 = _Qnp1 + dQ;
 			
-			cout << "\t" << iter << "\t\t" << dWdQ.norm() << "\t\t" << dQ.norm() << endl;
+			// cout << "\t" << iter << "\t\t" << dWdQ.norm() << "\t\t" << dQ.norm() << endl;
 
 			double error = sqrt(square(dQ(0)) + square(dQ(1)) + square(dQ(2)));
 
 			if(error < _hardOptTOL)
+			{
+			        // cout << "Qn+1: " << _Qnp1(0) << " " << _Qnp1(1) << " " << _Qnp1(2) << endl;
 				break;
+			}
 		}
-		cout << "Internal Variable Optimization Iterations: \t" << iter << endl;
+		// cout << "Internal Variable Optimization Iterations: \t" << iter << endl;
 		if (iter == _maxIter)
+		{
 			cout << "****** Maximum Newton iterations reached for hardening variable optimization. ******" << endl;
-
+			exit(1);
+		}
 	}
 
 	Vector3d PlasticMaterial::computedWdQ()
@@ -51,6 +57,10 @@ namespace voom
 
 		Matrix3d Fenp1 = _Fnp1 * invFanp1;
 
+		// cout << _Fnp1 << endl;
+		// cout << invFanp1 << endl;
+
+
 		FKresults ActiveResults;
 		ActiveResults.request = 2;
 
@@ -58,7 +68,11 @@ namespace voom
 		
 		vector <Matrix3d> dFadQ(3, Matrix3d::Zero());
 		for (int p = 0; p < 3; p++)
-			dFadQ[p] = A * _M[p] * _Fa;
+		{
+		    // dFadQ[p] = A.exp() * _M[p] * _Fa;
+		    // Modified: 2.23.2016
+		    dFadQ[p] = exp(deltaQ[p]) * _M[p] * _Fa;
+		}
 		
 		Vector3d dDsdQnp1(0,0,0);
 		for (int a = 0; a < 3; a++)
@@ -76,9 +90,10 @@ namespace voom
 
 		dWdQ = dDsdQnp1 + dpsidQnp1 * _deltaT;
 
-		// cout << dDsdQnp1 << endl << endl << dpsidQnp1 << endl; exit(1);
+	        // cout << dDsdQnp1 << endl << endl << dpsidQnp1 << endl; exit(1);
 		// cout << ActiveResults.P << endl; exit(1);
-		// cout << Fenp1 << endl; exit(1);
+	        // cout << Fenp1 << endl; exit(1);
+		// cout << dWdQ << endl; exit(1);
 
 		return dWdQ;
 	}
@@ -113,22 +128,28 @@ namespace voom
 		
 		vector <Matrix3d> dFadQ(3, Matrix3d::Zero());
 		for (int p = 0; p < 3; p++)
-			dFadQ[p] = A * _M[p] * _Fa;
-
+		{
+		        // dFadQ[p] = A * _M[p] * _Fa;
+		        dFadQ[p] = exp(deltaQ[p]) * _M[p] * _Fa;
+		}
 		Matrix3d expA = A;
 
-		FourthOrderTensor d2FadQ2(3,3,3,3);
+		// FourthOrderTensor d2FadQ2(3,3,3,3);
+		vector < vector < Matrix3d> > d2FadQ2new(3, vector<Matrix3d>(3, Matrix3d::Zero()));
+		for (int p = 0; p < 3; p++)
+		  d2FadQ2new[p][p] = exp(deltaQ[p]) * _M[p] * _Fa;
+
 		FourthOrderTensor dFedFanp1(3,3,3,3);
 		for (int i = 0; i < 3; i++) {
 			for (int j = 0; j < 3; j++) {
-				Matrix3d temp = expA * _M[i] * _M[j] * _Fa;
+			        // Matrix3d temp = expA * _M[i] * _M[j] * _Fa;
 				for (int p = 0; p < 3; p++) {
 					for (int q = 0; q < 3; q++) {
-						d2FadQ2.set(i,j,p,q, temp(p,q));
+					        // d2FadQ2(i,j,p,q) = temp(p,q);
 						for (int r = 0; r < 3; r++) {
-							dFedFanp1.set(i,j,p,q, dFedFanp1.get(i,j,p,q) + _Fnp1(i,r) * invFanp1(r,p) * invFanp1(q,j));
+						  dFedFanp1(i,j,p,q) += _Fnp1(i,r) * invFanp1(r,p) * invFanp1(q,j);
 						}
-						dFedFanp1.set(i,j,p,q, -1. * dFedFanp1.get(i,j,p,q));
+						dFedFanp1(i,j,p,q) = -1. * dFedFanp1(i,j,p,q);
 					}
 				}
 			}
@@ -148,13 +169,14 @@ namespace voom
 									for (int i = 0; i < 3; i++) {
 										for (int l = 0; l < 3; l++) {
 											for (int m = 0; m < 3; m++) {
-		                                        					term1(p,q) = term1(p,q) + ActiveResults.K.get(e,f,h,i) * dFedFanp1.get(e,f,c,d) * dFedFanp1.get(h,i,l,m) * dFadQ[p](c,d) * dFadQ[q](l,m);
+		                                        					term1(p,q) = term1(p,q) + ActiveResults.K(e,f,h,i) * dFedFanp1(e,f,c,d) * dFedFanp1(h,i,l,m) * dFadQ[p](c,d) * dFadQ[q](l,m);
 											}
 										}
-										term2(p,q) = term2(p,q) + ActiveResults.P(e,f) * -1 * (dFedFanp1.get(e,c,h,i) * invFanp1(d,f) + dFedFanp1.get(e,h,c,d) * invFanp1(i,f)) * dFadQ[p](c,d) * dFadQ[q](h,i);
+										term2(p,q) = term2(p,q) + ActiveResults.P(e,f) * -1 * (dFedFanp1(e,c,h,i) * invFanp1(d,f) + dFedFanp1(e,h,c,d) * invFanp1(i,f)) * dFadQ[p](c,d) * dFadQ[q](h,i);
 									}
 								}
-								term3(p,q) = term3(p,q) + ActiveResults.P(e,f) * dFedFanp1.get(e,f,c,d) * d2FadQ2.get(c,d,p,q);
+								// term3(p,q) = term3(p,q) + ActiveResults.P(e,f) * dFedFanp1(e,f,c,d) * d2FadQ2(c,d,p,q);
+								term3(p,q) = term3(p,q) + ActiveResults.P(e,f) * dFedFanp1(e,f,c,d) * d2FadQ2new[p][q](c,d);
 							}
 						}
 					}
@@ -175,17 +197,18 @@ namespace voom
 
 		return d2WdQ2;
 	}
-	// TODO: Change the compute function to take vector<Vector3d> for all three directions.
-	void PlasticMaterial::compute(FKresults & R, const Matrix3d & Fnp1, Vector3d * fiber)
+  
+        // This function computes the Fanp1 and Qnp1 prior to doing the Compute
+        void PlasticMaterial::preComputeHelper(const Matrix3d & Fnp1)
 	{
-		//cout << R.request << endl;
+	        //cout << R.request << endl;
 		_Fnp1 = Fnp1;
 		computeKinematicParameters();
 
 		// Optimize for the hardening variables
 		// Find \mathbf{Q}_{n+1}
 		optimizeInternalVariables();
-		
+
 		// Compute \mathbf{F}^a_{n+1} according to Flow Rule
 		Vector3d deltaQ = _Qnp1 - _Q;
 		Matrix3d Fanp1 = Matrix3d::Zero();
@@ -198,13 +221,27 @@ namespace voom
 		}
 
 		Fanp1 = A.exp() * _Fa;
-
-		// TODO: CHANGE ALL Fanp1 to _Fanp1 but for now:
 		_Fanp1 = Fanp1;
+
+	}
+
+	// TODO: Change the compute function to take vector<Vector3d> for all three directions.
+	void PlasticMaterial::compute(FKresults & R, const Matrix3d & Fnp1, Vector3d * fiber)
+	{		
+	        preComputeHelper(Fnp1);
+		// cout << "Internal Variables: " << _Qnp1[0] << ", " << _Qnp1[1] << ", " << _Qnp1[2] << endl;
+		// cout << "Active Def Gradient: " << endl << _Fanp1 << endl;
+		Vector3d deltaQ = _Qnp1 - _Q;
+
+		Matrix3d A = Matrix3d::Zero();
+		for (int i = 0; i < 3; i++){
+			A += deltaQ(i) * _M[i];
+		}
+
 
 		// Compute Elastic Deformation Gradient
 		Matrix3d invFa = _Fa.inverse();
-		Matrix3d invFanp1 = Fanp1.inverse();
+		Matrix3d invFanp1 = _Fanp1.inverse();
 
 		Matrix3d Fen = _Fn * invFa;
 		Matrix3d Fenp1 = Fnp1 * invFanp1;
@@ -214,8 +251,11 @@ namespace voom
 		if (R.request & STIFFNESS)
 		{
 			// STIFFNESS requires computation of the FORCE of Active and Passive materials
-			if (!(R.request & FORCE))
-				R.request += 2;
+		        if (!(R.request & FORCE))
+			  {
+				PassiveResults.request = PassiveResults.request | FORCE;
+				ActiveResults.request = ActiveResults.request | FORCE;
+			  }
 		}
 		_PassiveMaterial->compute(PassiveResults, Fnp1, &_dirVec[0]);
 		_ActiveMaterial->compute(ActiveResults, Fenp1, &_dirVec[0]);
@@ -262,7 +302,19 @@ namespace voom
 
 			vector <Matrix3d> dFadQ(3, Matrix3d::Zero());
 			for (int p = 0; p < 3; p++)
-				dFadQ[p] = A.exp() * _M[p] * _Fa;
+			{
+				// dFadQ[p] = A.exp() * _M[p] * _Fa;
+				// Added Next two lines 2.23.2016
+				// Matrix3d P;
+				// P << _dirVec[0](0), _dirVec[1](0), _dirVec[2](0),
+				//      _dirVec[0](1), _dirVec[1](1), _dirVec[2](1),
+			 	//      _dirVec[0](2), _dirVec[1](2), _dirVec[2](2);
+
+				// Matrix3d Dtemp = Matrix3d::Zero();
+				// Dtemp(p,p) = exp(deltaQ[p]);
+				// dFadQ[p] = P * Dtemp * P.transpose() * _Fa;
+			        dFadQ[p] = exp(deltaQ[p]) * _M[p] * _Fa;
+			}
 
 			FourthOrderTensor dFedFanp1(3,3,3,3);
 			for (int i = 0; i < 3; i++){
@@ -270,9 +322,9 @@ namespace voom
 					for (int K = 0; K < 3; K++){
 						for (int L = 0; L < 3; L++){
 							for (int R = 0; R < 3; R++){
-								dFedFanp1.set(i,J,K,L, dFedFanp1.get(i,J,K,L) + Fnp1(i,R) * invFanp1(R,K) * invFanp1(L,J));
+							  dFedFanp1(i,J,K,L) += Fnp1(i,R) * invFanp1(R,K) * invFanp1(L,J);
 							}
-							dFedFanp1.set(i,J,K,L, -1. * dFedFanp1.get(i,J,K,L));
+							dFedFanp1(i,J,K,L) = -1. * dFedFanp1(i,J,K,L);
 						}
 					}
 				}
@@ -286,10 +338,10 @@ namespace voom
 						for (int L = 0; L < 3; L++) {
 							for (int N = 0; N < 3; N++) {
 								for (int T = 0; T < 3; T++) {
-									Term1.set(i,J,k,L, Term1.get(i,J,k,L) + ActiveResults.K.get(i,N,k,T) * invFanp1(J,N) * invFanp1(L,T));
+								  Term1(i,J,k,L) += ActiveResults.K(i,N,k,T) * invFanp1(J,N) * invFanp1(L,T);
 								}
 							}
-							Term1.set(i,J,k,L, Term1.get(i,J,k,L) + PassiveResults.K.get(i,J,k,L));
+							Term1(i,J,k,L) += PassiveResults.K(i,J,k,L);
 						}
 					}
 				}
@@ -305,7 +357,7 @@ namespace voom
 								for (int B = 0; B < 3; B++) {
 									for (int s = 0; s < 3; s++) {
 										for (int T = 0; T < 3; T++) {
-											Term2[a](i,J) = Term2[a](i,J) + ActiveResults.K.get(i,B,s,T) * invFanp1(J,B) * dFedFanp1.get(s,T,m,N) * dFadQ[a](m,N);
+											Term2[a](i,J) = Term2[a](i,J) + ActiveResults.K(i,B,s,T) * invFanp1(J,B) * dFedFanp1(s,T,m,N) * dFadQ[a](m,N);
 										}
 									}
 									Term2_2[a](i,J) = Term2_2[a](i,J) + ActiveResults.P(i,m) * invFanp1(J,N) * invFanp1(B,m) * dFadQ[a](N,B);
@@ -326,10 +378,10 @@ namespace voom
 						for (int L = 0; L < 3; L++) {
 							for (int a = 0; a < 3; a++) {
 								for (int b = 0; b < 3; b++) {
-									Term234.set(i,J,k,L, Term234.get(i,J,k,L) + Term2[a](i,J) * Term3(a,b) * Term2[b](k,L));
+								  Term234(i,J,k,L) += Term2[a](i,J) * Term3(a,b) * Term2[b](k,L);
 								}
 							}
-							R.K.set(i,J,k,L, _deltaT * d2phidF2.get(i,J,k,L) + Term1.get(i,J,k,L) - Term234.get(i,J,k,L));
+							R.K(i,J,k,L) =  _deltaT * d2phidF2(i,J,k,L) + Term1(i,J,k,L) - Term234(i,J,k,L);
 						}
 					}
 				}

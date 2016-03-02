@@ -16,21 +16,20 @@ namespace voom
     // First line
     // First number is NumNodes, Second numbder is dim
     inp >> NumNodes >> dim;
-    cout << "Number of nodes = " <<NumNodes <<endl;
 
     _X.resize(NumNodes, VectorXd::Zero(dim));
 
     // All other lines are the nodal coordinates
     for (uint i = 0; i < NumNodes; i++) {
-      Real mag = 0;
+      // Real mag = 0;
       // inp >> temp; - if this is commented each line is just the [x,y,z] ccordinate, no node number
       for (uint j = 0; j < dim; j++) {
 	inp >> _X[i](j);
-	mag += _X[i](j)*_X[i](j);
+	// mag += _X[i](j)*_X[i](j);
       }
-      mag = sqrt(mag); // To get an accurate sphere
-      //mag = 1.0; //For any other surface
-      _X[i](0) = _X[i](0)/mag; _X[i](1) = _X[i](1)/mag; _X[i](2) = _X[i](2)/mag;
+      // mag = sqrt(mag); // To get an accurate sphere
+      // mag = 1.0; //For any other surface
+      // _X[i](0) = _X[i](0)/mag; _X[i](1) = _X[i](1)/mag; _X[i](2) = _X[i](2)/mag;
       //if (i<=12) _X[i] = (1-.000125)*_X[i];
     }
 

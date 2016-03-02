@@ -153,10 +153,10 @@ namespace voom{
     void writeOutputVTK(const string OutputFile, int step); 
 
     //! Solve the system
-    void compute(Result & R);
+    void compute(Result * R);
 
     // Apply pressure
-    void applyPressure(Result & R);
+    void applyPressure(Result * R);
 
     // Update pressure
     void updatePressure(Real Pressure) {
@@ -169,7 +169,7 @@ namespace voom{
     }
 
     // Check consistency of gradg and Hg
-    void checkDmat(EigenResult & R, Real perturbationFactor, Real h, Real tol);
+    void checkDmat(EigenResult * R, Real perturbationFactor, Real h, Real tol);
 
 
 

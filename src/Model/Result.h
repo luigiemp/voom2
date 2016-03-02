@@ -6,8 +6,11 @@
 namespace voom {
   //! Result is a class which contains standard result and defines basic interface to access/update them
 
-  struct Result 
+  class Result 
   {
+
+  public:
+
     // Default constructor
     Result(): _request(0), _energy(0.0) {};
 
@@ -45,7 +48,6 @@ namespace voom {
     virtual Real getGradg(int ind) = 0;
     virtual Real getHg(int indRow, int indCol) = 0;
 
-  private:
     int  _request;
     Real _energy;
 

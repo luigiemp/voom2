@@ -29,8 +29,8 @@ namespace voom
 {
 
   //! Constructor
-  LBFGSB::LBFGSB( EllipticModel *myModel,
-		  EigenEllipticResult* myResults, 
+  LBFGSB::LBFGSB( Model *myModel,
+		  EigenResult* myResults, 
 		  int m,
 		  double factr, double pgtol,
 		  int iprint, int maxIterations):

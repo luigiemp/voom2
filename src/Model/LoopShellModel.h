@@ -2,15 +2,15 @@
 #ifndef __LoopShellModel_h__
 #define __LoopShellModel_h__
 
-#include "EllipticModel.h"
+#include "Model.h"
 #include "SCElastic.h"
 #include "ShellGeometry.h"
-#include "EigenEllipticResult.h"
+#include "EigenResult.h"
 
 namespace voom{
 
   // Model Results
-  class LoopShellModel: public EllipticModel {
+  class LoopShellModel: public Model {
 
   public:
 
@@ -155,7 +155,7 @@ namespace voom{
     void writeOutputVTK(const string OutputFile, int step); 
 
     //! Solve the system
-    void compute(EllipticResult & R);
+    void compute(Result & R);
 
 
   protected:
