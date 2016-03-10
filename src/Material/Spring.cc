@@ -3,14 +3,16 @@
 namespace voom {
 
   // Operators
-  void Spring::compute(Filresults & R, const Vector3D & d)
+  void Spring::compute(Filresults & R, const Vector3d & d)
   {
     
         
     if( R.request & ENERGY )
     {
-      R.W = 0.5*_k*sqr(norm2(d-_d0));
+      //R.W = 0.5*_k*sqr(norm2(d-_d0));
+      R.W = 0.0;
     }
+    /*
     if( R.request & FORCE ) 
     {
       R.F = _k*(norm2(d-_d0))/(d());
@@ -37,8 +39,8 @@ namespace voom {
       R.Dmat.resize(0, 0, 0);     // Already initialized to zero
       R.DDmat.resize(0, 0, 0, 0); // Already initialized to zero 
     } // DMATPROP
-
-  } // Jacobian::compute
+    */
+  } // Spring::compute
 
 
 } // namespace voom

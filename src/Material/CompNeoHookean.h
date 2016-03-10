@@ -15,11 +15,11 @@ namespace voom {
   {
   public: 
     // Constructors/destructors:
-    CompNeoHookean(int ID): MechanicsMaterial(ID), _lambda(1.0), _mu(1.0) {};
-    CompNeoHookean(int ID, Real Lambda, Real Mu): MechanicsMaterial(ID), _lambda(Lambda), _mu(Mu) {};
-    CompNeoHookean(CompNeoHookean* BaseMaterial): 
+  CompNeoHookean(int ID): MechanicsMaterial(ID), _lambda(1.0), _mu(1.0) {};
+  CompNeoHookean(int ID, Real Lambda, Real Mu): MechanicsMaterial(ID), _lambda(Lambda), _mu(Mu) {};
+  CompNeoHookean(CompNeoHookean* BaseMaterial): 
     MechanicsMaterial(BaseMaterial->_matID), _lambda(BaseMaterial->_lambda), _mu(BaseMaterial->_mu) {};
-
+    
     // Clone
     virtual CompNeoHookean* clone() const {
       return new CompNeoHookean(*this);
@@ -64,7 +64,7 @@ namespace voom {
     // Operators
     //! Based on deformation gradient tensor F, calculates state of material
     void compute(FKresults & R, const Matrix3d & F, Vector3d * Fiber = NULL);
-
+    
     //! Tells if material has history variables and needs to be duplicated at each quadrature point
     // It is used in the Model derived classes
     bool HasHistoryVariables() { return false; };

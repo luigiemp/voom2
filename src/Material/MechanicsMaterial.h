@@ -27,7 +27,7 @@ namespace voom
       int request;
     
     }; // struct FKresults
-
+    
     //! Constructor
     MechanicsMaterial(int MatID): _matID(MatID) {;}
 
@@ -39,7 +39,7 @@ namespace voom
 
     //! Compute function
     virtual void compute(FKresults & R, const Matrix3d & F, Vector3d * fiber = NULL) = 0;
-
+    
     //! Consistency Check for all Mecahnics Material Classes
     void checkConsistency(FKresults & R, const Matrix3d & F, Vector3d * fiber = NULL,
 			  const Real h = 1.0e-7, const Real tol = 1.0e-6);
