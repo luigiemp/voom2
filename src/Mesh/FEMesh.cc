@@ -6,13 +6,14 @@ namespace voom {
   FEMesh::FEMesh(const string Nodes, const string ConnTable): Mesh(Nodes, ConnTable) {
     ifstream inp(ConnTable.c_str());
     
+    Real radius = 1.0;
     uint NumEl = 0, temp = 0;
     string ElType;
     // First line
     // First number is NumNodes, Second is type of element
     inp >> NumEl >> ElType;
     _elements.resize(NumEl);
-
+    
     uint NumNodesEl = 0;
     if (ElType == "C3D8") { 
       // Full integration hexahedral element
@@ -25,6 +26,17 @@ namespace voom {
       }
       NumNodesEl = 8;
     } // end of C3D8
+    else if (ElType == "L2") {
+      // Line integral with Legendre-Gauss quadrature
+      _quadrature = new LineQuadrature(2);
+      vector<VectorXd > QuadPoints = _quadrature->getQuadPoints();
+      
+      // Fill quadrature and shapes    
+      for ( uint q = 0; q < QuadPoints.size(); q++ ) {
+        _shapes.push_back( new BarShape(QuadPoints[q]) );
+      }
+      NumNodesEl = 2;
+    }
     else if (ElType == "C3D8R") {
       // Reduced integration hexahedral element
       _quadrature = new HexQuadrature(1); 
@@ -85,21 +97,46 @@ namespace voom {
       cerr << "Exiting...\n";
       exit(EXIT_FAILURE);
     }
-    
-    // Compute the geometric elements
-    for (uint e = 0; e < NumEl; e++) {
-      vector<int > ConnEl(NumNodesEl, 0);
-      vector<VectorXd > Xel; 
-      for (uint n = 0; n < NumNodesEl; n++) {
-	inp >> ConnEl[n];
-	Xel.push_back(_X[ConnEl[n]]);
-      }
+        
+    if (ElType == "L2") {
+      
+      for (uint e = 0; e < NumEl; e++) {
+	vector<int > ConnEl(NumNodesEl, 0);
+	vector<VectorXd > Xel;
+	for (uint n = 0; n < NumNodesEl; n++) {
+	  inp >> ConnEl[n];
+	  Xel.push_back(_X[ConnEl[n]]);
+	  
+	}
+	
+	
+	_elements[e] = new FEgeomElement1D(e, ConnEl,
+					   Xel,
+					   _shapes,
+					   _quadrature,
+					   radius);
+	
+      } // End of FEgeom1D
+      
+    }                
+    else {
+      // Compute the geometric elements                                                                                                                                                                                                         
+      for (uint e = 0; e < NumEl; e++) {
+	vector<int > ConnEl(NumNodesEl, 0);
+	vector<VectorXd > Xel;
+	for (uint n = 0; n < NumNodesEl; n++) {
+	  inp >> ConnEl[n];
+	  Xel.push_back(_X[ConnEl[n]]);
+	}
 
-      _elements[e] = new FEgeomElement(e, ConnEl, 
-				       Xel,
-				       _shapes,
-				       _quadrature);
-    } // End of FEgeom
+	_elements[e] = new FEgeomElement(e, ConnEl,
+					 Xel,
+					 _shapes,
+					 _quadrature);
+      } // End of FEgeom 
+
+
+    }
     
   } // End constructor from input files
 

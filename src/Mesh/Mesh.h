@@ -10,6 +10,7 @@
 #include "voom.h"
 #include "GeomElement.h"
 #include "FEgeomElement.h"
+#include "FEgeomElement1D.h"
 #include "Quadrature.h"
 #include "Shape.h"
 

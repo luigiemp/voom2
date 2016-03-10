@@ -51,6 +51,7 @@ namespace voom{
     
     //! One Quadrature rule per each element type
     Quadrature*    _quadrature;
+
   };
 }
 
