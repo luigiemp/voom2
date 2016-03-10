@@ -82,7 +82,6 @@ namespace voom{
     void setField(const Real* value) {
       _field.assign(value, value+_field.size());
     };
-
     void getField(vector<double> & x) {
       assert(x.size() == _field.size());
       x = _field;
