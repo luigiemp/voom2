@@ -8,7 +8,7 @@ namespace voom {
 				 int PressureFlag, Mesh* SurfaceMesh,
 				 int NodalForcesFlag,
 				 int ResetFlag):
-    EllipticModel(aMesh, NodeDoF), _materials(materials), 
+    Model(aMesh, NodeDoF), _materials(materials), 
     _pressureFlag(PressureFlag), _pressure(0.0), _surfaceMesh(SurfaceMesh),
     _nodalForcesFlag(NodalForcesFlag), _forcesID(NULL), _forces(NULL), _resetFlag(ResetFlag)
   {
@@ -60,7 +60,7 @@ namespace voom {
 
 
   // Compute Function - Compute Energy, Force, Stiffness
-  void MechanicsModel::compute(EllipticResult & R)
+  void MechanicsModel::compute(Result & R)
  {
     const vector<GeomElement* > elements = _myMesh->getElements();
     const int AvgNodePerEl = ((elements[0])->getNodesID()).size();
@@ -262,7 +262,7 @@ namespace voom {
 
 
 
-  void MechanicsModel::applyPressure(EllipticResult & R) {
+  void MechanicsModel::applyPressure(Result & R) {
 
     const vector<GeomElement* > elements = _surfaceMesh->getElements();
 
@@ -323,7 +323,7 @@ namespace voom {
 
 
 
-  void MechanicsModel::checkDmat(EigenEllipticResult & R, Real perturbationFactor, Real hM, Real tol) 
+  void MechanicsModel::checkDmat(EigenResult & R, Real perturbationFactor, Real hM, Real tol) 
   {
 
     // Perturb initial config - gradg and Hg are zero at F = I
@@ -557,7 +557,7 @@ namespace voom {
   
     // Compute Residual
     uint PbDoF = ( _myMesh->getNumberOfNodes())*this->getDoFperNode();
-    EigenEllipticResult myResults(PbDoF, 2);
+    EigenResult myResults(PbDoF, 2);
     int myRequest = 2;
     myResults.setRequest(myRequest);
     this->compute(myResults);

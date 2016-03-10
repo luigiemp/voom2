@@ -9,6 +9,7 @@
 
 #include "voom.h"
 #include "Mesh.h"
+#include "Result.h"
 
 namespace voom {
   class Model {
@@ -30,6 +31,16 @@ namespace voom {
 
     //! Destructor
     virtual ~Model() {};
+
+    //! Model compute function
+    virtual void compute(Result & R) = 0;
+
+    //! Check consistency - common to all models
+    void checkConsistency(Result & R, Real perturbationFactor, int request = 6,
+			  Real h = 1e-6, Real tol = 1e-6);
+
+    //! Return number of unique material pointers
+    virtual uint getNumMat() = 0;
 
     //! Get DoF per Node
     uint getDoFperNode() {
@@ -66,6 +77,9 @@ namespace voom {
 
     // Get solution field
     virtual void getField(vector<double> & x) = 0;
+
+    //! Set Previous Field
+    virtual void setPrevField() = 0;
 
     // Print field
     virtual void printField() = 0;

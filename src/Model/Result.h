@@ -1,21 +1,21 @@
 //-*-C++-*-
-#ifndef __EllipticResult_h__
-#define __EllipticResult_h__
+#ifndef __Result_h__
+#define __Result_h__
 #include "Model.h"
 
 namespace voom {
-  //! Elliptic Result is a class which contains standard elliptic result and define basic interface to access/update them
+  //! Result is a class which contains standard result and defines basic interface to access/update them
 
-  struct EllipticResult 
+  struct Result 
   {
     // Default constructor
-    EllipticResult(): _request(0), _energy(0.0) {};
+    Result(): _request(0), _energy(0.0) {};
 
     // Return NumMat and PbDoF
     virtual int getNumMatProp() = 0;
     virtual int getPbDoF() = 0;
 
-    // Virtual functions to set Elliptic results members (e.g. to be used in the EllipticModel compute function)
+    // Virtual functions to set results members (e.g. to be used in the EllipticModel compute function)
     virtual void setRequest(int request) { _request = request; };
     virtual void setEnergy(Real energy) {_energy = energy; };
     virtual void setResidual(int ind, Real value) = 0;
@@ -26,7 +26,7 @@ namespace voom {
     virtual void resetGradgToZero() = 0;
     virtual void resetHgToZero() = 0;
     
-    // Virtual functions to add to Elliptic result members
+    // Virtual functions to add to result members
     virtual void addEnergy(Real DeltaEnergy) {_energy += DeltaEnergy; };
     virtual void addResidual(int ind, Real value) = 0;
     virtual void addStiffness(int indRow, int indCol, Real value) = 0;
@@ -37,7 +37,7 @@ namespace voom {
     virtual void addHg(int indRow, int indCol, Real value) = 0;
     virtual void setHgFromTriplets(vector<Triplet<Real > > &) = 0;
 
-    // Virtual functions to get Elliptic result members
+    // Virtual functions to get result members
     virtual int  getRequest() {return _request; };
     virtual Real getEnergy()  {return _energy; };
     virtual Real getResidual(int ind) = 0;
@@ -49,7 +49,7 @@ namespace voom {
     int  _request;
     Real _energy;
 
-  }; // End of declaration of EllipticResult base class
+  }; // End of declaration of Result base class
 
 } // namespace voom
 
