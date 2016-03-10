@@ -1,118 +1,68 @@
-// -*- C++ -*-
-//----------------------------------------------------------------------
-//
-//                         William S. Klug
-//                University of California Los Angeles
-//                 (C) 2004-2008 All Rights Reserved
-//
-//----------------------------------------------------------------------
+/*! 
+  \file Jacobian.h
+  \brief Interface to a material used to compute the ratio between the element reference and current volume
+*/
 
-#if !defined(__Spring_h__)
-#define __Spring_h__
+#ifndef _SPRING_H_
+#define _SPRING_H_
 
-#include "Node.h"
-#include "Element.h"
-#include "VoomMath.h"
+#include "MechanicsMaterial.h"
 
-namespace voom
-{
-
-  template<int N>
-  class Spring : public Element {
-    
+namespace voom {
+  
+  class Spring : public MechanicsMaterial
+  {
   public: 
-
-    typedef tvmet::Vector<double,N> VectorND;
-    typedef DeformationNode<N> Node_t;    
-
-    Spring(Node_t * nodeA, Node_t * nodeB, double k) 
-      : _nodeA(nodeA), _nodeB(nodeB), _k(k) { 
-      const VectorND & XA = _nodeA->position();
-      const VectorND & XB = _nodeB->position();
-      _d0 = norm2(XB-XA);
-
-      _baseNodes.push_back(_nodeA);
-      _baseNodes.push_back(_nodeB);
-    }
-
-    Spring(Node_t * nodeA, Node_t * nodeB, double k, double d) 
-      : _nodeA(nodeA), _nodeB(nodeB), _k(k), _d0(d) {
-      _baseNodes.push_back(_nodeA);
-      _baseNodes.push_back(_nodeB);
-    }
-
-    virtual void compute(bool f0, bool f1, bool f2) {
-      const VectorND & xA = _nodeA->point();
-      const VectorND & xB = _nodeB->point();
-      double d  = norm2(xB-xA);
-
-      if(f0) {
-	_energy = 0.5*_k*sqr(d-_d0);
-      }
-
-      if(f1) {	
-	for(int i=0; i<N; i++) {	  
-	  double f = _k*(d-_d0)*(xA(i)-xB(i))/d;
-	  _nodeA->addForce(i, f);
-	  _nodeB->addForce(i,-f);
-	}
-      }
-
-      return;
+    // Constructors/destructors:
+  Spring(int ID): MechanicsMaterial(ID), _k(1.0), _d0(0.0) {};
+  Spring(int ID, Real k, Vector3D d0): MechanicsMaterial(ID), _k(k), _d0(d0) {}; 
+  Spring(Spring* BaseMaterial): 
+    MechanicsMaterial(BaseMaterial->_matID), _k(BaseMaterial->_k), _d0(BaseMaterial->_d0) {};
+    
+    // Clone
+    virtual Spring* clone() const {
+      return new Spring(*this);
     }
     
-    virtual double stiffness() {return _k;}
-    
-    virtual double stiffness(double L) {return _k;}
+    // Default copy constructor (compiler should already provide exactly this)
+    Spring(const Spring & Old): 
+    MechanicsMaterial(Old._matID), _k(Old._k),_d0(Old._d0) {};
 
-    virtual double initialStiff() {return _k; }
+    void setMaterialParameters(const vector<Real > & k) {
+      _k = k;
+    }; 
+    void setInternalParameters(const vector<Vector3D > & d0) {
+      _d0 = d0
+    }; 
+    Void setRegularizationParameters(const vector<Real > &)    {}; // No regularization parameters for Spring
 
-    virtual void setStiffness(double k) { _k = k; }
-
-    virtual double stiffnessChange() {
-      return (stiffness()/stiffness(_d0));
-
+    vector<Real > getMaterialParameters() { 
+      vector<Real > MatProp(1,0.0);
+      MatProp[0] = _k;
+      return MatProp;
+    }
+    vector<Real > getInternalParameters() { 
+      vector<Real > IntParam(1,0.0);
+      IntParam[0] = _d0
+      return IntParam;
+    }
+    vector<Real > getRegularizationParameters() { // No regularization parameters for Spring
+      vector<Real > RegParam;
+      return RegParam;
     }
 
-    virtual double strain() {
-      const VectorND & xA = _nodeA->point();
-      const VectorND & xB = _nodeB->point();
-      double d  = norm2(xB-xA);
-
-      return (d-_d0)/_d0;
-    }
-
-    bool checkConsistency() { return true; }
-
-    virtual void resetLength() {
-      const VectorND & xA = _nodeA->point();
-      const VectorND & xB = _nodeB->point();
-       _d0  = norm2(xB-xA);
-       return;
-    }
     
-    void resetLength(double d0) { _d0 = d0; }
+    // Operators
+    //! Based on current length d, calculates state of the spring
+    void compute(Filresults & R, const Vector3D & d);
+
+    //! Tells if material has history variables 
+    // It is used in the Model derived classes
+    bool HasHistoryVariables() { return false; };
     
-    virtual double getLength() {
-      return _d0;
-    }
-
-    virtual void setLin(double mult) {;}
-
-    virtual bool getLin() {
-      return true;
-    }
-
-  protected:
-    
-    Node_t * _nodeA;
-    Node_t * _nodeB;
-    double _k;
-    double _d0;
-
-    bool _lin;
-    
-  };
-};
-
-#endif // __Spring_h__
+  private:
+	
+  }; // class Spring
+  
+}
+#endif // _SPRING_H_
