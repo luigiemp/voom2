@@ -7,7 +7,7 @@ using namespace voom;
 
 int main()
 {
-  cout << endl << "Testing mechanics material class ... " << endl;
+  cout << endl << "Testing filament material class ... " << endl;
   cout << ".................................... " << endl << endl;
   
   {
