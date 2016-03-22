@@ -1,4 +1,5 @@
 #include "Spring.h"
+#include "VoomMath.h"
 
 namespace voom {
 
@@ -9,18 +10,18 @@ namespace voom {
         
     if( R.request & ENERGY )
     {
-      //R.W = 0.5*_k*sqr(norm2(d-_d0));
-      R.W = 0.0;
+      R.W = 0.5*_k*((d-_d0).squaredNorm());
     }
     
     if( R.request & FORCE ) 
     {
-      R.f << 0.0,0.0,0.0;
+      Real dl = (d-_d0).norm();
+      R.f << _k*dl*d(0)/d.norm() , _k*dl*d(1)/d.norm() , _k*dl*d(2)/d.norm();
     }
     if( R.request & STIFFNESS )
     {
-      R.k = 0.0;
-    } // i
+      R.k = _k;
+    } 
     
   } // Spring::compute
 
