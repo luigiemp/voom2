@@ -1,4 +1,4 @@
-bin_PROGRAMS 	= TestMaterial TestPlasticMaterial
+bin_PROGRAMS 	=  TestMaterialSpring
 INCLUDES =		-I./../					\
 			-I./../../				\
 	 		-I./../../VoomMath/ 			\
@@ -9,5 +9,6 @@ AM_LDFLAGS 	= 	-L./../	                                \
 	         	-L./../../VoomMath/ 			\
 			-L./../../ViscousPotential
 LDADD   = -lMaterials -lPotentials -lVoomMath -lViscousPotentials   
-TestMaterial_SOURCES = TestMaterial.cc
-TestPlasticMaterial_SOURCES = TestPlasticMaterial.cc
+#TestMaterial_SOURCES = TestMaterial.cc
+#TestPlasticMaterial_SOURCES = TestPlasticMaterial.cc
+TestMaterialSpring_SOURCES = TestMaterialSpring.cc
