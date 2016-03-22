@@ -12,8 +12,7 @@ namespace voom
     struct Filresults
     {
       // Finite kinematics request and result type                                                                                                      
-      Filresults() : k()
-      {
+      Filresults() {
 	W = 0.0;
 	f << 0.0, 0.0, 0.0;
 	request = 0;

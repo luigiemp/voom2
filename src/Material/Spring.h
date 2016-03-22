@@ -14,7 +14,7 @@ namespace voom {
   {
   public: 
     // Constructors/destructors:
-  Spring(int ID): FilamentMaterial(ID), _k(1.0), _d0(0.0) {};
+
   Spring(int ID, Real k, Vector3d d0): FilamentMaterial(ID), _k(k), _d0(d0) {}; 
   Spring(Spring* BaseMaterial): 
     FilamentMaterial(BaseMaterial->_matID), _k(BaseMaterial->_k), _d0(BaseMaterial->_d0) {};
