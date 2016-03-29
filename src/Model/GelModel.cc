@@ -1,75 +1,66 @@
-#include "GelModel.h"
+OA#include "GelModel.h"
 
 namespace voom {
 
   // Constructor
-  MechanicsModel::GelModel(Mesh* aMesh, const GelInput inputFile, const uint NodeDoF): 
+  GelModel::GelModel(Mesh* aMesh, vector<FilamentMaterial * > materials, 
+				 const uint NodeDoF,
+				 int NodalForcesFlag,
+				 int ResetFlag):
     Model(aMesh, NodeDoF), _materials(materials), 
+    _nodalForcesFlag(NodalForcesFlag), _forcesID(NULL), _forces(NULL), _resetFlag(ResetFlag)
   {
+    // THERE IS ONE MATERIAL PER ELEMENT - CAN BE CHANGED - DIFFERENT THAN BEFORE
     // Resize and initialize (default function) _field vector
     _field.resize(  (_myMesh->getNumberOfNodes() )*_nodeDoF );
     this->initializeField();
+
+    
+  }
+  
+
+  void GelModel::computeDeformation(vector<Vector3d > & dlist, GeomElement* geomEl)
+  {
+    // Compute all segment extensions 
+    const uint dim   = _myMesh->getDimension();
+
+    const vector<int > & NodesID = geomEl->getNodesID();
+    const uint nodeNum = NodesID.size();
+    
+    for(uint n = 0; n < nodeNum-1; n++)
+      {
+	for(uint i = 0; i < dim; i++)
+	  {
+	    dlist[n](i) = _field[NodesID[n]*dim+i] - _field[NodesID[n+1]*dim+i];
+	  }
+      }
   }
   
 
 
-  // Compute Function - Compute Energy, Force, Stiffness                                                                                                
-  void GelModel::compute(GelResult & R)
-  // Predictor/corrector approach for constraint                                                                                                                                         
-    int nConstraints = _constraints.size();
-
-#ifdef _OPENMP
-#pragma omp parallel default(shared)
-#endif
+  /*
+  // Compute deformation gradient
+  void MechanicsModel::computeDeformationGradient(vector<Matrix3d > & Flist, 
+						  GeomElement* geomEl)
   {
-#ifdef _OPENMP
-#pragma omp for schedule(static) nowait
-#endif
-    for(int ic=0; ic<nConstraints; ic++) {
-      // if(ic%1000==0) std::cout << "predicting with constraint " << ic << std::endl;                                                                                                   
-      _constraints[ic]->predict();
-    }
+    // Compute F at all quadrature points
+    const uint numQP = geomEl->getNumberOfQuadPoints();
+    const uint dim   = _myMesh->getDimension();
+
+    const vector<int > & NodesID = geomEl->getNodesID();
+    const uint nodeNum = NodesID.size();
+
+    for(uint q = 0; q < numQP; q++) {
+      // Initialize F to zero
+      Flist[q] = Matrix3d::Zero();
+	for(uint i = 0; i < dim; i++) 
+	  for(uint J = 0; J < dim; J++)
+	    for(uint a = 0; a < nodeNum; a++)
+	      Flist[q](i,J) += 
+		_field[NodesID[a]*dim + i] * geomEl->getDN(q, a, J);
+    } // loop over quadrature points
+
   }
-
-  if( f0 ) _energy = 0.0;
-
-  // compute energy and forces                                                                                                                                                           
-  int nFils = _filaments.size();
-
-#ifdef _OPENMP
-#pragma omp parallel default(shared)
-#endif
-  {
-#ifdef _OPENMP
-#pragma omp for schedule(static) nowait
-#endif
-    for(int i=0; i<nFils; i++) {
-      // if(i%1000==0) std::cout << "computing on filament " << i << std::endl;                                                                                                          
-      Filament * f= filament(i);
-      //moveCLNodes(f);                                                                                                                                                                  
-      for( BondIterator b = f->bonds.begin(); b!= f->bonds.end(); b++ ) {
-	(*b)->compute(f0,f1,f2);
-      }
-      //      for( RodIterator r = f->rods.begin(); r!= f->rods.end(); r++ ) {                                                                                                           
-      //        (*r)->compute(f0,f1,f2);                                                                                                                                                 
-      //      }                                                                                                                                                                          
-      for( AngleIterator a = f->angles.begin(); a!= f->angles.end(); a++ ) {
-	(*a)->compute(f0,f1,f2);
-      }
-    }
-  }
-
-  for( CrosslinkIterator c=_crosslinks.begin(); c!=_crosslinks.end(); c++) {
-    (*c)->compute(f0,f1,f2);
-  }
-
-  for( MotorIterator m=_motors.begin(); m!=_motors.end(); m++) {
-    if((*m)->isAttached()) (*m)->compute(f0,f1,f2);
-  }
-
-  int nPinches = _pinches.size();
-
-  {
 
 
 
@@ -78,17 +69,14 @@ namespace voom {
 
 
   // Compute Function - Compute Energy, Force, Stiffness
-  void MechanicsModel::compute(EllipticResult & R)
+  void MechanicsModel::compute(Result & R)
  {
     const vector<GeomElement* > elements = _myMesh->getElements();
     const int AvgNodePerEl = ((elements[0])->getNodesID()).size();
     const int NumEl = elements.size();
     const int dim = _myMesh->getDimension();
-    vector<Triplet<Real > > KtripletList, HgtripletList;
     
     int PbDoF = R.getPbDoF();
-    int TotNumMatProp = R.getNumMatProp();
-    vector<VectorXd > dRdalpha;
     int NumPropPerMat = (_materials[0]->getMaterialParameters()).size(); // Assume all materials have the same number of material properties
 
 
@@ -104,16 +92,6 @@ namespace voom {
       KtripletList.reserve(dim*dim*NumEl*AvgNodePerEl*AvgNodePerEl);
     }
     
-    if ( R.getRequest() & DMATPROP ) {
-      dRdalpha.assign( TotNumMatProp, VectorXd::Zero(PbDoF) );
-      if ( _resetFlag == 1 ) {
-	R.resetGradgToZero();
-	R.resetHgToZero();
-	HgtripletList.reserve(TotNumMatProp*TotNumMatProp);
-      }
-    }
-    
-    
 
     // Loop through elements, also through material points array, which is unrolled
     // uint index = 0;
@@ -126,92 +104,6 @@ namespace voom {
       const int numQP    = geomEl->getNumberOfQuadPoints();
       Vector3d Fiber = geomEl->getFiber();
       const int numNodes = NodesID.size();
-      MatrixXd Kele = MatrixXd::Zero(numNodes*dim, numNodes*dim);
-      
-      // F at each quadrature point are computed at the same time in one element
-      vector<Matrix3d > Flist(numQP, Matrix3d::Zero());
-      // Compute deformation gradients for current element
-      this->computeDeformationGradient(Flist, geomEl);
-     
-      // Loop over quadrature points
-      for(int q = 0; q < numQP; q++) {
-	_materials[e]->compute(FKres, Flist[q], &Fiber);
-
-	// Volume associated with QP q
-	Real Vol = geomEl->getQPweights(q);
-
-	// Compute energy
-	if (R.getRequest() & ENERGY) {
-	  R.addEnergy(FKres.W*Vol);
-	}
- 
-	// Compute Residual
-	if ( (R.getRequest() & FORCE) || (R.getRequest() & DMATPROP) ) {
-	  for(uint a = 0; a < numNodes; a++) {
-	    for(uint i = 0; i < dim; i++) {
-	      Real tempResidual = 0.0;
-	      for (uint J = 0; J < dim; J++) { 
-		tempResidual += FKres.P(i,J) * geomEl->getDN(q, a, J);
-	      } // J loop
-	      tempResidual *= Vol;
-	      R.addResidual(NodesID[a]*dim+i, tempResidual);
-	    } // i loop
-	  } // a loop
-	} // Internal force loop
-
-	// Compute Stiffness
-	if (R.getRequest() & STIFFNESS) {
-	  for(uint a = 0; a < numNodes; a++) {
-	    for(uint i = 0; i < dim; i++) {
-	      for(uint b = 0; b < numNodes; b++) {
-		for(uint j = 0; j < dim; j++) {
-		  Real tempStiffness = 0.0; 
-		  for(uint M = 0; M < dim; M++) {
-		    for(uint N = 0; N < dim; N++) {
-		      tempStiffness += FKres.K.get(i, M, j, N)*elements[e]->getDN(q, a, M)*
-			                     elements[e]->getDN(q, b, N);
-		    } // N loop
-		  } // M loop
-		  tempStiffness *= Vol;
-		  // R.addStiffness(NodesID[a]*dim + i, NodesID[b]*dim + j, tempStiffness);
-		  Kele(a*dim + i, b*dim + j) += tempStiffness;
-		} // j loop
-	      } // b loop
-	    } // i loop
-	  } // a loop
-	} // Compute stiffness matrix
-
-	if ( R.getRequest() & DMATPROP ) { 
-	  // Assemble dRdalpha
-	  for (uint alpha = 0; alpha < NumPropPerMat; alpha++) {
-	    for(uint a = 0; a < numNodes; a++) {
-	      for(uint i = 0; i < dim; i++) {
-		Real tempdRdalpha = 0.0;
-		for (uint J = 0; J < dim; J++) { 
-		  tempdRdalpha += FKres.Dmat.get(alpha,i,J) * geomEl->getDN(q, a, J);
-		} // J loop
-		tempdRdalpha *= Vol;
-		(dRdalpha[ (_materials[e]->getMatID())*NumPropPerMat + alpha])( NodesID[a]*dim + i) += tempdRdalpha;
-	      } // i loop
-	    } // a loop
-	  } // alpha loop
-	  
-	} // Compute DMATPROP
-	
-      } // QP loop
-
-      if ( R.getRequest() & STIFFNESS ) { 
-	// Transform in triplets Kele
-	for(uint a = 0; a < numNodes; a++) {
-	  for(uint i = 0; i < dim; i++) {
-	    for(uint b = 0; b < numNodes; b++) {
-	      for(uint j = 0; j < dim; j++) {
-		KtripletList.push_back( Triplet<Real >( NodesID[a]*dim + i, NodesID[b]*dim + j, Kele(a*dim + i, b*dim + j) ) );
-	      }
-	    }
-	  }
-	}
-      }
 
     } // Element loop
 
@@ -280,7 +172,7 @@ namespace voom {
 
 
 
-  void MechanicsModel::applyPressure(EllipticResult & R) {
+  void MechanicsModel::applyPressure(Result & R) {
 
     const vector<GeomElement* > elements = _surfaceMesh->getElements();
 
@@ -341,7 +233,7 @@ namespace voom {
 
 
 
-  void MechanicsModel::checkDmat(EigenEllipticResult & R, Real perturbationFactor, Real hM, Real tol) 
+  void MechanicsModel::checkDmat(EigenResult & R, Real perturbationFactor, Real hM, Real tol) 
   {
 
     // Perturb initial config - gradg and Hg are zero at F = I
@@ -494,7 +386,7 @@ namespace voom {
   } // Check consistency of gradg and Hg - checkDmat
 
 
-
+  
 
 
 
@@ -575,7 +467,7 @@ namespace voom {
   
     // Compute Residual
     uint PbDoF = ( _myMesh->getNumberOfNodes())*this->getDoFperNode();
-    EigenEllipticResult myResults(PbDoF, 2);
+    EigenResult myResults(PbDoF, 2);
     int myRequest = 2;
     myResults.setRequest(myRequest);
     this->compute(myResults);
@@ -587,7 +479,7 @@ namespace voom {
       }
     }    
 
-
+  
 
     // Cell data section
     // Alpha_1 material property
@@ -613,11 +505,11 @@ namespace voom {
     for ( int e = 0; e < NumEl; e++ ) {
       vector<Real > IntProp = _materials[e]->getInternalParameters();
       // for ( int i = 0; i < IntProp.size(); i++ ) {
- /* 
-	     WARNING 
-	     THIS ONLY PRINTS THE FIRST INTERNAL VARIABLE
-	     BAD - NEED TO BE CHANGED!!
- */
+ 
+//	     WARNING 
+//	     THIS ONLY PRINTS THE FIRST INTERNAL VARIABLE
+//	     BAD - NEED TO BE CHANGED!!
+ 
       if ( IntProp.size() > 0 ) {
 	out << IntProp[0] << endl;
       } else {
@@ -648,11 +540,11 @@ namespace voom {
 	// Loop over quadrature points
 	// for(int q = 0; q < numQP; q++) {
 	// _materials[e]->compute(FKres, Flist[q], &Fiber);
-	  /* 
-	     WARNING 
-	     THIS ONLY WORKS WITH 1QP PER ELEMENT
-	     BAD - NEED TO BE CHANGED!!
-	  */
+
+//	     WARNING 
+//	     THIS ONLY WORKS WITH 1QP PER ELEMENT
+//	     BAD - NEED TO BE CHANGED!!
+
 	  // }
 	_materials[e]->compute(FKres, Flist[0], &Fiber);
 	out << FKres.P(0,0) << " " <<  FKres.P(0,1) << " " << FKres.P(0,2) << endl << 
@@ -665,7 +557,7 @@ namespace voom {
   } // writeOutput
 
 
-
+*/
 
 
 

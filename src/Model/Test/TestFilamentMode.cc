@@ -2,10 +2,8 @@
 
 // #include "PoissonModel.h"
 // #include "IsotropicDiffusion.h"
-#include "MechanicsModel.h"
+#include "FilamentsModel.h"
 #include "FEMesh.h"
-#include "PassMyoA.h"
-#include "CompNeoHookean.h"
 #include "EigenResult.h"
 
 
@@ -18,27 +16,32 @@ int main(int argc, char** argv) {
   //Test Mechanics model
   {
     cout << " ------------------------------- " << endl;
-    cout << " TEST OF MECHANICS MODEL " << endl << endl;
+    cout << " TEST OF GEL MODEL " << endl << endl;
     
-    // FEMesh myFEmesh("../../Solver/Test/QuadTet.node", "../../Solver/Test/QuadTet.ele");
-    // FEMesh surfMesh("../../Solver/Test/QuadTet.node", "../../Solver/Test/QuadTet.surf");
-    // FEMesh myFEmesh("../../Mesh/Test/CoarseLV.node", "../../Mesh/Test/CoarseLV.ele");
-    // FEMesh surfMesh("../../Mesh/Test/CoarseLV.node", "../../Mesh/Test/CoarseLV.surf");
-    FEMesh myFEmesh("../../Mesh/Test/CubeQuad.node", "../../Mesh/Test/CubeQuad.ele");
-    FEMesh surfMesh("../../Mesh/Test/CubeQuad.node", "../../Mesh/Test/SurfCubeQuad.ele");
-    // FEMesh myFEmesh("../../Mesh/Test/Cube.node", "../../Mesh/Test/Cube.ele");
-    // FEMesh surfMesh("../../Mesh/Test/Cube.node", "../../Mesh/Test/SurfCube.ele");
-    // FEMesh myFEmesh("../../Mesh/Test/NodeFile.dat", "../../Mesh/Test/ElFile.dat");
+    
+    FEMesh TestFEmesh("../../Mesh/Test/Filament.node", "../../Mesh/Test/Filament.ele");
     
     // Initialize Model
     uint NodeDoF = 3;
+    uint NumMat = 1;
+    uint NumEle = TestFEmesh.getNumberOfElements();
+    Real k = 1.0;
+    Vector3d d0;
 
-    uint NumMat = myFEmesh.getNumberOfElements();
-    vector<MechanicsMaterial * > materials;
+    d0 << 1.0, 0.0, 0.0;
+
+
+    std::cout << "Number of elements is " << NumEle << std::endl;
+    
+    vector<FilamentsMaterial * > materials;
     materials.reserve(NumMat);
-    vector<Vector3d > Fibers; Fibers.reserve(NumMat);
+    
+    Spring* MatSpring = new Spring(0, k, d0);
+
+    materials.push_back(MatSpring);
+    
+    /*
     for (int k = 0; k < NumMat; k++) {
-      // PassMyoA* Mat = new PassMyoA(1.0+double(rand())/RAND_MAX, 3.0+double(rand())/RAND_MAX, 1.0+double(rand())/RAND_MAX, 2.0+double(rand())/RAND_MAX, 2.0+double(rand())/RAND_MAX);
       PassMyoA* Mat = new PassMyoA(k, 1.0+double(rand())/RAND_MAX, 3.0+double(rand())/RAND_MAX, 1.0+double(rand())/RAND_MAX, 1.0+double(rand())/RAND_MAX,  1.0+double(rand())/RAND_MAX, 2.0+double(rand())/RAND_MAX);
 
       materials.push_back(Mat);
@@ -47,12 +50,8 @@ int main(int argc, char** argv) {
       Fibers.push_back(N);
       // materials.push_back(new CompNeoHookean(k, 10.0, 3.0) );
     }
-    // CompNeoHookean *Mat = new CompNeoHookean(0, 10.0, 3.0);
-    // for (int k = 0; k < NumMat; k++) {
-    //   materials.push_back(Mat);
-    // }
-
-  
+    
+    x
     myFEmesh.setFibers(Fibers);
 
 
@@ -63,7 +62,7 @@ int main(int argc, char** argv) {
     // Run consistency test
     uint PbDoF = (myFEmesh.getNumberOfNodes())*myModel.getDoFperNode();
     int TotNumMatProp = NumMat*2;
-    EigenResult myResults(PbDoF, TotNumMatProp);
+    EigenEllipticResult myResults(PbDoF, TotNumMatProp);
 
     Real perturbationFactor = 0.1;
     uint myRequest = 6; // Check both Forces and Stiffness
@@ -73,7 +72,8 @@ int main(int argc, char** argv) {
     myModel.checkConsistency(myResults, perturbationFactor, myRequest, myH, myTol);
   
     myModel.checkDmat(myResults, perturbationFactor, myH, myTol);
-    
+    */
+
     cout << endl << " END OF TEST OF MECHANICS MODEL " << endl;
     cout << " ------------------------------ " << endl << endl;
   }

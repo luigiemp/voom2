@@ -1,55 +1,43 @@
 //-*-C++-*-
-/*!
-  \file EPModel.h
-
-  \brief Implementation of Cardiac Electrophysiology. This is the parent
-  class for cardiac EP. Monodomain and Bidomain classes will derive from 
-  this class
-*/
-
 #ifndef __GelModel_h__
 #define __GelModel_h__
-#include "Model.h"
-#include "GelResult.h"
 
-#include "Spring.h"
-#include "EntropicSpring.h"
-#include "AngleSpring.h"
-#include "BrownianRod.h"
-
-#include "Constraint.h"
-#include "voom.h"
-#include "Node.h"
-#include <cstdio>
-#include <cstdlib>
-#include <ctime>
-#include "Crosslink.h"
-#include "Motor.h"
-#include "Grid.h"
-#include "TwoBodyPotential.h"
-#include "IntersectionFinder.h"
-#include "PeriodicTie.h"
-#include "PeriodicBox.h"
-#include "LeesEdwards.h"
-#include "PinchForce.h"
-#include "NematicProbTable.h"
-#include "GelInput.h"
 #include "Model.h"
+#include "FilamentMaterial.h"
+#include "EigenResult.h"
 
 namespace voom{
-  class GelModel : public Model {
-  private:
-    //! Periodic box for Lees-Edward BC
-    PeriodicBox * _box;
+
+  // Model Results
+  class GelModel: public Model {
 
   public:
-    //! Constructor
-    GelModel(Mesh* Filaments, const GelInput inputFile, const uint NodeDof);
+
+    //! Basic Constructor
+    /*! Construct from basic data structures defining the mesh, materials, BCs. 
+     */
+    GelModel(Mesh* aMesh, vector<FilamentMaterial * > _materials, 
+		   const uint NodeDoF,
+		   int NodalForcesFlag = 0,
+		   int _resetFlag = 1);
+
+		     
+    //! Input-file-based Constructor
+    // GelModel(Mesh* myMesh, const string inputFile, const uint NodeDoF);
 
     //! Destructor
-    virtual ~GelModel() {;}
-    
-    
+    ~GelModel() {
+      set<FilamentMaterial *> UNIQUEmaterials;
+      for (uint i = 0; i < _materials.size(); i++) 
+	UNIQUEmaterials.insert(_materials[i]);
+	
+      for (set<FilamentMaterial *>::iterator it = UNIQUEmaterials.begin();
+	   it != UNIQUEmaterials.end(); it++) 
+		delete (*it);
+    };
+
+
+
     //! Initialize field
     // From constant value
     void initializeField(const Real value = 1.0) {
@@ -125,11 +113,73 @@ namespace voom{
       out.close();
     }
 
+    uint getNumMat() {
+      set<FilamentMaterial *> UNIQUEmaterials;
+      for (uint i = 0; i < _materials.size(); i++) 
+	UNIQUEmaterials.insert(_materials[i]);
+	
+      return UNIQUEmaterials.size();
+    }
 
+    uint getTotNumMatProp() {
+      set<FilamentMaterial *> UNIQUEmaterials;
+      for (uint i = 0; i < _materials.size(); i++) 
+	UNIQUEmaterials.insert(_materials[i]);
+	
+      return ( UNIQUEmaterials.size() * (_materials[0]->getMaterialParameters()).size() );
+    }
 
-    //! compute function call
-    void compute(GelResult& R) {;}
+    vector<FilamentMaterial * > getMaterials() {
+      return _materials;
+    }
+
+    void setResetFlag(int ResetFlag) {
+      _resetFlag = ResetFlag;
+    }
+
+    
+    void setNodalForcesFlag(int NodalForcesFlag) {
+      _nodalForcesFlag = NodalForcesFlag;
+    }
+    
+    //! Write output
+    void writeOutputVTK(const string OutputFile, int step); 
+
+    //! Solve the system
+    void compute(Result & R);
+
+    
+    // Update nodal forces
+    void updateNodalForces(vector<int > * ForcesID, vector<Real > * Forces) {
+      _forcesID = ForcesID; _forces = Forces;
+    }
+
+    
+
+  protected:
+    //! Compute Deformation Gradient
+    void computeDeformationGradient(vector<Matrix3d > & Flist, GeomElement* geomEl);
+
+    void computeDeformation(vector<Vector3d > & dlist, GeomElement* geomEl);
+    //! List of Material data at each element in the model
+    // (need to be modified for history dependent materials, e.g. plasticity)
+    vector<FilamentMaterial * > _materials;
+
+    //! Solution value at all nodes, local and ghost
+    //! Displacement are stored unrolled, [phi_x, phi_y, phi_z]
+    vector<Real > _field;
+
+    // It should not be done here - maye we should have bodies and forms models from bodies
+    
+    int _nodalForcesFlag;
+    vector<int > * _forcesID;
+    vector<Real > * _forces;
+    
+    vector<Real > _prevField;
+
+    int _resetFlag;
   };
-}
+
+} // namespace voom
 
 #endif
