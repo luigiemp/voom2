@@ -16,7 +16,7 @@ namespace voom{
     //! Basic Constructor
     /*! Construct from basic data structures defining the mesh, materials, BCs. 
      */
-    GelModel(Mesh* aMesh, vector<FilamentMaterial * > _materials, 
+    GelModel(GelMesh* aGelMesh, vector<FilamentMaterial * > _materials, 
 		   const uint NodeDoF,
 		   int NodalForcesFlag = 0,
 		   int _resetFlag = 1);
@@ -26,6 +26,7 @@ namespace voom{
     // GelModel(Mesh* myMesh, const string inputFile, const uint NodeDoF);
 
     //! Destructor
+    
     ~GelModel() {
       set<FilamentMaterial *> UNIQUEmaterials;
       for (uint i = 0; i < _materials.size(); i++) 
@@ -35,18 +36,18 @@ namespace voom{
 	   it != UNIQUEmaterials.end(); it++) 
 		delete (*it);
     };
-
+    
 
 
     //! Initialize field
     // From constant value
     void initializeField(const Real value = 1.0) {
-      const uint numNodes = _myMesh->getNumberOfNodes();
-      const uint dim = _myMesh->getDimension();
+      const uint numNodes = _myGelMesh->getNumberOfNodes();
+      const uint dim = _myGelMesh->getDimension();
 
       for (uint i = 0; i < numNodes; i++) 
 	for (uint j = 0; j < dim; j++)
-	  _field[i*dim+j] = _myMesh->getX(i,j)*value; // value = isotropic expansion/shrinking
+	  _field[i*dim+j] = _myGelMesh->getX(i,j)*value; // value = isotropic expansion/shrinking
     };
 
     //! From array
@@ -56,7 +57,7 @@ namespace voom{
 
     //! Linearized update
     void linearizedUpdate(const Real* localValues, Real fact) {
-      const int nLocalDof = (_myMesh->getNumberOfNodes())*_nodeDoF;
+      const int nLocalDof = (_myGelMesh->getNumberOfNodes())*_nodeDoF;
       for(uint i = 0; i < nLocalDof; i++)
 	_field[i] += fact*localValues[i];
     };
@@ -154,13 +155,13 @@ namespace voom{
       _forcesID = ForcesID; _forces = Forces;
     }
 
-    
+    void computeDeformation(vector<Vector3d > & dlist, GeomFilament* geomEl);
 
   protected:
     //! Compute Deformation Gradient
-    void computeDeformationGradient(vector<Matrix3d > & Flist, GeomElement* geomEl);
+    //void computeDeformationGradient(vector<Matrix3d > & Flist, GeomElement* geomEl);
 
-    void computeDeformation(vector<Vector3d > & dlist, GeomElement* geomEl);
+    //void computeDeformation(vector<Vector3d > & dlist, GeomElement* geomEl);
     //! List of Material data at each element in the model
     // (need to be modified for history dependent materials, e.g. plasticity)
     vector<FilamentMaterial * > _materials;

@@ -1,28 +1,28 @@
-OA#include "GelModel.h"
+#include "GelModel.h"
 
 namespace voom {
 
   // Constructor
-  GelModel::GelModel(Mesh* aMesh, vector<FilamentMaterial * > materials, 
+  GelModel::GelModel(GelMesh* aGelMesh, vector<FilamentMaterial * > materials, 
 				 const uint NodeDoF,
 				 int NodalForcesFlag,
 				 int ResetFlag):
-    Model(aMesh, NodeDoF), _materials(materials), 
-    _nodalForcesFlag(NodalForcesFlag), _forcesID(NULL), _forces(NULL), _resetFlag(ResetFlag)
+    Model(aGelMesh, NodeDoF), _materials(materials), 
+    _nodalForcesFlag(NodalForcesFlag), _resetFlag(ResetFlag)
   {
     // THERE IS ONE MATERIAL PER ELEMENT - CAN BE CHANGED - DIFFERENT THAN BEFORE
     // Resize and initialize (default function) _field vector
-    _field.resize(  (_myMesh->getNumberOfNodes() )*_nodeDoF );
+    _field.resize(  (_myGelMesh->getNumberOfNodes() )*_nodeDoF );
     this->initializeField();
 
     
   }
   
 
-  void GelModel::computeDeformation(vector<Vector3d > & dlist, GeomElement* geomEl)
+  void GelModel::computeDeformation(vector<Vector3d > & dlist, GeomFilament* geomEl)
   {
     // Compute all segment extensions 
-    const uint dim   = _myMesh->getDimension();
+    const uint dim   = _myGelMesh->getDimension();
 
     const vector<int > & NodesID = geomEl->getNodesID();
     const uint nodeNum = NodesID.size();
@@ -61,7 +61,7 @@ namespace voom {
     } // loop over quadrature points
 
   }
-
+*/
 
 
 
@@ -69,7 +69,7 @@ namespace voom {
 
 
   // Compute Function - Compute Energy, Force, Stiffness
-  void MechanicsModel::compute(Result & R)
+  void GelModel::compute(Result & R)
  {
     const vector<GeomElement* > elements = _myMesh->getElements();
     const int AvgNodePerEl = ((elements[0])->getNodesID()).size();
@@ -79,7 +79,7 @@ namespace voom {
     int PbDoF = R.getPbDoF();
     int NumPropPerMat = (_materials[0]->getMaterialParameters()).size(); // Assume all materials have the same number of material properties
 
-
+    /*
     // Reset values in result struct
     if ( R.getRequest() & ENERGY ) {
       R.setEnergy(0.0);
@@ -163,14 +163,14 @@ namespace voom {
 
 
     } // Compute Gradg and Hg
-    
+    */
  } // Compute Mechanics Model
   
 
 
 
 
-
+  /*
 
   void MechanicsModel::applyPressure(Result & R) {
 
@@ -232,7 +232,7 @@ namespace voom {
 
 
 
-
+  
   void MechanicsModel::checkDmat(EigenResult & R, Real perturbationFactor, Real hM, Real tol) 
   {
 
@@ -384,7 +384,7 @@ namespace voom {
     } 
   
   } // Check consistency of gradg and Hg - checkDmat
-
+*/
 
   
 
@@ -392,7 +392,7 @@ namespace voom {
 
 
   // Writing output
-  void MechanicsModel::writeOutputVTK(const string OutputFile, int step) 
+  void GelModel::writeOutputVTK(const string OutputFile, int step) 
   {
     // Create outputFile name
     stringstream FileNameStream;
@@ -521,10 +521,10 @@ namespace voom {
 
     // Material stress tensor
     out << "TENSORS P double" << endl;
-
+    /*
       // Loop through elements, also through material points array, which is unrolled
       // uint index = 0;
-      MechanicsMaterial::FKresults FKres;
+      FilamentMaterial::FKresults FKres;
       FKres.request = 2;
       for(int e = 0; e < NumEl; e++)
       {
@@ -551,13 +551,13 @@ namespace voom {
 	       FKres.P(1,0) << " " <<  FKres.P(1,1) << " " << FKres.P(1,2) << endl << 
 	       FKres.P(2,0) << " " <<  FKres.P(2,1) << " " << FKres.P(2,2) << endl;
       }
-
+      */
     // Close file
     out.close();
   } // writeOutput
 
 
-*/
+
 
 
 

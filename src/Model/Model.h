@@ -10,6 +10,7 @@
 #include "voom.h"
 #include "Mesh.h"
 #include "Result.h"
+#include "GelMesh.h"
 
 namespace voom {
   class Model {
@@ -20,7 +21,7 @@ namespace voom {
     //! Constructor using an input file ... to be changed after implementation of input class - no longer current
     // Model(Mesh* myMesh, const string inputFile, const uint NodeDoF);
 
-    //! Constructor to be used
+    //! Constructor to be used for a Finite Element Model
     Model(Mesh* aMesh, const uint NodeDoF)
       : _myMesh(aMesh), _nodeDoF(NodeDoF) {
       // WSK: evetually we want to copy the mesh object that is
@@ -29,6 +30,12 @@ namespace voom {
       //
     }
 
+    //! Constructor to be used for a Gel Model
+    Model(GelMesh* aGelMesh, const uint NodeDoF)
+      : _myGelMesh(aGelMesh), _nodeDoF(NodeDoF) {
+    }
+
+    
     //! Destructor
     virtual ~Model() {};
 
@@ -92,6 +99,7 @@ namespace voom {
   protected:
     Mesh*        _myMesh;
 
+    GelMesh*     _myGelMesh;
     //! DoF per node
     uint         _nodeDoF;
   

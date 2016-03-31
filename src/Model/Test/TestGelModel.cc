@@ -3,7 +3,7 @@
 // #include "PoissonModel.h"
 // #include "IsotropicDiffusion.h"
 #include "GelModel.h"
-#include "FEMesh.h"
+#include "GelMesh.h"
 #include "EigenResult.h"
 #include "Spring.h"
 
@@ -19,12 +19,12 @@ int main(int argc, char** argv) {
     cout << " TEST OF GEL MODEL " << endl << endl;
     
     
-    FEMesh TestFEmesh("../../Mesh/Test/Filament.node", "../../Mesh/Test/Filament.ele");
+    GelMesh TestFEmesh("../../Mesh/Test/Filament2.node", "../../Mesh/Test/Filament2.ele");
     
     // Initialize Model
     uint NodeDoF = 3;
 
-    uint NumEle = TestFEmesh.getNumberOfElements();
+    uint NumEle = TestFEmesh.getNumberOfFilaments();
     
     std::cout << "Number of elements is " << NumEle << std::endl;
     
@@ -41,8 +41,22 @@ int main(int argc, char** argv) {
     }
     
     GelModel myModel(&TestFEmesh, materials, NodeDoF,0,1);
+    
+     
+    myModel.initializeField(2.0);    
+    const vector<GeomFilament* > elements = TestFEmesh.getFilaments();    
+    GeomFilament* geomFil = elements[0];  
+    
+    
+    vector<Vector3d > dlist(1,Vector3d::Zero());
+     
+    myModel.computeDeformation(dlist,geomFil);
 
-    /*
+    //cout << dlist[0] << endl;
+    
+
+
+    /* 
     for (int k = 0; k < NumMat; k++) {
       // PassMyoA* Mat = new PassMyoA(1.0+double(rand())/RAND_MAX, 3.0+double(rand())/RAND_MAX, 1.0+double(rand())/RAND_MAX, 2.0+double(rand())/RAND_MAX, 2.0+double(rand())/RAND_MAX);
       PassMyoA* Mat = new PassMyoA(k, 1.0+double(rand())/RAND_MAX, 3.0+double(rand())/RAND_MAX, 1.0+double(rand())/RAND_MAX, 1.0+double(rand())/RAND_MAX,  1.0+double(rand())/RAND_MAX, 2.0+double(rand())/RAND_MAX);
