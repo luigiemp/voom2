@@ -1,4 +1,4 @@
-bin_PROGRAMS 	= TestMesh
+bin_PROGRAMS 	= TestGelMesh
 INCLUDES = -I./../					\
 	   -I./../../					\
 	   -I./../../VoomMath/ 				\
@@ -8,4 +8,4 @@ INCLUDES = -I./../					\
 AM_LDFLAGS = -L./../ -L./../../VoomMath -L./../../Shape	\
 	     -L./../../Quadrature -L ./../../Element
 LDADD      = -lMesh -lElement -lShape -lQuadrature -lVoomMath
-TestMesh_SOURCES = TestMesh.cc
+TestGelMesh_SOURCES =  TestGelMesh.cc

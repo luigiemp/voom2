@@ -1,4 +1,4 @@
-bin_PROGRAMS = TestFEgeomElement TestFEgeomElement1D TestLMEgeomElement
+bin_PROGRAMS = TestFEgeomElement TestLMEgeomElement
 
 INCLUDES = -I./				\
 	   -I./../			\
@@ -15,4 +15,4 @@ AM_LDFLAGS = -L./../			\
 LDADD   =  -lElement -lShape -lQuadrature -lVoomMath
 TestFEgeomElement_SOURCES = TestFEgeomElement.cc
 TestFEgeomElement1D_SOURCES = TestFEgeomElement1D.cc
-TestLMEgeomElement_SOURCES = TestLMEgeomElement.cc
+#TestLMEgeomElement_SOURCES = TestLMEgeomElement.cc

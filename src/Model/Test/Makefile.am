@@ -1,4 +1,4 @@
-bin_PROGRAMS = TestModel
+bin_PROGRAMS = TestGelModel
 INCLUDES = -I./							\
 	   -I./../ 						\
 	   -I./../../  						\
@@ -20,4 +20,4 @@ AM_LDFLAGS = 	-L./ 								\
 		-L./../../Shape 						\
 		-L./../../VoomMath 						
 LDADD   = -lModel -lMesh -lElement -lQuadrature -lShape -lMaterials -lVoomMath
-TestModel_SOURCES = TestModel.cc
+TestGelModel_SOURCES = TestGelModel.cc

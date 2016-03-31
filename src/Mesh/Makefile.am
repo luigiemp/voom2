@@ -6,4 +6,4 @@ INCLUDES     = 	-I./ 					\
 		-I/u/local/apps/eigen/3.2.4/gcc-4.4.7/include/eigen3
 
 lib_LIBRARIES=libMesh.a
-libMesh_a_SOURCES = Mesh.cc FEMesh.cc
+libMesh_a_SOURCES = Mesh.cc FEMesh.cc GelMesh.cc

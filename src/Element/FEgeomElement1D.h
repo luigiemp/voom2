@@ -16,7 +16,7 @@ namespace voom{
   public:
    
     FEgeomElement1D(const int elemID, const vector<int > & nodesID, 
-		    const vector<Vector3d > & nodesX, 
+		    const vector<VectorXd > & nodesX, 
 		    vector<Shape* > shape, Quadrature* quadrature,
 		    const Real radius);
 
@@ -51,7 +51,7 @@ namespace voom{
       corresponds to a node, different quadrature points are stored 
       subsequently)
     */
-    vector<Vector3d >      _DN;
+    vector<VectorXd >      _DN;
 
   }; // FEgeomElement1D
 

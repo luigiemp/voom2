@@ -4,7 +4,7 @@ namespace voom {
 
   // Constructor
   FEgeomElement1D::FEgeomElement1D(const int elemID, const vector<int > & nodesID, 
-				   const vector<Vector3d > & nodesX, 
+				   const vector<VectorXd > & nodesX, 
 				   vector<Shape* > shape, Quadrature* quadrature,
 				   const Real radius):
     GeomElement(elemID, nodesID)
