@@ -60,6 +60,8 @@ AC_CONFIG_FILES([
 		  src/VoomMath/Test/Makefile
 		  src/Mesh/Makefile
 		  src/Mesh/Test/Makefile
+		  src/HalfEdgeMesh/Makefile
+		  src/HalfEdgeMesh/Test/Makefile
 		  src/Potential/Makefile
 		  src/Potential/Test/Makefile
 		  src/Material/Makefile 
@@ -78,6 +80,7 @@ AC_CONFIG_FILES([
 		  src/Solver/Test/Makefile
 		  src/Applications/TestBVP/Makefile
 		  src/Applications/PassiveLV/Makefile
+		  src/Applications/Contraction/Makefile
 	          src/Utils/inpParser/Makefile
 		  src/Geometry/Makefile
 		])
