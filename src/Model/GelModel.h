@@ -158,16 +158,12 @@ namespace voom{
     void computeDeformation(vector<Vector3d > & dlist, GeomFilament* geomEl);
 
   protected:
-    //! Compute Deformation Gradient
-    //void computeDeformationGradient(vector<Matrix3d > & Flist, GeomElement* geomEl);
-
+    
     //void computeDeformation(vector<Vector3d > & dlist, GeomElement* geomEl);
     //! List of Material data at each element in the model
-    // (need to be modified for history dependent materials, e.g. plasticity)
     vector<FilamentMaterial * > _materials;
 
     //! Solution value at all nodes, local and ghost
-    //! Displacement are stored unrolled, [phi_x, phi_y, phi_z]
     vector<Real > _field;
 
     // It should not be done here - maye we should have bodies and forms models from bodies

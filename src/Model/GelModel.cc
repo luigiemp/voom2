@@ -38,35 +38,6 @@ namespace voom {
   
 
 
-  /*
-  // Compute deformation gradient
-  void MechanicsModel::computeDeformationGradient(vector<Matrix3d > & Flist, 
-						  GeomElement* geomEl)
-  {
-    // Compute F at all quadrature points
-    const uint numQP = geomEl->getNumberOfQuadPoints();
-    const uint dim   = _myMesh->getDimension();
-
-    const vector<int > & NodesID = geomEl->getNodesID();
-    const uint nodeNum = NodesID.size();
-
-    for(uint q = 0; q < numQP; q++) {
-      // Initialize F to zero
-      Flist[q] = Matrix3d::Zero();
-	for(uint i = 0; i < dim; i++) 
-	  for(uint J = 0; J < dim; J++)
-	    for(uint a = 0; a < nodeNum; a++)
-	      Flist[q](i,J) += 
-		_field[NodesID[a]*dim + i] * geomEl->getDN(q, a, J);
-    } // loop over quadrature points
-
-  }
-*/
-
-
-
-
-
 
   // Compute Function - Compute Energy, Force, Stiffness
   void GelModel::compute(Result & R)
