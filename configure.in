@@ -1,0 +1,84 @@
+dnl Process this file with autoconf to produce a configure script.
+AC_INIT([voom], [1.0], [klug@ucla.edu])
+AM_INIT_AUTOMAKE([foreign nostdinc])
+
+AC_CONFIG_SRCDIR(src/voom.h)
+AM_CONFIG_HEADER(src/config.h)
+
+dnl Checks for programs.
+AC_PROG_RANLIB
+
+# CXX Flags
+# AC_SUBST([AM_CXXFLAGS], [-std=c++0x])
+
+# C compiler
+AC_PROG_CC
+
+# C++ compiler
+AC_PROG_CXX([g++ xlc++ xlC icpc icc pathCC cxx aCC c++ CC pgCC KCC FCC])
+AC_LANG(C++)
+#AC_CXX_FLAGS_PRESET
+
+
+# F77 compiler
+AC_PROG_F77
+
+# Doxygen Related Stuff
+AC_CHECK_PROGS([DOXYGEN], [doxygen])
+if test -z "$DOXYGEN";
+    then AC_MSG_WARN([Doxygen not found - continuing without Doxygen])
+fi
+
+AM_CONDITIONAL([HAVE_DOXYGEN],
+[test -n "$DOXYGEN"]) AM_COND_IF([HAVE_DOXYGEN],
+[AC_CONFIG_FILES([doc/Doxyfile])])
+dnl AC_LANG_CPLUSPLUS
+
+dnl Checks for libraries:  Blitz++, tvmet
+dnl VOOM_CHECK_BLITZ
+dnl VOOM_CHECK_TVMET
+
+dnl Checks for header files.
+dnl AC_HEADER_STDC
+
+dnl Checks for typedefs, structures, and compiler characteristics.
+dnl AC_C_CONST
+dnl AC_C_INLINE
+
+dnl Checks for library functions.
+
+dnl AC_SUBST(blitz_includes)
+dnl AC_SUBST(blitz_libraries)
+
+dnl AC_SUBST(tvmet_includes)
+
+AC_CONFIG_FILES([ 
+		  Makefile
+		  doc/Makefile
+		  src/Makefile
+		  src/VoomMath/Makefile
+		  src/VoomMath/Test/Makefile
+		  src/Mesh/Makefile
+		  src/Mesh/Test/Makefile
+		  src/Potential/Makefile
+		  src/Potential/Test/Makefile
+		  src/Material/Makefile 
+		  src/Material/Test/Makefile
+		  src/Source/IonicSource/Makefile
+		  src/Source/MechanicsLoad/Makefile
+		  src/Quadrature/Makefile
+		  src/Quadrature/Test/Makefile	
+		  src/Shape/Makefile
+		  src/Shape/Test/Makefile
+		  src/Element/Makefile
+		  src/Element/Test/Makefile
+		  src/Model/Makefile
+		  src/Model/Test/Makefile
+		  src/Solver/Makefile
+		  src/Solver/Test/Makefile
+		  src/Applications/TestBVP/Makefile
+		  src/Applications/PassiveLV/Makefile
+	          src/Utils/inpParser/Makefile
+		  src/Geometry/Makefile
+		])
+AC_OUTPUT
