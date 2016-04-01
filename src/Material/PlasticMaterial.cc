@@ -46,26 +46,38 @@ namespace voom
 
 		Matrix3d A = Matrix3d::Zero();
 		for (int i = 0; i < 3; i++){
-			A += exp(deltaQ(i)) * _M[i];
+		        A += exp(deltaQ(i)) * _M[i];
 		}
 
-		Fanp1 = A * _Fa;
+		Fanp1 = (A) * _Fa;
 
 		// Compute Elastic Deformation Gradient
 		Matrix3d invFa = _Fa.inverse();
 		Matrix3d invFanp1 = Fanp1.inverse();
-
 		Matrix3d Fenp1 = _Fnp1 * invFanp1;
 
-		// cout << _Fnp1 << endl;
-		// cout << invFanp1 << endl;
-
-
+		// Compute Active Stress
 		FKresults ActiveResults;
 		ActiveResults.request = 2;
-
 		_ActiveMaterial->compute(ActiveResults, Fenp1, &_dirVec[0]);
 		
+		// Method 1: BEGIN
+		vector<Matrix3d> Gammap(3, Matrix3d::Zero());
+		vector<Matrix3d> Lambdap(3, Matrix3d::Zero());
+		for (int p = 0; p < 3; p++) {
+		  Gammap[p] = exp(deltaQ[p]) * _M[p] * _Fa;
+		  Lambdap[p] = Fenp1 * Gammap[p] * invFanp1;
+		}
+
+		Vector3d dDsdQnp1(0.0,0.0,0.0);
+		for (int p = 0; p < 3; p++)
+		{
+		  // Matrix3d PLambda = ActiveResults.P.transpose() * Lambdap[p];
+		  dDsdQnp1(p) = -1.0 * (ActiveResults.P.transpose() * Lambdap[p]).trace();
+		}
+		// Method 1: END
+
+		/* // Method 2: BEGIN
 		vector <Matrix3d> dFadQ(3, Matrix3d::Zero());
 		for (int p = 0; p < 3; p++)
 		{
@@ -83,6 +95,7 @@ namespace voom
 							for (int p = 0; p < 3; p++)
 								dDsdQnp1(a) = dDsdQnp1(a) + ActiveResults.P(i,J) * _Fnp1(i,p) * invFanp1(p,k) * invFanp1(L,J) * dFadQ[a](k,L);
 		dDsdQnp1 = dDsdQnp1 * -1;
+		// Method 2: END */
 
 		// Compute \dpsi^{*}dQnp1 from the Force-velocity potential
 		Vector3d dpsidQnp1 = _activation * _KineticPotential->DPsiDQ(deltaQ, _deltaT);
@@ -125,7 +138,45 @@ namespace voom
 		ActiveResults.request = 6;
 
 		_ActiveMaterial->compute(ActiveResults, Fenp1, &_dirVec[0]);
-		
+
+
+		// Method 1: BEGIN
+		vector<Matrix3d> Gammap(3, Matrix3d::Zero());
+		vector<Matrix3d> Lambdap(3, Matrix3d::Zero());
+		vector<vector<Matrix3d> > Thetapq(3, vector<Matrix3d>(3, Matrix3d::Zero()));
+		vector<vector<Matrix3d> > Psipq(3, vector<Matrix3d>(3, Matrix3d::Zero()));
+
+		for (int p = 0; p < 3; p++) {
+		  Gammap[p] = exp(deltaQ[p]) * _M[p] * _Fa;
+		  Lambdap[p] = Fenp1 * Gammap[p] * invFanp1;
+		}
+
+		for (int p = 0; p < 3; p++){
+		  for (int q = 0; q < 3; q++){
+		    Thetapq[p][q] = Lambdap[q] * Gammap[p] * invFanp1 + Lambdap[p] * Gammap[q]  * invFanp1;
+		  }
+		  Psipq[p][p] = Lambdap[p];
+		}
+
+		Matrix3d d2DdQ2np1 = Matrix3d::Zero();
+		Matrix3d actstiffnessterm1 = Matrix3d::Zero();
+		for (int p = 0; p < 3; p++) {
+		  for (int q = 0; q < 3; q++) {
+		    for (int e = 0; e < 3; e++) {
+		      for (int b = 0; b < 3; b++) {
+			for (int g = 0; g < 3; g++) {
+			  for (int j = 0; j < 3; j++) {
+			    actstiffnessterm1(p,q) += ActiveResults.K(e,b,g,j) * Lambdap[p](e,b) * Lambdap[q](g,j);
+			  }
+			}
+		      }
+		    }
+		    d2DdQ2np1(p,q) = actstiffnessterm1(p,q) + (ActiveResults.P.transpose() * Thetapq[p][q]).trace() - (ActiveResults.P.transpose() * Psipq[p][q]).trace();
+		  }
+		}
+		// Method 1: END
+
+		/* // Method 2: BEGIN
 		vector <Matrix3d> dFadQ(3, Matrix3d::Zero());
 		for (int p = 0; p < 3; p++)
 		{
@@ -188,6 +239,8 @@ namespace voom
 		// cout << term1 << endl << term2 << endl << term3 << endl;
 
 		Matrix3d d2DdQ2np1 = term1 + term2 + term3;
+
+		// Method 2: End */
 
 		// Compute \dpsi^{*}dQnp1 from the Force-velocity potential
 		Matrix3d d2psidQnp12 = _activation * _KineticPotential->D2PsiDQDQ(deltaQ, _deltaT);

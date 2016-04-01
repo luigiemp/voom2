@@ -83,7 +83,8 @@ int main(int argc, char** argv)
   // HillForceVelPotential TestPotential(4.4*pow(10,-3), .01*0.59, 25);
   // BlankPotential TestPotential;
 
-  BlankViscousPotential ViscPotential;
+  // BlankViscousPotential ViscPotential;
+  NewtonianViscousPotential ViscPotential(0.005, 0.5);
   Vector3d HardParam(0.,0.,0.);
 
   // Visualize Fiber directions
@@ -277,7 +278,7 @@ int main(int argc, char** argv)
       
       if (s == 0)  // Free Contraction = 0, Fixed = 200
       {
-	  ViscPotential.setViscosity(0.0E-5);
+	  // ViscPotential.setViscosity(0.0E-5);
       }
       for (int k = 0; k < NumMat; k++)
       {
