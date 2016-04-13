@@ -5,6 +5,7 @@
 #include "Model.h"
 #include "MechanicsMaterial.h"
 #include "EigenResult.h"
+#include "Mesh.h"
 
 namespace voom{
 
@@ -39,6 +40,8 @@ namespace voom{
 		delete (*it);
     };
 
+    // Get number of nodes
+    int getNumberOfNodes(){return _myMesh->getNumberOfNodes();}
 
 
     //! Initialize field
@@ -46,7 +49,6 @@ namespace voom{
     void initializeField(const Real value = 1.0) {
       const uint numNodes = _myMesh->getNumberOfNodes();
       const uint dim = _myMesh->getDimension();
-
       for (uint i = 0; i < numNodes; i++) 
 	for (uint j = 0; j < dim; j++)
 	  _field[i*dim+j] = _myMesh->getX(i,j)*value; // value = isotropic expansion/shrinking
@@ -185,10 +187,11 @@ namespace voom{
     vector<Real > _field;
 
     // It should not be done here - maye we should have bodies and forms models from bodies
+
     int _pressureFlag;
     Real _pressure;
     Mesh* _surfaceMesh;
-
+    Mesh* _myMesh;
     int _nodalForcesFlag;
     vector<int > * _forcesID;
     vector<Real > * _forces;

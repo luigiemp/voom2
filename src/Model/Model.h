@@ -8,9 +8,7 @@
 #define __Model_h__
 
 #include "voom.h"
-#include "Mesh.h"
 #include "Result.h"
-#include "GelMesh.h"
 
 namespace voom {
   class Model {
@@ -22,20 +20,14 @@ namespace voom {
     // Model(Mesh* myMesh, const string inputFile, const uint NodeDoF);
 
     //! Constructor to be used for a Finite Element Model
-    Model(Mesh* aMesh, const uint NodeDoF)
-      : _myMesh(aMesh), _nodeDoF(NodeDoF) {
+    Model(const uint NodeDoF)
+      : _nodeDoF(NodeDoF) {
       // WSK: evetually we want to copy the mesh object that is
       // pointed to.  To do this we need to implement a virtual copy
       // method to be used like this:
       //
     }
 
-    //! Constructor to be used for a Gel Model
-    Model(GelMesh* aGelMesh, const uint NodeDoF)
-      : _myGelMesh(aGelMesh), _nodeDoF(NodeDoF) {
-    }
-
-    
     //! Destructor
     virtual ~Model() {};
 
@@ -53,11 +45,9 @@ namespace voom {
     uint getDoFperNode() {
       return _nodeDoF;
     }
-    
-    //! GetMesh
-    Mesh * getMesh() {
-      return _myMesh;
-    }
+
+    // get number of nodes
+    virtual int getNumberOfNodes()=0;
 
     //! Initialize field
     // From constant value
@@ -96,10 +86,7 @@ namespace voom {
 
 
 
-  protected:
-    Mesh*        _myMesh;
-
-    GelMesh*     _myGelMesh;
+  protected: 
     //! DoF per node
     uint         _nodeDoF;
   

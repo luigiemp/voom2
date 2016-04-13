@@ -7,7 +7,7 @@ namespace voom {
 				 const uint NodeDoF,
 				 int NodalForcesFlag,
 				 int ResetFlag):
-    Model(aGelMesh, NodeDoF), _materials(materials), 
+    Model( NodeDoF),_myGelMesh(aGelMesh) , _materials(materials), 
     _nodalForcesFlag(NodalForcesFlag), _resetFlag(ResetFlag)
   {
     // THERE IS ONE MATERIAL PER ELEMENT - CAN BE CHANGED - DIFFERENT THAN BEFORE
@@ -15,6 +15,7 @@ namespace voom {
     _field.resize(  (_myGelMesh->getNumberOfNodes() )*_nodeDoF );
     this->initializeField();
 
+    VectorXd _X0 = _myGelMesh->getX();
     
   }
   
@@ -31,26 +32,81 @@ namespace voom {
       {
 	for(uint i = 0; i < dim; i++)
 	  {
-	    dlist[n](i) = _field[NodesID[n]*dim+i] - _field[NodesID[n+1]*dim+i];
+	    dlist[n](i) = _field[NodesID[n+1]*dim+i] - _field[NodesID[n]*dim+i];
 	  }
       }
   }
   
+  void GelModel::compute(Result & R)
+  {
+    const vector<GeomFilament* > filElement = _myGelMesh->getFilaments();
+    uint NodeDoF = 3;
+    uint NumFil = _myGelMesh->getNumberOfFilaments();
 
+    if ( R.getRequest() & ENERGY ) {
+      R.setEnergy(0.0);
+    }
+    if ( R.getRequest() & FORCE || R.getRequest() & DMATPROP )  {
+      R.resetResidualToZero();
+    } 
 
+    FilamentMaterial::Filresults Rf;
+    Rf.request = 7;
 
+    for (int nFil = 0 ; nFil < NumFil ; nFil++){
+
+      const vector<int > & NodesID = filElement[nFil]->getNodesID();
+      const uint nodeNum = NodesID.size();
+      vector<Vector3d > dlist(nodeNum-1,Vector3d::Zero());
+
+      computeDeformation(dlist,filElement[nFil]);
+      
+      for(int n = 0; n<nodeNum-2; n++)
+        {
+          //cout << dlist[n] << endl;                                                                                                                   
+          vector<int> bond;
+          bond.push_back(NodesID[n]);
+          bond.push_back(NodesID[n+1]);
+          Vector3d d0;
+          cout << "OK" << endl;
+          Vector3d x1;
+          Vector3d x2;
+
+          x1 << getX(bond[0],0) , getX(bond[0],1) , getX(bond[0],2);
+          x2 << getX(bond[1],0) , getX(bond[1],1) , getX(bond[1],2);
+
+          d0 = x2-x1;
+
+          cout << "d0" << endl;
+          cout << d0 << endl;
+          cout << dlist[n] << endl;
+
+	  _materials[nFil]->setMaterialParameters(2.0);
+          _materials[nFil]->setInternalParameters(d0);
+          _materials[nFil]->compute(Rf,dlist[n]);
+          cout << "Energy     = " << Rf.W << endl;
+          cout << "Force  = " << Rf.f << endl;
+          cout << "Stiffness = " << Rf.k << endl;
+
+	}
+    }
+
+  }
+
+  /*
   // Compute Function - Compute Energy, Force, Stiffness
   void GelModel::compute(Result & R)
  {
-    const vector<GeomElement* > elements = _myMesh->getElements();
+   
+    const vector<GeomFilament* > elements = _myGelMesh->getElements();
     const int AvgNodePerEl = ((elements[0])->getNodesID()).size();
     const int NumEl = elements.size();
-    const int dim = _myMesh->getDimension();
+    const int dim = _myGelMesh->getDimension();
     
     int PbDoF = R.getPbDoF();
     int NumPropPerMat = (_materials[0]->getMaterialParameters()).size(); // Assume all materials have the same number of material properties
 
-    /*
+    
     // Reset values in result struct
     if ( R.getRequest() & ENERGY ) {
       R.setEnergy(0.0);
@@ -134,9 +190,9 @@ namespace voom {
 
 
     } // Compute Gradg and Hg
-    */
+    
  } // Compute Mechanics Model
-  
+  */
 
 
 
@@ -365,12 +421,13 @@ namespace voom {
   // Writing output
   void GelModel::writeOutputVTK(const string OutputFile, int step) 
   {
+    /*
     // Create outputFile name
     stringstream FileNameStream;
     FileNameStream << OutputFile << step << ".vtk";
     ofstream out;
     out.open( (FileNameStream.str()).c_str() );
-    int NumNodes = _myMesh->getNumberOfNodes();
+    int NumNodes = _myGelMesh->getNumberOfNodes();
   
     // Header
     char spchar = '#';
@@ -382,10 +439,10 @@ namespace voom {
 
     // For now we assumed dim == 3 !
     for (int i = 0; i < NumNodes; i++ ) {
-      out << _myMesh->getX(i) << endl;
+      out << _myGelMesh->getX(i) << endl;
     }
 
-    vector<GeomElement* > elements = _myMesh->getElements();
+    vector<GeomElement* > elements = _myGelMesh->getElements();
     int NumEl = elements.size();
     int NodePerEl = (elements[0])->getNodesPerElement();
     // To be adjusted - not general at all!
@@ -424,20 +481,20 @@ namespace voom {
     out << endl << "POINT_DATA " << NumNodes << endl
 	<< "VECTORS displacements double" << endl;
   
-    int dim = _myMesh->getDimension();
+    int dim = _myGelMesh->getDimension();
     for (int i = 0; i < NumNodes; i++ ) {
       VectorXd x = VectorXd::Zero(dim);
       for (int j = 0; j < dim; j++) {
 	x(j) = _field[i*dim + j];
       }
-      out << x - _myMesh->getX(i) << endl;
+      out << x - _myGelMesh->getX(i) << endl;
     }    
 
     // Residuals
     out << "VECTORS residual double" << endl;
   
     // Compute Residual
-    uint PbDoF = ( _myMesh->getNumberOfNodes())*this->getDoFperNode();
+    uint PbDoF = ( _myGelMesh->getNumberOfNodes())*this->getDoFperNode();
     EigenResult myResults(PbDoF, 2);
     int myRequest = 2;
     myResults.setRequest(myRequest);
@@ -489,10 +546,10 @@ namespace voom {
 
 	//}
     }
-
+    
     // Material stress tensor
     out << "TENSORS P double" << endl;
-    /*
+    
       // Loop through elements, also through material points array, which is unrolled
       // uint index = 0;
       FilamentMaterial::FKresults FKres;
@@ -522,9 +579,10 @@ namespace voom {
 	       FKres.P(1,0) << " " <<  FKres.P(1,1) << " " << FKres.P(1,2) << endl << 
 	       FKres.P(2,0) << " " <<  FKres.P(2,1) << " " << FKres.P(2,2) << endl;
       }
-      */
+      
     // Close file
     out.close();
+    */
   } // writeOutput
 
 

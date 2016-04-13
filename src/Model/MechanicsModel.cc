@@ -8,7 +8,7 @@ namespace voom {
 				 int PressureFlag, Mesh* SurfaceMesh,
 				 int NodalForcesFlag,
 				 int ResetFlag):
-    Model(aMesh, NodeDoF), _materials(materials), 
+    Model( NodeDoF),_myMesh(aMesh), _materials(materials), 
     _pressureFlag(PressureFlag), _pressure(0.0), _surfaceMesh(SurfaceMesh),
     _nodalForcesFlag(NodalForcesFlag), _forcesID(NULL), _forces(NULL), _resetFlag(ResetFlag)
   {

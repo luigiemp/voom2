@@ -8,7 +8,7 @@ namespace voom {
 				       Real h, Real tol)
   {
     // Check only for local nodes
-    const uint nodeNum   = _myMesh->getNumberOfNodes();
+    const uint nodeNum   = this->getNumberOfNodes();
     const uint nLocalDoF = nodeNum*_nodeDoF;
 
     // Perturb field randomly to change from reference configuration
