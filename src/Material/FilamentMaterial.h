@@ -35,20 +35,20 @@ namespace voom
     virtual FilamentMaterial* clone() const = 0;
 
     //! Filament compute function
-    virtual void compute(Filresults & R, const Vector3d & d) = 0;
+    //virtual void compute(Filresults & R,  Vector3d & d,const Vector3d & d0) = 0;
     
     //! Consistency Check for all Mecahnics Material Classes
-    void checkConsistency(Filresults & R, const Vector3d & d,
+    void checkConsistency(Filresults & R, Vector3d & d,  const Vector3d & d0,
 			  const Real h = 1.0e-7, const Real tol = 1.0e-6);
 
     //! SetMaterialParameters function
-    virtual void setMaterialParameters(const vector<Real > &) = 0;
-    virtual void setInternalParameters(const vector<Real > &) = 0;
+    virtual void setMaterialParameters(const Real &) = 0;
+    virtual void setInternalParameters(const Vector3d &) = 0;
     virtual void setRegularizationParameters(const vector<Real > &) = 0;
 
      //! GetMaterialParameters function
-    virtual vector<Real > getMaterialParameters() = 0;
-    virtual vector<Real > getInternalParameters() = 0;
+    virtual Real getMaterialParameters() = 0;
+    virtual Real getInternalParameters() = 0;
     virtual vector<Real > getRegularizationParameters() = 0;
 
     // Get Material ID
@@ -65,6 +65,7 @@ namespace voom
     virtual void setActivationMultiplier(double activation){;}
     virtual void updateStateVariables(){;}
 
+    virtual void compute(Filresults & R,  Vector3d & d,const Vector3d & d0) = 0;
   protected:
     int _matID;
     

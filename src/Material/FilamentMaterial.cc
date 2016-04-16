@@ -3,10 +3,10 @@
 namespace voom
 {
 
-  void FilamentMaterial::checkConsistency(Filresults & R, const Vector3d & d,
+  void FilamentMaterial::checkConsistency(Filresults & R,  Vector3d & d,const Vector3d & d0,
 					   const Real h, const Real tol)
   {
-    this->compute(R,d);
+    this->compute(R,d,d0);
     Real Wplus = 0.0, Wminus = 0.0, fnum = 0.0, error = 0.0, Kan = R.k, Knum = 0.0;
     Vector3d fplus;
     fplus << 0.0 , 0.0 , 0.0;
@@ -19,10 +19,10 @@ namespace voom
       {
 	for (unsigned int i = 0; i<3; i++) {
 	  dloc(i) += h;
-	  this->compute(R,dloc);
+	  this->compute(R,dloc,d0);
 	  Wplus = R.W;
 	  dloc(i) -= 2.0*h;
-	  this->compute(R,dloc);
+	  this->compute(R,dloc,d0);
 	  Wminus = R.W;
 	  dloc(i) += h;
 	  fnum = (Wplus - Wminus)/(2.0*h);
@@ -45,14 +45,14 @@ namespace voom
 	dloc(i) += h*d(i)/d.norm();
       }
       
-      this->compute(R,dloc);
+      this->compute(R,dloc,d0);
       fplus = R.f;
   
       for (unsigned int i = 0; i<3; i++){
         dloc(i) -= 2*h*d(i)/d.norm();
       }
       
-      this->compute(R,dloc);
+      this->compute(R,dloc,d0);
       fminus = R.f;
       for (unsigned int i = 0; i<3; i++){
         dloc(i) += h*d(i)/d.norm();

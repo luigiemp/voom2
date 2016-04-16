@@ -15,9 +15,9 @@ namespace voom {
   public: 
     // Constructors/destructors:
 
-  Spring(int ID, Real k, Vector3d d0): FilamentMaterial(ID), _k(k), _d0(d0) {}; 
+  Spring(int ID, Real k): FilamentMaterial(ID), _k(k) {}; 
   Spring(Spring* BaseMaterial): 
-    FilamentMaterial(BaseMaterial->_matID), _k(BaseMaterial->_k), _d0(BaseMaterial->_d0) {};
+    FilamentMaterial(BaseMaterial->_matID), _k(BaseMaterial->_k) {};
     
     // Clone
     virtual Spring* clone() const {
@@ -26,25 +26,25 @@ namespace voom {
     
     // Default copy constructor (compiler should already provide exactly this)
     Spring(const Spring & Old): 
-    FilamentMaterial(Old._matID), _k(Old._k),_d0(Old._d0) {};
+    FilamentMaterial(Old._matID), _k(Old._k) {};
 
-    void setMaterialParameters(const vector<Real > & k) {
-      _k = k[0];
+    void setMaterialParameters(const Real  & k) {
+      _k = k;
     }; 
-    void setInternalParameters(const vector<Real > &) {}; 
+    void setInternalParameters(const Vector3d & ) {}; 
     void setRegularizationParameters(const vector<Real > &)    {}; // No regularization parameters for Spring
 
-    vector<Real > getMaterialParameters() { 
-      vector<Real > MatProp(1,0.0);
-      MatProp[0] = _k;
+    Real getMaterialParameters() { 
+      Real  MatProp;
+      MatProp = _k;
       return MatProp;
     }
-    vector<Real > getInternalParameters() {
-      vector<Real > IntParam;
+    Real getInternalParameters() {
+      Real IntParam;
       return IntParam;
     }
 
-    vector<Real > getRegularizationParameters() { // No regularization parameters for Spring
+    vector<Real> getRegularizationParameters() { // No regularization parameters for Spring
       vector<Real > RegParam;
       return RegParam;
     }
@@ -52,7 +52,7 @@ namespace voom {
     
     // Operators
     //! Based on current length d, calculates state of the spring
-    void compute(Filresults & R, const Vector3d & d);
+    void compute(Filresults & R,  Vector3d & d, const  Vector3d & d0);
     
     //! Tells if material has history variables 
     // It is used in the Model derived classes
@@ -60,7 +60,7 @@ namespace voom {
     
   private:
     Real _k;
-    Vector3d _d0;
+    
   }; // class Spring
   
 }
