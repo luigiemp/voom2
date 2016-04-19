@@ -4,56 +4,54 @@
 namespace voom {
 
 
-  void AngleSpring::compute(Filresults & R,  Vector3d & d,const Vector3d & d0)
+  void AngleSpring::compute(Filresults & R, vector< Vector3d> & x,const vector<Vector3d> & X)
   {
+    Vector3d nodeA = x[2];
+    Vector3d nodeB = x[0];
+    Vector3d nodeC = x[1];
+    
+    // Use X is filament not straight in ref position
 
-  }
-  /*
-  // Operators
-  void AngleSpring::compute(Filresults & R,  Vector3d nodeA, Vector3d nodeB, Vector3d nodeC)
-  {
-        
-    Vector3D tBA;
+    Vector3d tBA;
     tBA = nodeA-nodeB;
-    double LBA = norm2(tBA);
+    double LBA = tBA.norm();
     tBA /= LBA;
 
-    Vector3D tBC;
+    Vector3d tBC;
     tBC = nodeC-nodeB;
-    double LBC = norm2(tBC);
+    double LBC = tBC.norm();
     tBC /= LBC;
 
-    double cosABC = dot(tBA,tBC);
-
-    
-
+    double cosABC = tBA.dot(tBC);
 
     if( R.request & ENERGY )
-    {
-      R.W = _kappa*(1.0+cosABC);
-    }
-    
-    if( R.request & FORCE ) 
-    {
-      Vector3D fA;
-      fA = -cosABC * tBA;
-      fA += tBC;
-      fA *=  _kappa/LBA;
+      {
+	R.W = _kappa*(1.0+cosABC);
+      }
 
-      Vector3D fC;
-      fC = -cosABC * tBC;
-      fC += tBA;
-      fC *=  _kappa/LBC;
+    if( R.request & FORCE )
+      {
+	Vector3d fA;
+	fA = -cosABC * tBA;
+	fA += tBC;
+	fA *=  _kappa/LBA;
 
-      R.f = -fA -fC;
-    }
+	Vector3d fC;
+	fC = -cosABC * tBC;
+	fC += tBA;
+	fC *=  _kappa/LBC;
+
+	R.f1 = fA;
+	R.f2 = fC;
+      }
     if( R.request & STIFFNESS )
-    {
-      R.k = _kappa;
-    } 
+      {
+	R.k = _kappa;
+      }
+
     
-  } // Spring::compute
-  */
+  }// end compute
+  
 
 } // namespace voom
 

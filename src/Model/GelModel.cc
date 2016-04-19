@@ -1,13 +1,14 @@
 #include "GelModel.h"
-
+#include "Filament.h"
 namespace voom {
 
   // Constructor
-  GelModel::GelModel(GelMesh* aGelMesh, vector<FilamentMaterial * > materials, 
-				 const uint NodeDoF,
-				 int NodalForcesFlag,
-				 int ResetFlag):
-    Model( NodeDoF),_myGelMesh(aGelMesh) , _materials(materials), 
+  GelModel::GelModel(GelMesh* aGelMesh, vector<FilamentMaterial * > springs,
+		     vector<FilamentMaterial * > angleSprings,
+		     const uint NodeDoF,
+		     int NodalForcesFlag,
+		     int ResetFlag):
+    Model( NodeDoF),_myGelMesh(aGelMesh) , _springs(springs),_angleSprings(angleSprings), 
     _nodalForcesFlag(NodalForcesFlag), _resetFlag(ResetFlag)
   {
     // THERE IS ONE MATERIAL PER ELEMENT - CAN BE CHANGED - DIFFERENT THAN BEFORE
@@ -20,7 +21,7 @@ namespace voom {
   }
   
 
-  void GelModel::computeDeformation(vector<Vector3d > & dlist, GeomFilament* geomEl)
+  void GelModel::getFilamentx(vector<Vector3d > & xlist, GeomFilament* geomEl)
   {
     // Compute all segment extensions 
     const uint dim   = _myGelMesh->getDimension();
@@ -28,11 +29,11 @@ namespace voom {
     const vector<int > & NodesID = geomEl->getNodesID();
     const uint nodeNum = NodesID.size();
     
-    for(uint n = 0; n < nodeNum-1; n++)
+    for(uint n = 0; n < nodeNum; n++)
       {
 	for(uint i = 0; i < dim; i++)
 	  {
-	    dlist[n](i) = _field[NodesID[n+1]*dim+i] - _field[NodesID[n]*dim+i];
+	    xlist[n](i) = _field[NodesID[n]*dim+i];
 	  }
       }
   }
@@ -40,55 +41,31 @@ namespace voom {
   void GelModel::compute(Result & R)
   {
     const vector<GeomFilament* > filElement = _myGelMesh->getFilaments();
-    uint NodeDoF = 3;
+    //uint NodeDoF = 3;
     uint NumFil = _myGelMesh->getNumberOfFilaments();
 
     if ( R.getRequest() & ENERGY ) {
       R.setEnergy(0.0);
     }
-    if ( R.getRequest() & FORCE || R.getRequest() & DMATPROP )  {
+    if ( R.getRequest() & FORCE )  {
       R.resetResidualToZero();
     } 
 
     FilamentMaterial::Filresults Rf;
-    Rf.request = 7;
+    Rf.request = R.getRequest();
 
     for (int nFil = 0 ; nFil < NumFil ; nFil++){
 
       const vector<int > & NodesID = filElement[nFil]->getNodesID();
       const uint nodeNum = NodesID.size();
-      vector<Vector3d > dlist(nodeNum-1,Vector3d::Zero());
+      vector<Vector3d > xlist(nodeNum,Vector3d::Zero());
 
-      computeDeformation(dlist,filElement[nFil]);
+      getFilamentx(xlist,filElement[nFil]);
       
-      for(int n = 0; n<nodeNum-2; n++)
-        {
-          //cout << dlist[n] << endl;                                                                                                                   
-          vector<int> bond;
-          bond.push_back(NodesID[n]);
-          bond.push_back(NodesID[n+1]);
-          Vector3d d0;
-          cout << "OK" << endl;
-          Vector3d x1;
-          Vector3d x2;
+      Filament* Fil =  new Filament(filElement[nFil], _springs[nFil],_angleSprings[nFil]);
 
-          x1 << getX(bond[0],0) , getX(bond[0],1) , getX(bond[0],2);
-          x2 << getX(bond[1],0) , getX(bond[1],1) , getX(bond[1],2);
-
-          d0 = x2-x1;
-
-          cout << "d0" << endl;
-          cout << d0 << endl;
-          cout << dlist[n] << endl;
-
-	  _materials[nFil]->setMaterialParameters(2.0);
-          _materials[nFil]->setInternalParameters(d0);
-          _materials[nFil]->compute(Rf,dlist[n]);
-          cout << "Energy     = " << Rf.W << endl;
-          cout << "Force  = " << Rf.f << endl;
-          cout << "Stiffness = " << Rf.k << endl;
-
-	}
+      Fil->compute(R, xlist);
+      
     }
 
   }

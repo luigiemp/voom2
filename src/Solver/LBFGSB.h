@@ -5,8 +5,8 @@
 
 #include "voom.h"
 #include "Mesh.h"
-#include "EllipticModel.h"
-#include "EigenEllipticResult.h"
+#include "Model.h"
+#include "EigenResult.h"
 
 namespace voom{
 			       
@@ -14,8 +14,9 @@ namespace voom{
   {
   public:
     //! Constructor
-    LBFGSB( EllipticModel *myModel, 
-	    EigenEllipticResult* myResults,
+    LBFGSB( Model *myModel, 
+	    int PbDoF,
+	    EigenResult* myResults,
 	    int m=5,
 	    double factr=1.0e+1, double pgtol=1.0e-5,
 	    int iprint=0, int maxIterations=-1);
@@ -37,9 +38,9 @@ namespace voom{
     }      
 
   protected:
-    EllipticModel*  _myModel;
-    EigenEllipticResult* _myResults;
-
+    Model*  _myModel;
+    EigenResult* _myResults;
+    
     double _f;
     vector<double > _x;
     VectorXd _g;

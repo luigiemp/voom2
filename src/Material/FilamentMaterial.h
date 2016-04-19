@@ -14,12 +14,14 @@ namespace voom
       // Finite kinematics request and result type                                                                                                      
       Filresults() {
 	W = 0.0;
-	f << 0.0, 0.0, 0.0;
+	f1 << 0.0, 0.0, 0.0;
+	f2 << 0.0, 0.0, 0.0;
 	request = 0;
      };
       
       Real W;
-      Vector3d f;
+      Vector3d f1;
+      Vector3d f2;
       Real k;      // Initialized automatically to zero                                                                                    
       int request;
       
@@ -38,7 +40,7 @@ namespace voom
     //virtual void compute(Filresults & R,  Vector3d & d,const Vector3d & d0) = 0;
     
     //! Consistency Check for all Mecahnics Material Classes
-    void checkConsistency(Filresults & R, Vector3d & d,  const Vector3d & d0,
+    void checkConsistency(Filresults & R,
 			  const Real h = 1.0e-7, const Real tol = 1.0e-6);
 
     //! SetMaterialParameters function
@@ -65,7 +67,12 @@ namespace voom
     virtual void setActivationMultiplier(double activation){;}
     virtual void updateStateVariables(){;}
 
-    virtual void compute(Filresults & R,  Vector3d & d,const Vector3d & d0) = 0;
+    // Compute function: takes in two vectors of any current and reference
+    // information such as disp, elongation, positions, angles etc.. needed to compute
+    // stretching or bending energy
+    virtual void compute(Filresults & R, vector< Vector3d> & x,const vector<Vector3d> & X) = 0;
+    
+    
   protected:
     int _matID;
     

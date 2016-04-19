@@ -19,8 +19,8 @@ namespace voom
       UNIQUEmaterials.insert(materials[i]);
     uint TotNumMatProp =  UNIQUEmaterials.size()*(materials[0]->getMaterialParameters()).size();
 
-    // Create Eigen Elliptic results
-    EigenEllipticResult myResults( PbDoF, TotNumMatProp );
+    // Create Eigen  results
+    EigenResult myResults( PbDoF, TotNumMatProp );
 
     switch (UKN)
     {
@@ -154,7 +154,7 @@ namespace voom
 
 
 
-  void EigenNRsolver::applyEBC(EigenEllipticResult & myResults) {
+  void EigenNRsolver::applyEBC(EigenResult & myResults) {
     
 // | A    B |  | x       |   | f |
 // |        |  |         | = |   |

@@ -21,8 +21,8 @@ namespace voom {
       \param elemID is element ID
       \param nodesID is a vector of Node ID
     */
-    GeomFilament(const int elemID, const vector<int > & nodesID):
-      _elemID(elemID), _nodesID(nodesID) {}
+    GeomFilament(const int elemID, const vector<int > & nodesID, const vector<Vector3d> & nodesX):
+      _elemID(elemID), _nodesID(nodesID),_nodesX(nodesX) {}
     
     //! Get element ID
     int getGeomFilamentID() {return _elemID; }
@@ -33,6 +33,8 @@ namespace voom {
     //! Get node list
     const vector<int > & getNodesID() {return _nodesID; }
 
+    //! Get node ref position
+    const vector<Vector3d> getNodesX(){return _nodesX;}
 
   protected:
     //! GeomFilament ID
@@ -41,6 +43,8 @@ namespace voom {
     //! List of nodes
     vector<int >           _nodesID;
 
+    //! Nodes ref position
+    vector<Vector3d>       _nodesX;
     
   }; // GeomFilament
 

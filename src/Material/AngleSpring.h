@@ -5,7 +5,7 @@
 
 #ifndef _ANGLESPRING_H_
 #define _ANGLESPRING_H_
-
+#include "VoomMath.h"
 #include "FilamentMaterial.h"
 
 namespace voom {
@@ -16,9 +16,7 @@ namespace voom {
     // Constructors/destructors:
 
   AngleSpring(int ID, Real kappa): FilamentMaterial(ID), _kappa(kappa) {}; 
-  AngleSpring(AngleSpring* BaseMaterial): 
-    FilamentMaterial(BaseMaterial->_matID), _kappa(BaseMaterial->_kappa) {};
-    
+      
     // Clone
     virtual AngleSpring* clone() const {
       return new AngleSpring(*this);
@@ -52,9 +50,8 @@ namespace voom {
     
     // Operators
     //! Based on current length d, calculates state of the spring
-    //    void compute(Filresults & R,  Vector3d nodeA, Vector3d nodeB, Vector3d nodeC);
 
-    void compute(Filresults & R,  Vector3d & d,const Vector3d & d0);
+    void compute(Filresults & R,  vector<Vector3d> & x,const vector<Vector3d> & X);
 
     //! Tells if material has history variables 
     // It is used in the Model derived classes

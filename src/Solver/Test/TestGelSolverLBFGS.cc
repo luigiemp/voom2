@@ -45,20 +45,28 @@ int main(int argc, char** argv) {
       angleSprings.push_back(Ang);
     }
     
-    // Construct Gel
     GelModel myModel(&TestGelMesh, springs, angleSprings, NodeDoF,0,1);
     
     EigenResult R(PbDoF, 1);
    
-    R.setRequest(3);
-    
-    // Isotropic deformation
+    R.setRequest(3);  
+     
     myModel.initializeField(1.1);    
        
-    // Compute Energy & residual
     myModel.compute(R);
 
-    cout << "Total energy is " << R.getEnergy() << endl;
+    cout << "Total initial  energy is " << R.getEnergy() << endl;
+    cout << "Residual is " << *R._residual << endl;
+    double factr=1.0e+1;
+    double pgtol=1.0e-5;
+    int iprint=0;  
+    int maxIterations=100;
+
+    LBFGSB mySolver(&myModel,PbDoF, &R, factr, pgtol, iprint,maxIterations);
+    
+    mySolver.solve();
+
+  
     cout << endl << " END OF TEST OF GEL MODEL " << endl;
     cout << " ------------------------------ " << endl << endl;
   }

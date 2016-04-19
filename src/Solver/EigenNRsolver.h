@@ -9,8 +9,8 @@
 
 #include "voom.h"
 #include "Mesh.h"
-#include "EllipticModel.h"
-#include "EigenEllipticResult.h"
+#include "Model.h"
+#include "EigenResult.h"
 #include "MechanicsModel.h"
 
 namespace voom{
@@ -49,7 +49,7 @@ namespace voom{
     void solve(SolveFor = DISP);
 
     //! Apply essential BC
-    void applyEBC(EigenEllipticResult & myResults);
+    void applyEBC(EigenResult & myResults);
 
   protected:
     MechanicsModel*  _myModel;

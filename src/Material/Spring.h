@@ -52,7 +52,7 @@ namespace voom {
     
     // Operators
     //! Based on current length d, calculates state of the spring
-    void compute(Filresults & R,  Vector3d & d, const  Vector3d & d0);
+    void compute(Filresults & R, vector< Vector3d> & d, const  vector<Vector3d> & d0);
     
     //! Tells if material has history variables 
     // It is used in the Model derived classes
