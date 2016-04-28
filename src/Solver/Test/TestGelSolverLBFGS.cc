@@ -18,7 +18,7 @@ int main(int argc, char** argv) {
     cout << " ------------------------------- " << endl;
     cout << " TEST OF GEL MODEL " << endl << endl;
             
-    GelMesh TestGelMesh("../../Mesh/Test/Filament2.node", "../../Mesh/Test/Filament2.ele");
+    GelMesh TestGelMesh("../../Mesh/Test/filaments.node", "../../Mesh/Test/filaments.ele");
     
     // Initialize Model
     uint NodeDoF = TestGelMesh.getDimension();
@@ -44,31 +44,38 @@ int main(int argc, char** argv) {
       AngleSpring* Ang = new AngleSpring(nFil,kappa);
       angleSprings.push_back(Ang);
     }
-    
+
+    // Construct gel model
     GelModel myModel(&TestGelMesh, springs, angleSprings, NodeDoF,0,1);
-    
-    EigenResult R(PbDoF, 1);
-   
-    R.setRequest(3);  
      
-    myModel.initializeField(1.1);    
-       
+    EigenResult R(PbDoF, 1);
+    R.setRequest(3);  
+    
+    //myModel.checkConsistency(R,0.1,3,1e-8,1e-5);
+
+    myModel.initializeField(1.5);
+
     myModel.compute(R);
 
-    cout << "Total initial  energy is " << R.getEnergy() << endl;
-    cout << "Residual is " << *R._residual << endl;
+    cout <<"energy is "<<  R.getEnergy() << endl;
+ 
     double factr=1.0e+1;
     double pgtol=1.0e-5;
-    int iprint=0;  
-    int maxIterations=100;
+    int iprint= 80;  
+    //int maxIterations=10000;
 
-    LBFGSB mySolver(&myModel,PbDoF, &R, factr, pgtol, iprint,maxIterations);
+    // LBFGSB Solver
+
+    LBFGSB mySolver(&myModel,PbDoF, &R,5,factr,pgtol,iprint);
     
     mySolver.solve();
-
+    
+    myModel.writeOutput("filaments",1);
+    
   
     cout << endl << " END OF TEST OF GEL MODEL " << endl;
     cout << " ------------------------------ " << endl << endl;
+    // myModel.
   }
 
 

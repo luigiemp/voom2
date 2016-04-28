@@ -59,7 +59,15 @@ namespace voom{
 
     void _setFieldAndCompute() {
       // Set myModel->_field = _x
+     
       _myModel->setField(_x.data());
+
+      // //cout << "field size is " << _x.size()<< endl;
+      // int length = _x.size();
+      // for(int i =0 ; i<length; i++){
+      //  	_myModel->setField(i,_x[i]);
+      // 	//cout << _x[i] << endl;
+      // }
 
       // compute energy and residual
       _myResults->setRequest(3); 
@@ -67,7 +75,8 @@ namespace voom{
 
       // extract energy and residual
       _f = _myResults->getEnergy();
-      _g = *(_myResults->_residual);  
+      _g = *(_myResults->_residual);
+      
     };
 
     void resize(int n)  { 
@@ -78,7 +87,7 @@ namespace voom{
       _l.assign(n, 0.0);
       _u.assign(n, 0.0);
       _nbd.assign(n, 0);
-      _wa.assign(2*_m*n+4*n+12*_m*_m+12*_m, 0.0);
+      _wa.assign(2*_m*n+5*n+11*_m*_m+8*_m, 0.0);
       _iwa.assign(3*n, 0);
     };
 
