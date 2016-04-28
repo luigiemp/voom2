@@ -6,7 +6,7 @@
 #include "FilamentMaterial.h"
 #include "EigenResult.h"
 #include "GelMesh.h"
-#include "GelModel.h"
+//#include "GelModel.h"
 
 namespace voom{
 

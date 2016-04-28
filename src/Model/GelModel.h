@@ -40,6 +40,14 @@ namespace voom{
       for (set<FilamentMaterial *>::iterator it = UNIQUEmaterials.begin();
 	   it != UNIQUEmaterials.end(); it++) 
 		delete (*it);
+      set<Filament *> UNIQUEfilaments;
+      for (uint i = 0; i < _gel.size(); i++) 
+	UNIQUEfilaments.insert(_gel[i]);
+
+      for (set<Filament *>::iterator it = UNIQUEfilaments.begin();
+	   it != UNIQUEfilaments.end(); it++) 
+		delete (*it);
+	
     };
     
     // Get number of Nodes:
@@ -166,6 +174,8 @@ namespace voom{
     
     //! Write output
     void writeOutputVTK(const string OutputFile, int step); 
+    
+    void writeOutput(const string OutputFile, int step); 
 
     //! Solve the system
     void compute(Result & R);
@@ -186,11 +196,11 @@ namespace voom{
     //! List of Material data at each element in the model
     vector<FilamentMaterial * > _springs;
     vector<FilamentMaterial * > _angleSprings;
-    //! Solution value at all nodes, local and ghost
+    
     vector<Real > _field;
     vector<VectorXd> _X0;
-    // It should not be done here - maye we should have bodies and forms models from bodies
     
+    vector<Filament * > _gel;
     int _nodalForcesFlag;
     vector<int > * _forcesID;
     vector<Real > * _forces;

@@ -17,6 +17,22 @@ namespace voom {
     this->initializeField();
 
     VectorXd _X0 = _myGelMesh->getX();
+
+    const vector<GeomFilament* > filElement = _myGelMesh->getFilaments();
+    uint NumFil = _myGelMesh->getNumberOfFilaments();
+    
+    for (int nFil = 0 ; nFil < NumFil ; nFil++){
+
+      const vector<int > & NodesID = filElement[nFil]->getNodesID();
+      const uint nodeNum = NodesID.size();
+      vector<Vector3d > xlist(nodeNum,Vector3d::Zero());
+
+      getFilamentx(xlist,filElement[nFil]);
+      
+      Filament* Fil =  new Filament(filElement[nFil], _springs[nFil],_angleSprings[nFil]);
+
+      _gel.push_back(Fil);
+    }
     
   }
   
@@ -41,7 +57,6 @@ namespace voom {
   void GelModel::compute(Result & R)
   {
     const vector<GeomFilament* > filElement = _myGelMesh->getFilaments();
-    //uint NodeDoF = 3;
     uint NumFil = _myGelMesh->getNumberOfFilaments();
 
     if ( R.getRequest() & ENERGY ) {
@@ -56,345 +71,37 @@ namespace voom {
 
     for (int nFil = 0 ; nFil < NumFil ; nFil++){
 
-      const vector<int > & NodesID = filElement[nFil]->getNodesID();
-      const uint nodeNum = NodesID.size();
+      int nodeNum =  _gel[nFil]->getNumberOfNodes();
       vector<Vector3d > xlist(nodeNum,Vector3d::Zero());
-
+      
       getFilamentx(xlist,filElement[nFil]);
       
-      Filament* Fil =  new Filament(filElement[nFil], _springs[nFil],_angleSprings[nFil]);
-
-      Fil->compute(R, xlist);
+      _gel[nFil]->compute(R, xlist);
       
     }
 
   }
 
-  /*
-  // Compute Function - Compute Energy, Force, Stiffness
-  void GelModel::compute(Result & R)
- {
-   
-    const vector<GeomFilament* > elements = _myGelMesh->getElements();
-    const int AvgNodePerEl = ((elements[0])->getNodesID()).size();
-    const int NumEl = elements.size();
-    const int dim = _myGelMesh->getDimension();
-    
-    int PbDoF = R.getPbDoF();
-    int NumPropPerMat = (_materials[0]->getMaterialParameters()).size(); // Assume all materials have the same number of material properties
-
-    
-    // Reset values in result struct
-    if ( R.getRequest() & ENERGY ) {
-      R.setEnergy(0.0);
-    }
-    if ( R.getRequest() & FORCE || R.getRequest() & DMATPROP )  {
-      R.resetResidualToZero();
-    }
-    if ( R.getRequest() & STIFFNESS ) { 
-      R.resetStiffnessToZero();
-      KtripletList.reserve(dim*dim*NumEl*AvgNodePerEl*AvgNodePerEl);
-    }
-    
-
-    // Loop through elements, also through material points array, which is unrolled
-    // uint index = 0;
-    MechanicsMaterial::FKresults FKres;
-    FKres.request = R.getRequest();
-    for(int e = 0; e < NumEl; e++)
-    {
-      GeomElement* geomEl = elements[e];
-      const vector<int  >& NodesID = geomEl->getNodesID();
-      const int numQP    = geomEl->getNumberOfQuadPoints();
-      Vector3d Fiber = geomEl->getFiber();
-      const int numNodes = NodesID.size();
-
-    } // Element loop
-
-    // Sum up all stiffness entries with the same indices
-    if ( R.getRequest() & STIFFNESS ) {
-      R.setStiffnessFromTriplets(KtripletList);
-      R.FinalizeGlobalStiffnessAssembly(); 
-      // cout << "Stiffness assembled" << endl;
-    }
- 
-    // Add pressure/external load if any
-    if (_pressureFlag == 1) {
-      this->applyPressure(R);
-    }
- 
-    // Add external load if any
-    if (_nodalForcesFlag == 1 && (R.getRequest() & FORCE || R.getRequest() & DMATPROP) ) {
-      for (int i = 0; i < _forcesID->size(); i++) {
-	R.addResidual( (*_forcesID)[i], (*_forces)[i] );
-      }
-    }
- 
-    // Compute Gradg and Hg
-    if ( R.getRequest() & DMATPROP ) { 
-
-      // First extract residual
-      VectorXd Residual = VectorXd::Zero(PbDoF);
-      for (int i = 0; i < PbDoF; i++) {
-	Residual(i) = R.getResidual(i); // local copy
-      }
-
-      if (_resetFlag == 1) {
-	for (uint alpha = 0; alpha < TotNumMatProp; alpha++) {
-	  R.addGradg(alpha, 2.0*dRdalpha[alpha].dot(Residual) );
-	  for (uint beta = 0; beta < TotNumMatProp; beta++) {
-	    // !!!
-	    // WARNING : assume W is linear in alpha!!!!!
-	    // !!!
-	    HgtripletList.push_back( Triplet<Real >( alpha, beta,  2.0*dRdalpha[alpha].dot(dRdalpha[beta]) ) );
-	  } // alpha loop
-	} // beta loop
-	R.setHgFromTriplets(HgtripletList);
-      }
-      else {
-	for (uint alpha = 0; alpha < TotNumMatProp; alpha++) {
-	  R.addGradg(alpha, 2.0*dRdalpha[alpha].dot(Residual) );
-	  for (uint beta = 0; beta < TotNumMatProp; beta++) {
-	    // !!!
-	    // WARNING : assume W is linear in alpha!!!!!
-	    // !!!
-	    R.addHg(alpha, beta,  2.0*dRdalpha[alpha].dot(dRdalpha[beta]) );
-	  } // alpha loop
-	} // beta loop
-      }
-      
-
-
-
-    } // Compute Gradg and Hg
-    
- } // Compute Mechanics Model
-  */
-
-
-
-
-  /*
-
-  void MechanicsModel::applyPressure(Result & R) {
-
-    const vector<GeomElement* > elements = _surfaceMesh->getElements();
-
-    // Loop through elements
-    for(int e = 0; e < elements.size(); e++)
-    {
-      GeomElement* geomEl = elements[e];
-      const vector<int  >& NodesID = geomEl->getNodesID();
-      const int numQP    = geomEl->getNumberOfQuadPoints();
-      const int numNodes = NodesID.size();
-      
-      // Loop over quadrature points
-      for(int q = 0; q < numQP; q++) {
-
-	// Compute normal based on _prevField and displacement
-	Vector3d a1 = Vector3d::Zero(), a2 = Vector3d::Zero(), a3 = Vector3d::Zero(), u = Vector3d::Zero();
-	for (int a = 0; a < NodesID.size(); a++) {
-	  int nodeID = NodesID[a];
-	  Vector3d xa_prev, xa_curr;
-	  xa_prev << _prevField[nodeID*3], _prevField[nodeID*3+1], _prevField[nodeID*3+2];
-	  xa_curr << _field[nodeID*3], _field[nodeID*3+1], _field[nodeID*3+2];
-	  a1 += xa_prev*geomEl->getDN(q, a, 0);
-	  a2 += xa_prev*geomEl->getDN(q, a, 1);
-
-	  u += (xa_curr - _surfaceMesh->getX(nodeID))*geomEl->getN(q, a);
-	}
-	a3 = a1.cross(a2);
-
-	// Surface associated with QP q
-	Real Area = a3.norm();
-	a3 /= Area;
-	Area *= geomEl->getQPweights(q);
-	// cout << "Area = " << Area << endl;
-
-	// Compute energy
-	if (R.getRequest() & ENERGY) { 
-	  R.addEnergy( _pressure*Area*a3.dot(u) );  
-	}
-       
-	// Compute Residual
-	if ( (R.getRequest() & FORCE) || (R.getRequest() & DMATPROP) ) {	
-	  for(uint a = 0; a < NodesID.size(); a++) {
-	    for(uint i = 0; i < 3; i++) {
-	      R.addResidual(NodesID[a]*3+i, _pressure * Area * a3(i) * geomEl->getN(q, a));
-	      // cout << NodesID[a] << " " << geomEl->getN(q, a) << endl;
-	    } // i loop
-	  } // a loop
-	} // Internal force loop
-    
-      } // loop over QP
-    } // loop over elements
-
-  } // apply pressure
-
-
-
-
-
-
-  
-  void MechanicsModel::checkDmat(EigenResult & R, Real perturbationFactor, Real hM, Real tol) 
+  void GelModel::writeOutput(const string OutputFile, int step) 
   {
+    // Create outputFile name
+    stringstream FileNameStream;
+    FileNameStream << OutputFile << step << ".vtk";
+    ofstream out;
+    out.open( (FileNameStream.str()).c_str() );
+    int NumNodes = _myGelMesh->getNumberOfNodes();
+    int dim = _myGelMesh->getDimension();
 
-    // Perturb initial config - gradg and Hg are zero at F = I
-    const uint nodeNum   = _myMesh->getNumberOfNodes();
-    const uint nLocalDoF = nodeNum*_nodeDoF;
-    
-    // Perturb field randomly to change from reference configuration
-    // Save perturbed field to set the configuration back to reference 
-    // at the end of the test
-    vector<Real > perturb(nLocalDoF, 0.0);
-    srand( time(NULL) );
-    for(uint a = 0; a < nodeNum; a++) {
-      for(uint i = 0; i < _nodeDoF; i++) {
-    	Real randomNum =  perturbationFactor*(Real(rand())/RAND_MAX - 0.5);
-    	perturb[a*_nodeDoF + i] = randomNum;
-    	this->linearizedUpdate(a, i, randomNum);
+    for (int i = 0; i < NumNodes; i++ ) {
+      for (int j = 0; j < dim; j++) {
+	out << _myGelMesh->getX(i,j) << " ";
       }
-    }  
-    
-    Real error = 0.0, norm = 0.0;
-
-    set<MechanicsMaterial *> UNIQUEmaterials;
-    for (uint i = 0; i < _materials.size(); i++) 
-      UNIQUEmaterials.insert(_materials[i]);
-    
-    cout << "Number of unique materials = " <<  UNIQUEmaterials.size() << endl;
-    R.setRequest(8); // First compute gradg and Hg numerically
-    this->compute(R);
-
-    // Test gradg //
-    R.setRequest(2); // Reset result request so that only forces are computed
-    for ( set<MechanicsMaterial *>::iterator itMat =  UNIQUEmaterials.begin();
-	  itMat != UNIQUEmaterials.end(); itMat++ )
-    {
-      vector<Real > MatProp = (*itMat)->getMaterialParameters();
-      int MatID = (*itMat)->getMatID();
-      for(int m = 0; m < MatProp.size(); m++) {
-	// Perturb +hM the material property alpha
-	MatProp[m] += hM;
-	// Reset matProp in the materials with MatProp[m]
-	(*itMat)->setMaterialParameters(MatProp);	  
-	// Compute R
-	this->compute(R);
-	Real RTRplus = (R._residual)->dot(*R._residual);
-	// Perturb -2hM the material property alpha
-	MatProp[m] -= 2.0*hM;
-	// Reset matProp in the materials with MatProp[m]
-	(*itMat)->setMaterialParameters(MatProp);
-	// Compute R
-	this->compute(R);
-	Real RTRminus = (R._residual)->dot(*R._residual);
-	
-	// Bring back to original value of alpha
-	MatProp[m] += hM;
-	// Reset matProp in all the materials with MatProp[m]
-	(*itMat)->setMaterialParameters(MatProp);
-	
-	error += pow( (RTRplus-RTRminus)/(2.0*hM) - 
-		      (*R._Gradg)( MatID*MatProp.size() + m), 2.0 );
-	norm += pow( (*R._Gradg)(  MatID*MatProp.size() + m), 2.0 );
-	
-	// cout << (*R._Gradg)( MatID*MatProp.size() + m) << " " << (RTRplus-RTRminus)/(2.0*hM) << endl; 
-      } // Loop over m
-    } // Loop over unique materials
-    error = sqrt(error);
-    norm  = sqrt(norm);
-    
-    if ( abs(error) < norm * tol) {
-      cout << "** Gradg consistency check PASSED" << endl;
-      cout << "** Error: " << error << " Norm: " << norm  << " Norm*tol: " << norm*tol << endl;
+      out << endl;
     }
-    else {
-      cout << "** Gradg consistency check FAILED" << endl;
-      cout << "** Error: " << error << " Norm: " << norm << " Norm*tol: " << norm*tol << endl;
-    }
-
-
-    
-    // Test Hg //
-    error = 0.0; norm = 0.0;
-    R.setRequest(8);
-    this->compute(R);
-    SparseMatrix<Real > HgAn = *R._Hg;
-    for ( set<MechanicsMaterial *>::iterator itMatA =  UNIQUEmaterials.begin(); itMatA != UNIQUEmaterials.end(); itMatA++ )
-    {
-      vector<Real > MatPropA = (*itMatA)->getMaterialParameters();
-      int MatIDA = (*itMatA)->getMatID();
-
-      for(int mA = 0; mA < MatPropA.size(); mA++) {
-	
-	for ( set<MechanicsMaterial *>::iterator itMatB =  UNIQUEmaterials.begin(); itMatB != UNIQUEmaterials.end(); itMatB++ ) 
-	{
-	    vector<Real > MatPropB = (*itMatB)->getMaterialParameters();
-	    int MatIDB = (*itMatB)->getMatID();
-	    
-	    for(int mB = 0; mB < MatPropB.size(); mB++) {
-
-	      // Perturb +hM the material property alpha
-	      MatPropB[mB] += hM;
-	      // Reset matProp in the materials with MatProp[m]
-	      (*itMatB)->setMaterialParameters(MatPropB);	  
-	      // Compute R
-	      this->compute(R);
-	      Real GradPlus = R.getGradg( MatIDA*MatPropA.size() + mA);
-	
-	      // Perturb -2hM the material property alpha
-	      MatPropB[mB] -= 2.0*hM;
-	      // Reset matProp in the materials with MatProp[m]
-	      (*itMatB)->setMaterialParameters(MatPropB);
-	      // Compute R
-	      this->compute(R);
-	      Real GradMinus = R.getGradg( MatIDA*MatPropA.size() + mA);
-	
-	      // Bring back to original value of alpha
-	      MatPropB[mB] += hM;
-	      // Reset matProp in all the materials with MatPropB[m]
-	      (*itMatB)->setMaterialParameters(MatPropB);
-	
-	      error += pow( (GradPlus - GradMinus)/(2.0*hM) - 
-			    HgAn.coeff( MatIDA*MatPropA.size() + mA, MatIDB*MatPropB.size() + mB ), 2.0);
-	      norm += pow( HgAn.coeff( MatIDA*MatPropA.size() + mA, MatIDB*MatPropB.size() + mB ) , 2.0 );
-	
-	      // cout << (*R._Gradg)( MatID*MatProp.size() + m) << " " << (RTRplus-RTRminus)/(2.0*hM) << endl;
-
-	    } // Loop over mB
-	} // Loop over unique materials B
-      } // Loop over mA
-    } // Loop over unique materials A
-    error = sqrt(error);
-    norm  = sqrt(norm);
-    
-    if ( abs(error) < norm * tol) {
-      cout << "** Hg consistency check PASSED" << endl;
-      cout << "** Error: " << error << " Norm: " << norm  << " Norm*tol: " << norm*tol << endl;
-    }
-    else {
-      cout << "** Hg consistency check FAILED" << endl;
-      cout << "** Error: " << error << " Norm: " << norm << " Norm*tol: " << norm*tol << endl;
-    }
-    
-
-    
-    // Reset field to initial values
-    for(uint a = 0; a < nodeNum; a++) {
-      for(uint i = 0; i < _nodeDoF; i++) {
-	this->linearizedUpdate(a, i, -perturb[a*_nodeDoF + i]);
-      }
-    } 
+    out.close();
+  }
   
-  } // Check consistency of gradg and Hg - checkDmat
-*/
-
   
-
-
-
-
   // Writing output
   void GelModel::writeOutputVTK(const string OutputFile, int step) 
   {
@@ -561,7 +268,7 @@ namespace voom {
     out.close();
     */
   } // writeOutput
-
+    
 
 
 

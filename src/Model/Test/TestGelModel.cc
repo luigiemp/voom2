@@ -5,7 +5,6 @@
 #include "EigenResult.h"
 #include "Spring.h"
 #include "AngleSpring.h"
-#include "LBFGSB.h"
 
 using namespace voom;
 
@@ -51,12 +50,13 @@ int main(int argc, char** argv) {
     EigenResult R(PbDoF, 1);
    
     R.setRequest(3);
-    
+      
     // Isotropic deformation
     myModel.initializeField(1.1);    
        
     // Compute Energy & residual
     myModel.compute(R);
+
 
     cout << "Total energy is " << R.getEnergy() << endl;
     cout << endl << " END OF TEST OF GEL MODEL " << endl;
