@@ -3,7 +3,7 @@
 #ifndef __GelMesh_h__
 #define __GelMesh_h__
 #include "voom.h"
-#include "GeomFilament.h"
+#include "GelElement.h"
 
 namespace voom{
   
@@ -15,8 +15,8 @@ namespace voom{
 
     //! Destructor
     virtual ~GelMesh() {
-      for(uint i = 0; i < _filaments.size(); i++)
-        delete _filaments[i];
+      for(uint i = 0; i < _elements.size(); i++)
+        delete _elements[i];
     }
     
     //! Get mesh dimension   
@@ -47,12 +47,12 @@ namespace voom{
     //! Get number of Nodes
     int getNumberOfNodes() { return _X.size(); }
 
-    //! Get number of filaments
-    int getNumberOfFilaments() { return _filaments.size(); }
+    //! Get number of elements
+    int getNumberOfElements() { return _elements.size(); }
 
-    //! Get list of filaments
-    const vector<GeomFilament* > & getFilaments() {
-      return _filaments;
+    //! Get list of elements
+    const vector<GelElement* > & getElements() {
+      return _elements;
     }
 
   protected:
@@ -61,7 +61,7 @@ namespace voom{
     vector<VectorXd >     _X;
 
     //! List of Elements
-    vector<GeomFilament* > _filaments;
+    vector<GelElement* > _elements;
     
 
   };

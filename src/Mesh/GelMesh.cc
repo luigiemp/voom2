@@ -14,15 +14,13 @@ namespace voom {
     }
     
     uint NumNodes = 0, dim = 0, temp = 0;
-    // First line
-    // First number is NumNodes, Second numbder is dim                                                         
+    // First number is NumNodes, Second number is dim                                                         
     inp >> NumNodes >> dim;
     _X.resize(NumNodes, VectorXd::Zero(dim));
 
     // All other lines are the nodal coordinates
     for (uint i = 0; i < NumNodes; i++) {
-      // inp >> temp; - if this is commented each line is just the [x,y,z] ccordinate, no node number
-           
+                
       for (uint j = 0; j < dim; j++) {
         inp >> _X[i](j);
       }
@@ -31,7 +29,8 @@ namespace voom {
     inp.close();
     
     
-    // Second we load and read the connectivity table: 1 filament per line with each node ID in order
+    // Second we load and read the connectivity table: 1 element
+    // per line with each node ID in order
     ifstream inpCon;
     inpCon.open(ConnTable.c_str(),ios::in);
     
@@ -57,35 +56,12 @@ namespace voom {
 	      NodeX << _X[n](0) , _X[n](1), _X[n](2);
 	      NodesX.push_back(NodeX);
 	    }
-	    _filaments.push_back(new GeomFilament(NumEl,fil,NodesX));
+	    _elements.push_back(new GelElement(NumEl,fil,NodesX));
 	    NumEl++;
 	  }
 	inpCon.close();
       }
     
-    /*  
-    ifstream inp;
-    inp.open(Nodes.c_str(), ios::in);
-    if (!inp) {
-      cout << "Cannot open input file: " << Nodes << endl;
-      exit(0);
-    }
-    
-    uint NumNodes = 0, dim = 0, temp = 0;
-    // First line                                                                                                                                       
-    // First number is NumNodes, Second numbder is dim
-    inp >> NumNodes >> dim;
-    _X.resize(NumNodes, VectorXd::Zero(dim));
-
-    // All other lines are the nodal coordinates
-    for (uint i = 0; i < NumNodes; i++) {
-      // inp >> temp; - if this is commented each line is just the [x,y,z] ccordinate, no node number
-      for (uint j = 0; j < dim; j++) {
-        inp >> _X[i](j);
-      }
-    }
-
-    inp.close();
-    */
+   
   } // End constructor from input files
 } // namespace voom
