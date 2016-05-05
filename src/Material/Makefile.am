@@ -7,4 +7,4 @@ INCLUDES     = 	-I./ 					\
 # -I/u/home/l/luigiemp/project-cardio/Program/eigenInst/include/eigen3
 
 lib_LIBRARIES=libMaterials.a
-libMaterials_a_SOURCES = MechanicsMaterial.cc FilamentMaterial.cc Spring.cc CompNeoHookean.cc PassMyoA.cc PlasticMaterial.cc
+libMaterials_a_SOURCES = MechanicsMaterial.cc FilamentMaterial.cc Spring.cc CompNeoHookean.cc PassMyoA.cc PlasticMaterial.cc AngleSpring.cc

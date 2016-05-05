@@ -53,5 +53,8 @@ namespace voom {
   }// end compute
   
 
+  void AngleSpring::compute(Filresults & R,  vector<Vector3d> & x){
+  };
+
 } // namespace voom
 

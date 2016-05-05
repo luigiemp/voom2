@@ -72,6 +72,7 @@ namespace voom
     // stretching or bending energy
     virtual void compute(Filresults & R, vector< Vector3d> & x,const vector<Vector3d> & X) = 0;
     
+    virtual void compute(Filresults & R, vector< Vector3d> & x) = 0;
     
   protected:
     int _matID;

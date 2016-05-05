@@ -17,6 +17,7 @@ namespace voom {
 
   AngleSpring(int ID, Real kappa): FilamentMaterial(ID), _kappa(kappa) {}; 
       
+    ~AngleSpring(){};
     // Clone
     virtual AngleSpring* clone() const {
       return new AngleSpring(*this);
@@ -52,6 +53,8 @@ namespace voom {
     //! Based on current length d, calculates state of the spring
 
     void compute(Filresults & R,  vector<Vector3d> & x,const vector<Vector3d> & X);
+
+    void compute(Filresults & R,  vector<Vector3d> & x);
 
     //! Tells if material has history variables 
     // It is used in the Model derived classes
