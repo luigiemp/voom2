@@ -1,12 +1,12 @@
 //-*-C++-*-
 #ifndef __GelModel_h__
 #define __GelModel_h__
-
 #include "Model.h"
+#include "Result.h"
 #include "FilamentMaterial.h"
-#include "EigenResult.h"
 #include "GelMesh.h"
 #include "Filament.h"
+#include "CrossLink.h"
 
 namespace voom{
 
@@ -25,9 +25,6 @@ namespace voom{
 	     int _resetFlag = 1);
     
 		     
-    //! Input-file-based Constructor
-    // GelModel(Mesh* myMesh, const string inputFile, const uint NodeDoF);
-
     //! Destructor
     
     ~GelModel() {
@@ -47,6 +44,14 @@ namespace voom{
       for (set<Filament *>::iterator it = UNIQUEfilaments.begin();
 	   it != UNIQUEfilaments.end(); it++) 
 		delete (*it);
+
+      set<CrossLink *> UNIQUEcrosslinks;
+      for (uint i = 0; i < _crosslinks.size(); i++) 
+	UNIQUEcrosslinks.insert(_crosslinks[i]);
+
+      for (set<CrossLink *>::iterator it = UNIQUEcrosslinks.begin();
+      	   it != UNIQUEcrosslinks.end(); it++) 
+	delete (*it);
 	
     };
     
@@ -186,13 +191,33 @@ namespace voom{
       _forcesID = ForcesID; _forces = Forces;
     }
 
-    //void computeDeformation(vector<Vector3d > & dlist, GeomFilament* geomEl);
+    
+    void getFilamentx(vector<Vector3d > & xlist, const vector<int> & NodesID);
 
-    void getFilamentx(vector<Vector3d > & xlist, GeomFilament* geomEl);
+    void addCrosslink(CrossLink * crosslink){
+      _crosslinks.push_back(crosslink);
+    }
+
+    int getDimension(){return _myGelMesh->getDimension();}
+    
+    void deleteCrosslink(int i){
+      _crosslinks.erase(_crosslinks.begin()+i);
+    }
+
+    //https://en.wikipedia.org/wiki/Erase%E2%80%93remove_idiom
+    void deleteCrosslink(CrossLink * cl){
+      delete(cl);
+      _crosslinks.erase(remove(_crosslinks.begin(),_crosslinks.end(),cl),_crosslinks.end());
+    }
+
+    int getNumberOfCl(){ return _crosslinks.size();}
+
+    int getNumberOfFil(){ return _gel.size();}
+    
+    vector<CrossLink * > getCrossLinks(){return _crosslinks;}
 
   protected:
     
-    //void computeDeformation(vector<Vector3d > & dlist, GeomElement* geomEl);
     //! List of Material data at each element in the model
     vector<FilamentMaterial * > _springs;
     vector<FilamentMaterial * > _angleSprings;
@@ -201,6 +226,8 @@ namespace voom{
     vector<VectorXd> _X0;
     
     vector<Filament * > _gel;
+    vector<CrossLink * > _crosslinks; 
+
     int _nodalForcesFlag;
     vector<int > * _forcesID;
     vector<Real > * _forces;

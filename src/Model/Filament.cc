@@ -3,11 +3,11 @@
 
 namespace voom {
   //Constructor
-  Filament::Filament(GeomFilament* aFilament, FilamentMaterial* spring, FilamentMaterial* angleSpring):
+  Filament::Filament(GelElement* aFilament, FilamentMaterial* spring, FilamentMaterial* angleSpring):
     _spring(spring),_angleSpring(angleSpring),_myFilament(aFilament)
   {
     _X = _myFilament->getNodesX();
-    _nodeNum = _myFilament->getNodesPerFilament();
+    _nodeNum = _myFilament->getNodesPerElement();
     _NodesID = _myFilament->getNodesID();
     _dim = 3;
   }

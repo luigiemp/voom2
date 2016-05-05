@@ -22,7 +22,7 @@ namespace voom{
 		     
     //! Destructor
     
-    ~CrossLink() {};
+    ~CrossLink() {delete(_myCrossLink);}
     
     // Get number of Nodes:
     int getNumberOfNodes(){return _myCrossLink->getNodesID().size();}

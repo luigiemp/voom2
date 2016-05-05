@@ -11,7 +11,8 @@
 
 namespace voom{
 
-  // Crosslinker class: find and update crosslinks with Kintetic Monte Carlo
+  // Crosslink manager: initialize and update crosslinks based
+  // on some update rule object (KMC for example)
   class crossLinker {
 
   public:
@@ -21,44 +22,39 @@ namespace voom{
     		     
     //! Destructor
     
-    ~crossLinker() {
-      
-      set<CrossLink *> UNIQUEcrosslinks;
-      for (uint i = 0; i < _crosslinks.size(); i++) 
-	UNIQUEcrosslinks.insert(_crosslinks[i]);
+    ~crossLinker(){}
 
-      for (set<CrossLink *>::iterator it = UNIQUEcrosslinks.begin();
-      	   it != UNIQUEcrosslinks.end(); it++) 
-	delete (*it);
-	
-    };
+    void computeRates(Real k0 = 1.0);
 
-    bool KMC();
-    
+    void KMC();
+
+    int findEvent();
+
     void addCrosslink(pair<int, Real> arg_dist, int i);
-
-    void updateCrosslinks();
 
     void updateSingleCL(int i);
 
-    void getCurrentConfig();
+    void getCurrentConfig(){_myGelModel->getField(_x);};
+
+    void ClUpdate(int i);
 
     pair<int,Real> findClosest(Vector3d  node , vector< double >  nodeList);
     
 
   protected:
     
-    //! List of Material data at each element in the model
     FilamentMaterial *  _clMat;
     GelModel * _myGelModel;
     Real _maxClL;
-    vector<CrossLink * > _crosslinks;
-    VectorXd _X0;
+    VectorXd _X;
     GelMesh* _myGelMesh;
     vector<bool> _CrossLinkedNodes;
     int _dim;
     int _NumNode;
     vector< double > _x;
+    vector< CrossLink *> _crossLinkMap;
+    vector<Real> _rates; 
+    vector<Real> _cumulativeRates; 
    
   };
 

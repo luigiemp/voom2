@@ -4,46 +4,138 @@
 #include <time.h>
 namespace voom {
 
-  // Constructor
+  // Constructor: generates initial crosslinks, based on a length constaint
   crossLinker::crossLinker(GelModel* aGelModel, FilamentMaterial *  clMat, Real maxClL):
     _myGelModel(aGelModel) , _clMat(clMat), _maxClL(maxClL)
   {
-    /* initialize random seed: */
+    // initialize random seed: 
     srand (time(NULL));
     // Ref config:
-    VectorXd _X0 = _myGelModel->getX();
-
+    _X = _myGelModel->getX();
     // Current config:
-    int _NumNode= _myGelModel->getNumberOfNodes();
-    int _dim = _myGelModel->getDimension();
-    
+    _NumNode= _myGelModel->getNumberOfNodes();
+    _dim = _myGelModel->getDimension(); 
     _x.resize(_dim*_NumNode);
-    _CrossLinkedNodes.resize(_NumNode,false);
+    _rates.resize(_NumNode,0.0);
+    _cumulativeRates.resize(_NumNode,0.0);
+    this->getCurrentConfig();
 
-    _myGelModel->getField(_x);
+    // Initialize crosslink map (which for each node, stores pointer to corresponding CL if exists):
+    _crossLinkMap.resize(_NumNode, NULL);
     
     Real maxClL2 = pow(_maxClL,2);
     
     cout << "Starting crosslinking" << endl;
-    // Loop over nodes and create crosslink if mindist< distance < maxdist, using current config
-    // Each node can be crosslinked only once
+    // Initial crosslinking: Loop over nodes and create crosslink if 
+    // mindist< distance < maxdist, using current config.
+    // Each node can be crosslinked only once.
     for(int i = 0; i< _NumNode ; i++){
-      if(_CrossLinkedNodes[i] == false){
-
+      if(_crossLinkMap[i] == NULL){
 	Vector3d node1;
 	node1 << _x[i*_dim+0],_x[i*_dim+1],_x[i*_dim+2]; 
 
 	// Find closest node distance and ID:
 	pair<int,Real> arg_dist = this->findClosest(node1, _x);
-
+	
 	// If it meets criteria, add to list of crosslinks
-	if(_CrossLinkedNodes[arg_dist.first]== false & arg_dist.second < maxClL2 ){
-	  
+	if(_crossLinkMap[arg_dist.first]== NULL & arg_dist.second < maxClL2 ){
 	  this->addCrosslink(arg_dist,i);
 	}
       }
 
     }
+  }
+
+  void crossLinker::computeRates(Real k0){
+    this->getCurrentConfig();
+    
+    for(int i = 0; i<_NumNode; i++){
+      // For each node, check if a crosslink is already there
+      // If yes, compute the energy of that crosslink
+      // Otherwise, find the closest node and compute the energy of the would be crosslink:
+      Vector3d x1;
+      Vector3d x2;
+      if(_crossLinkMap[i] != NULL){
+	const vector<int> nodesID = _crossLinkMap[i]->getNodesID();
+	// Get the current position for the 2 nodes
+	x1 << _x[nodesID[0]*_dim] , _x[nodesID[0]*_dim+1], _x[nodesID[0]*_dim+2];
+	x2 << _x[nodesID[1]*_dim] , _x[nodesID[1]*_dim+1], _x[nodesID[1]*_dim+2];
+	
+	vector<Vector3d> xlist;
+	xlist.push_back(x1);
+	xlist.push_back(x2);
+      
+	// Compute the energy:
+	FilamentMaterial::Filresults Rf;
+	_clMat->compute(Rf, xlist);
+	_rates[i] = k0*exp(Rf.W);
+
+      } else{
+	
+	x1 << _x[i*_dim+0],_x[i*_dim+1],_x[i*_dim+2]; 
+	// Find closest node:
+	pair<int,Real> arg_dist = this->findClosest(x1, _x);
+	x2 << _x[arg_dist.first*_dim] , _x[arg_dist.first*_dim+1], _x[arg_dist.first*_dim+2];
+	
+	vector<Vector3d> xlist;
+	xlist.push_back(x1);
+	xlist.push_back(x2);
+      
+	// Compute the energy:
+	FilamentMaterial::Filresults Rf;
+	_clMat->compute(Rf, xlist);
+	_rates[i] = k0*exp(-Rf.W);
+	
+      }
+      
+      
+      for(int k = 0 ; k < i+1 ; k++){
+	_cumulativeRates[i] += _rates[k];
+      }
+     }
+  }
+
+  int crossLinker::findEvent(){
+    Real u = ((double) rand()/RAND_MAX);
+    Real Q = _cumulativeRates[_NumNode];
+
+    for(int i = 0; i < _NumNode; i++){
+      if(_cumulativeRates[i] > u*Q){
+	return i;
+      }
+    }
+  }
+  
+  void crossLinker::KMC(){
+    Real k0 = 1.0;
+    this->computeRates(k0);
+    int i = this->findEvent();
+    
+    this->ClUpdate(i);
+  }
+  
+  void crossLinker::ClUpdate(int i){
+    
+    // Detach if linked, attach otherwise:
+    if(_crossLinkMap[i] != NULL){
+      const vector<int> NodesID = _crossLinkMap[i]->getNodesID();
+      _myGelModel->deleteCrosslink(_crossLinkMap[i]);
+      _crossLinkMap[NodesID[0]] = NULL;
+      _crossLinkMap[NodesID[1]] = NULL;
+
+    }else {
+
+      this->getCurrentConfig();
+      Vector3d node1;
+      node1 << _x[i*_dim+0],_x[i*_dim+1],_x[i*_dim+2]; 
+      
+      // Find closest node and distance:
+      pair<int,Real> arg_dist = this->findClosest(node1, _x);
+      Real maxClL2 = pow(_maxClL,2);
+      // Attach
+      this->addCrosslink(arg_dist,i);
+    }
+
   }
 
   void crossLinker::addCrosslink( pair<int, Real> arg_dist, int i){
@@ -56,9 +148,9 @@ namespace voom {
 
     // Get the ref position for the 2 nodes
     Vector3d X1;
-    X1 << _X0(nodesID[0]*_dim) , _X0(nodesID[0]*_dim+1), _X0(nodesID[0]*_dim+2);
+    X1 << _X(nodesID[0]*_dim) , _X(nodesID[0]*_dim+1), _X(nodesID[0]*_dim+2);
     Vector3d X2;
-    X2 << _X0(nodesID[1]*_dim) , _X0(nodesID[1]*_dim+1), _X0(nodesID[1]*_dim+2);
+    X2 << _X(nodesID[1]*_dim) , _X(nodesID[1]*_dim+1), _X(nodesID[1]*_dim+2);
 
     NodeX.push_back(X1);
     NodeX.push_back(X2);
@@ -66,127 +158,29 @@ namespace voom {
     // Construct cl element:
     GelElement* CLelem = new GelElement(0,nodesID, NodeX);
 	
-    // Construct cl object: cl element +  material prop:
+    // Construct cl object: gel element + cl  material prop:
     CrossLink* CL = new CrossLink(CLelem, _clMat);
-	
+
     _myGelModel->addCrosslink(CL);
-    _CrossLinkedNodes[nodesID[0]] = true;
-    _CrossLinkedNodes[nodesID[1]] = true;
+    _crossLinkMap[nodesID[0]] = CL;
+    _crossLinkMap[nodesID[1]] = CL;
   }
 
-  bool crossLinker::KMC(){
-    Real p = ((double) rand() / (RAND_MAX));
-    if(p<0.1){
-      return true;
-    }else{
-      return false;
-    }
-
-    // // Compute enrergy of candidate crosslink:
-    // FilamentMaterial::Filresults Rf;
-    // _clMat->compute(Rf,xlist);
-    // Real energy = Rf.W;
-  }
-  void crossLinker::getCurrentConfig(){
-    _myGelModel->getField(_x);
-  }
-
-  void crossLinker::updateSingleCL(int i){
-    
-    this->getCurrentConfig();
-
-    if(_CrossLinkedNodes[i] == false){
-      vector<int> nodesID;
-      vector<Vector3d> NodeX;
-
-      Vector3d node1;
-      node1 << _x[i*_dim+0],_x[i*_dim+1],_x[i*_dim+2]; 
-
-      // Find closest node distance and ID:
-      pair<int,Real> arg_dist = this->findClosest(node1, _x);
-	
-      Vector3d node2;
-      node2 << _x[arg_dist.first*_dim+0],_x[arg_dist.first*_dim+1],_x[arg_dist.first*_dim+2]; 
-	
-      vector<Vector3d> xlist;
-      xlist.push_back(node1);
-      xlist.push_back(node2);
-	
-      bool link = this->KMC();
-      if(link && _CrossLinkedNodes[i] == false){
-	this->addCrosslink(arg_dist,i);
-      }
-    }else{
-      
-
-    }
-    
-  }
-
-  // update CL funciton: takes as input the update rule
-  void crossLinker::updateCrosslinks(){
-    // First go over existing Crosslinks, decide if they stay
-    int numCL = _crosslinks.size();
-    int i = 0;
-    while(i < _crosslinks.size()){
-      bool link = this->KMC();
-      if(link){
-	const vector<int> NodesID = _crosslinks[i]->getNodesID();
-	_CrossLinkedNodes[NodesID[0]] = false;
-	_CrossLinkedNodes[NodesID[1]] = false;
-	_myGelModel->deleteCrosslink(i);
-	
-      }else {
-	++i;
-      }
-    }
-    // Then go over unlinked nodes, decide if they should form crosslinks:
-    
-    // Current config:
-    
-    this->getCurrentConfig();
-    
-    for(int i = 0; i< _NumNode ; i++){
-      if(_CrossLinkedNodes[i] == false){
-	vector<int> nodesID;
-	vector<Vector3d> NodeX;
-
-	Vector3d node1;
-	node1 << _x[i*_dim+0],_x[i*_dim+1],_x[i*_dim+2]; 
-
-	// Find closest node distance and ID:
-	pair<int,Real> arg_dist = this->findClosest(node1, _x);
-	
-	Vector3d node2;
-	node2 << _x[arg_dist.first*_dim+0],_x[arg_dist.first*_dim+1],_x[arg_dist.first*_dim+2]; 
-	
-	vector<Vector3d> xlist;
-	xlist.push_back(node1);
-	xlist.push_back(node2);
-	
-	bool link = this->KMC();
-	if(link && _CrossLinkedNodes[i] == false){
-	  this->addCrosslink(arg_dist,i);
-	}
-      }
-    }
-  };
-
-
-  // find closest node:
+ 
+  // find closest not attached node (use parsimoniously):
   pair<int, Real> crossLinker::findClosest(Vector3d  node , vector< double >  nodeList){
     
     Real minDist = 1.0;
     int minArg = 0;
     Real epsilon = 1e-6;
-      
-    for(int i = 0; i<nodeList.size()/_dim; i++){
+   
+    for(int i = 0; i<_NumNode; i++){
       Real d2 = 0.0;
       for(int j = 0; j <_dim; j++){
 	d2 += pow((node(j)-nodeList[i*_dim+j]),2);
       }
-            
-      if(d2 < minDist && d2> epsilon){
+      
+      if(d2 < minDist && d2> epsilon && _crossLinkMap[i] == NULL){
 	minDist = d2;
       	minArg = i;
       }
