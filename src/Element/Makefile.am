@@ -7,4 +7,4 @@ AM_CPPFLAGS = 	-I ./						\
 		-I/u/local/apps/eigen/3.2.4/gcc-4.4.7/include/eigen3
 lib_LIBRARIES        = libElement.a
 libElement_a_SOURCES = FEgeomElement.cc FEgeomElement1D.cc LMEgeomElement.cc \
-		       RKPMgeomElement.cc
+		       RKPMgeomElement.cc 

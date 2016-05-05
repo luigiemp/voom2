@@ -23,6 +23,8 @@ namespace voom {
     */
     GelElement(const int elemID, const vector<int > & nodesID, const vector<Vector3d> & nodesX):
       _elemID(elemID), _nodesID(nodesID),_nodesX(nodesX) {}
+
+    ~GelElement(){};
     
     //! Get element ID
     int getGelElementID() {return _elemID; }
