@@ -4390,8 +4390,7 @@ fi
 
 
 
-
-ac_config_files="$ac_config_files Makefile doc/Makefile src/Makefile src/VoomMath/Makefile src/VoomMath/Test/Makefile src/Mesh/Makefile src/Mesh/Test/Makefile src/Material/Makefile src/Material/Test/Makefile src/Source/IonicSource/Makefile src/Source/MechanicsLoad/Makefile src/Quadrature/Makefile src/Quadrature/Test/Makefile src/Shape/Makefile src/Shape/Test/Makefile src/Element/Makefile src/Element/Test/Makefile src/Model/Makefile src/Model/Test/Makefile src/Solver/Makefile src/Solver/Test/Makefile src/Utils/inpParser/Makefile"
+ac_config_files="$ac_config_files Makefile doc/Makefile src/Makefile src/VoomMath/Makefile src/VoomMath/Test/Makefile src/Geometry/Makefile src/HalfEdgeMesh/Makefile src/HalfEdgeMesh/Test/Makefile src/Mesh/Makefile src/Mesh/Test/Makefile src/Material/Makefile src/Material/Test/Makefile src/Source/IonicSource/Makefile src/Source/MechanicsLoad/Makefile src/Quadrature/Makefile src/Quadrature/Test/Makefile src/Shape/Makefile src/Shape/Test/Makefile src/Element/Makefile src/Element/Test/Makefile src/Model/Makefile src/Model/Test/Makefile src/Solver/Makefile src/Solver/Test/Makefile src/Utils/inpParser/Makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -5042,6 +5041,9 @@ do
     "src/Makefile") CONFIG_FILES="$CONFIG_FILES src/Makefile" ;;
     "src/VoomMath/Makefile") CONFIG_FILES="$CONFIG_FILES src/VoomMath/Makefile" ;;
     "src/VoomMath/Test/Makefile") CONFIG_FILES="$CONFIG_FILES src/VoomMath/Test/Makefile" ;;
+    "src/Geometry/Makefile") CONFIG_FILES="$CONFIG_FILES src/Geometry/Makefile" ;;
+    "src/HalfEdgeMesh/Makefile") CONFIG_FILES="$CONFIG_FILES src/HalfEdgeMesh/Makefile" ;;
+    "src/HalfEdgeMesh/Test/Makefile") CONFIG_FILES="$CONFIG_FILES src/HalfEdgeMesh/Test/Makefile" ;;
     "src/Mesh/Makefile") CONFIG_FILES="$CONFIG_FILES src/Mesh/Makefile" ;;
     "src/Mesh/Test/Makefile") CONFIG_FILES="$CONFIG_FILES src/Mesh/Test/Makefile" ;;
     "src/Material/Makefile") CONFIG_FILES="$CONFIG_FILES src/Material/Makefile" ;;
