@@ -51,13 +51,15 @@ dnl AC_SUBST(blitz_includes)
 dnl AC_SUBST(blitz_libraries)
 
 dnl AC_SUBST(tvmet_includes)
-
 AC_CONFIG_FILES([ 
 		  Makefile
 		  doc/Makefile
 		  src/Makefile
 		  src/VoomMath/Makefile
 		  src/VoomMath/Test/Makefile
+		  src/Geometry/Makefile	
+		  src/HalfEdgeMesh/Makefile
+		  src/HalfEdgeMesh/Test/Makefile		 		
 		  src/Mesh/Makefile
 		  src/Mesh/Test/Makefile
 		  src/Material/Makefile 
