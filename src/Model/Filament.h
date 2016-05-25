@@ -7,6 +7,7 @@
 #include "EigenResult.h"
 #include "GelMesh.h"
 //#include "GelModel.h"
+#include "PeriodicBox.h"
 
 namespace voom{
 
@@ -18,7 +19,7 @@ namespace voom{
     //! Basic Constructor
     /*! Construct from basic data structures defining the mesh, materials, BCs. 
      */
-    Filament(GelElement* aFilament, FilamentMaterial* spring,FilamentMaterial* angleSpring);
+    Filament(GelElement* aFilament, FilamentMaterial* spring,FilamentMaterial* angleSpring, PeriodicBox* box);
 		     
     //! Destructor
     
@@ -44,6 +45,7 @@ namespace voom{
     int _dim;
     vector<int> _NodesID;
     vector<Vector3d> _X;
+    PeriodicBox* _box;
   };
 
 } // namespace voom

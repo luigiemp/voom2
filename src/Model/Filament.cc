@@ -3,8 +3,8 @@
 
 namespace voom {
   //Constructor
-  Filament::Filament(GelElement* aFilament, FilamentMaterial* spring, FilamentMaterial* angleSpring):
-    _spring(spring),_angleSpring(angleSpring),_myFilament(aFilament)
+  Filament::Filament(GelElement* aFilament, FilamentMaterial* spring, FilamentMaterial* angleSpring, PeriodicBox* box):
+    _spring(spring),_angleSpring(angleSpring),_myFilament(aFilament), _box(box)
   {
     _X = _myFilament->getNodesX();
     _nodeNum = _myFilament->getNodesPerElement();
@@ -24,16 +24,29 @@ namespace voom {
 
     for(int n = 0; n < _nodeNum-1; n++)
       {
-	vector<Vector3d> x;
-	vector<Vector3d> X;
+	//Nodes are named as follows (see spring material class):
+	//nodeA : n
+	//nodeB : n+1
 
-	x.push_back(xlist[n]);
-	x.push_back(xlist[n+1]);
-	X.push_back(_X[n]);
-	X.push_back(_X[n+1]);
+	vector<Vector3d> dx;
+	Vector3d AB = xlist[n+1] - xlist[n];
+	
+	// Perdiodic boundary conditions:
+	_box->mapDistance(AB);
+
+	dx.push_back(AB);
+
+	// //periodic BC test:
+	// Vector3d A;
+	// Vector3d B;
+	// A<< 0.0,0.0,0.0;
+	// B<<1.3,0.0,0.0;
+	// Vector3d ab = B-A;
+	// _box->mapDistance(ab);
+	// cout << ab << endl;
 	
 	// stretching energy
-	_spring->compute(Rf_stretch,x,X);
+	_spring->compute(Rf_stretch,dx);
 	
 	for(int i=0; i<_dim; i++) {
 	  R.addResidual(_NodesID[n]*_dim + i,Rf_stretch.f1(i));
@@ -42,12 +55,21 @@ namespace voom {
 	
 	R.addEnergy(Rf_stretch.W);
 	
+	//if more than 2 nodes, we compute the bending energy:
 	if(n>0){
-	  x.push_back(xlist[n-1]);
-	  X.push_back(_X[n-1]);
-	  
+	  //In this case, nodes are named as follows (see anglespring mat class):
+	  //nodeA : n-1
+	  //nodeB : n
+	  //nodeC : n+1
+	  // so dx[0] is nodeC-nodeB = tBC, already in dx
+	  // and tBA = nodeA-nodeB is added to dx:
+	  Vector3d BA;
+	  BA = xlist[n-1]-xlist[n];
+	  _box->mapDistance(BA);
+	  dx.push_back(BA);
+
 	  //bending energy
-	  _angleSpring->compute(Rf_bend,x,X);
+	  _angleSpring->compute(Rf_bend,dx);
 
 	  for(int i=0; i<_dim; i++) {
 	    R.addResidual(_NodesID[n-1]*_dim + i,Rf_bend.f1(i));

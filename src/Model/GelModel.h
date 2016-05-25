@@ -7,6 +7,8 @@
 #include "GelMesh.h"
 #include "Filament.h"
 #include "CrossLink.h"
+#include "GelInput.h"
+#include "PeriodicBox.h"
 
 namespace voom{
 
@@ -18,9 +20,10 @@ namespace voom{
     //! Basic Constructor
     /*! Construct from basic data structures defining the mesh, materials, BCs. 
      */
-    GelModel(GelMesh* aGelMesh, vector<FilamentMaterial * > _springs,
+    GelModel(GelMesh* aGelMesh,GelInput* input,vector<FilamentMaterial * > _springs,
 	     vector<FilamentMaterial * > _angleSprings,
 	     const uint NodeDoF,
+	     PeriodicBox* box,
 	     int NodalForcesFlag = 0,
 	     int _resetFlag = 1);
     
@@ -38,8 +41,8 @@ namespace voom{
 	   it != UNIQUEmaterials.end(); it++) 
 		delete (*it);
       set<Filament *> UNIQUEfilaments;
-      for (uint i = 0; i < _gel.size(); i++) 
-	UNIQUEfilaments.insert(_gel[i]);
+      for (uint i = 0; i < _filaments.size(); i++) 
+	UNIQUEfilaments.insert(_filaments[i]);
 
       for (set<Filament *>::iterator it = UNIQUEfilaments.begin();
 	   it != UNIQUEfilaments.end(); it++) 
@@ -129,19 +132,7 @@ namespace voom{
       }
     }
 
-    void writeField(string OutputFile, int step) {
-      // Create outputFile name
-      stringstream FileNameStream;
-      FileNameStream << OutputFile << step << ".dat";
-      ofstream out;
-      out.open( (FileNameStream.str()).c_str() );
-  
-      out << _field.size() << endl;
-      for (uint i = 0; i < _field.size(); i++) {
-	out << setprecision(15) << _field[i] << endl;
-      }
-      out.close();
-    }
+    void writeField(const string OutputFile, int step);
 
     uint getNumMat() {
       set<FilamentMaterial *> UNIQUEmaterials;
@@ -180,7 +171,11 @@ namespace voom{
     //! Write output
     void writeOutputVTK(const string OutputFile, int step); 
     
-    void writeOutput(const string OutputFile, int step); 
+    void writeX(const string OutputFile, int step); 
+
+    void writeClConnectivity(const string OutputFile, int step);
+    
+    void writeFilConnectivity(const string OutputFile, int step);
 
     //! Solve the system
     void compute(Result & R);
@@ -212,7 +207,7 @@ namespace voom{
 
     int getNumberOfCl(){ return _crosslinks.size();}
 
-    int getNumberOfFil(){ return _gel.size();}
+    int getNumberOfFil(){ return _filaments.size();}
     
     vector<CrossLink * > getCrossLinks(){return _crosslinks;}
 
@@ -224,8 +219,10 @@ namespace voom{
     
     vector<Real > _field;
     vector<VectorXd> _X0;
+
+    GelInput* _input;
     
-    vector<Filament * > _gel;
+    vector<Filament * > _filaments;
     vector<CrossLink * > _crosslinks; 
 
     int _nodalForcesFlag;
@@ -233,7 +230,7 @@ namespace voom{
     vector<Real > * _forces;
     GelMesh* _myGelMesh;
     vector<Real > _prevField;
-
+    PeriodicBox* _box;
     int _resetFlag;
   };
 

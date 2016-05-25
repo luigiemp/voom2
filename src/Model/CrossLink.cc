@@ -3,8 +3,8 @@
 
 namespace voom {
   //Constructor
-  CrossLink::CrossLink(GelElement* aCrossLink, FilamentMaterial* spring):
-    _spring(spring),_myCrossLink(aCrossLink)
+  CrossLink::CrossLink(GelElement* aCrossLink, FilamentMaterial* spring,PeriodicBox* box):
+    _spring(spring),_myCrossLink(aCrossLink),_box(box)
   {
     _X = _myCrossLink->getNodesX();
     _nodeNum = _myCrossLink->getNodesPerElement();
@@ -18,22 +18,23 @@ namespace voom {
     // Compute single crosslink stretching energy
     
     FilamentMaterial::Filresults Rf_stretch;
-    FilamentMaterial::Filresults Rf_bend;
     Rf_stretch.request = R.getRequest();
-    Rf_bend.request = R.getRequest();
-
+    
     for(int n = 0; n < _nodeNum-1; n++)
       {
-	vector<Vector3d> x;
-	vector<Vector3d> X;
+	//Nodes are named as follows (see spring material class):
+	//nodeA : n
+	//nodeB : n+1
 
-	x.push_back(xlist[n]);
-	x.push_back(xlist[n+1]);
-	X.push_back(_X[n]);
-	X.push_back(_X[n+1]);
-	
+	vector<Vector3d> dx;
+	Vector3d AB = xlist[n+1] - xlist[n];
+  
+	// Perdiodic boundary conditions:
+	_box->mapDistance(AB);
+
+	dx.push_back(AB);
 	// stretching energy
-	_spring->compute(Rf_stretch,x);
+	_spring->compute(Rf_stretch,dx);
 	
 	for(int i=0; i<_dim; i++) {
 	  R.addResidual(_NodesID[n]*_dim + i,Rf_stretch.f1(i));

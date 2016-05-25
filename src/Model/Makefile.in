@@ -71,7 +71,8 @@ ARFLAGS = cru
 libModel_a_AR = $(AR) $(ARFLAGS)
 libModel_a_LIBADD =
 am_libModel_a_OBJECTS = Model.$(OBJEXT) MechanicsModel.$(OBJEXT) \
-	GelModel.$(OBJEXT) Filament.$(OBJEXT)
+	GelModel.$(OBJEXT) Filament.$(OBJEXT) CrossLink.$(OBJEXT) \
+	CrossLinkManager.$(OBJEXT)
 libModel_a_OBJECTS = $(am_libModel_a_OBJECTS)
 DEFAULT_INCLUDES = 
 depcomp = $(SHELL) $(top_srcdir)/depcomp
@@ -189,7 +190,7 @@ INCLUDES = -I./ 						\
 		-I/u/local/apps/eigen/3.2.4/gcc-4.4.7/include/eigen3
 
 lib_LIBRARIES = libModel.a
-libModel_a_SOURCES = Model.cc MechanicsModel.cc GelModel.cc Filament.cc
+libModel_a_SOURCES = Model.cc MechanicsModel.cc GelModel.cc Filament.cc CrossLink.cc CrossLinkManager.cc
 all: all-am
 
 .SUFFIXES:
@@ -267,6 +268,8 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/CrossLink.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/CrossLinkManager.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Filament.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/GelModel.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/MechanicsModel.Po@am__quote@
