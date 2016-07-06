@@ -1,4 +1,4 @@
-bin_PROGRAMS = TestStrip EllipsoidLV CheckingConsistency
+bin_PROGRAMS = TestStrip EllipsoidLV CheckingConsistency MaterialPoint EllipsoidLVSpring StripSpringBC MaterialPoint_PurelyUniaxial RabbitLV
 INCLUDES =		-I./ -I./../ -I./../../	-I./../../Mesh -I./../../Solver  	\
 	 		-I./../../VoomMath/ -I./../../Shape -I./../../Quadrature	\
 			-I./../../Model -I./../../Potential -I./../../Material 		\
@@ -16,3 +16,8 @@ LDADD = -lSolver -lModel -lMesh -lElement              \
 TestStrip_SOURCES = TestStrip.cc
 EllipsoidLV_SOURCES = EllipsoidLV.cc
 CheckingConsistency_SOURCES = CheckingConsistency.cc
+MaterialPoint_SOURCES = MaterialPoint.cc
+EllipsoidLVSpring_SOURCES = EllipsoidLVSpring.cc
+StripSpringBC_SOURCES = StripSpringBC.cc
+MaterialPoint_PurelyUniaxial_SOURCES = MaterialPoint_PurelyUniaxial.cc
+RabbitLV_SOURCES = RabbitLV.cc

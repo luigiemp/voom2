@@ -11,6 +11,8 @@
 #include "FEMesh.h"
 #include "MechanicsModel.h"
 #include "EigenNRsolver.h"
+#include "Humphrey.h"
+#include "LinYinActive.h"
 
 using namespace voom;
 
@@ -78,13 +80,15 @@ int main(int argc, char** argv)
   PLmaterials.reserve(NumMat);
 
   CompNeoHookean PassiveMat(0, 4.0, 0.4);
+  // Humphrey PassiveMat(0, 1.0, 2.0, 3.0, 4.0, 5.0);
+  // LinYinActive ActiveMat(0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0);
   CompNeoHookean ActiveMat(0, 4.0, 0.4);
   // APForceVelPotential TestPotential(1.0, 500.0);
   // HillForceVelPotential TestPotential(4.4*pow(10,-3), .01*0.59, 25);
   // BlankPotential TestPotential;
 
   // BlankViscousPotential ViscPotential;
-  NewtonianViscousPotential ViscPotential(0.05, 0.5);
+  NewtonianViscousPotential ViscPotential(1000, 0.5);
 
   vector <Vector3d> fiberVectors;
   vector <Vector3d> sheetVectors;

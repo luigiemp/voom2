@@ -275,7 +275,6 @@ namespace voom
 
 		Fanp1 = A.exp() * _Fa;
 		_Fanp1 = Fanp1;
-
 	}
 
 	// TODO: Change the compute function to take vector<Vector3d> for all three directions.
@@ -345,6 +344,7 @@ namespace voom
 						ActiveTerm(d,e) = ActiveTerm(d,e) + ActiveResults.P(d,b) * invFanp1(e,b);
 			
 			R.P = dphidF * _deltaT + PassiveResults.P + ActiveTerm;
+			_elasticStress = PassiveResults.P + ActiveTerm;
 		}
 		
 		if (R.request & STIFFNESS)

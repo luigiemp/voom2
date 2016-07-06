@@ -19,6 +19,8 @@ namespace voom
       _hardOptTOL = 1.0E-10;
       _activation = 0;
       _deltaT = 0.05;
+
+      _elasticStress = Matrix3d::Zero(3,3);
     }
 
     //! Destructor
@@ -84,6 +86,8 @@ namespace voom
       setActiveDeformationGradient(_Fanp1);
     }
 
+    Matrix3d getElasticStressOnly() {return _elasticStress;}
+
     // FUNCTIONS THAT MUST BE OVERRIDDEN
     //! Clone
     virtual MechanicsMaterial* clone() const {return NULL;}
@@ -134,6 +138,9 @@ namespace voom
 
     //! Internal Hardening Parameters (TODO: Find a better way to implement this. Needed for internal variable optimization)
     Vector3d _Qnp1;
+
+    //! Returns the Elastic Stress (Meaning it doesn't include Viscous stress)
+    Matrix3d _elasticStress;
     
     //! Fiber directions
     vector <Vector3d> _dirVec;

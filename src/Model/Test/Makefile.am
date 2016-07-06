@@ -1,4 +1,4 @@
-bin_PROGRAMS = TestModel
+bin_PROGRAMS = TestSpringModel # TestModel
 INCLUDES = -I./							\
 	   -I./../ 						\
 	   -I./../../  						\
@@ -23,4 +23,5 @@ AM_LDFLAGS = 	-L./ 								\
 		-L./../../Geometry						\
 		-L./../../HalfEdgeMesh
 LDADD   = -lModel -lMesh -lElement -lQuadrature -lShape -lMaterials -lVoomMath -lGeometry -lHEMesh
-TestModel_SOURCES = TestModel.cc
+# TestModel_SOURCES = TestModel.cc
+TestSpringModel_SOURCES = TestSpringModel.cc

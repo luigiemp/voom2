@@ -6,6 +6,10 @@
 #include "Jacobian.h"
 #include "IsotropicDiffusion.h"
 #include "SCElastic.h"
+#include "Humphrey.h"
+#include "Humphrey_Compressible.h"
+#include "LinYinActive.h"
+#include "LinYinActive_Compressible.h"
 using namespace voom;
 
 int main()
@@ -153,6 +157,149 @@ int main()
     membrane.compute(res, sphere);
     cout << res.W <<endl;
   }
+
+  {
+    cout << endl << "Testing Humphrey material. " << endl;
+    Humphrey MatMech(0, 1.0, 3.0, 5.0, 7.0, 9.0);
+    
+    MechanicsMaterial::FKresults Rm;
+    Rm.request = (ENERGY | FORCE | STIFFNESS);
+    Matrix3d F;
+    F << 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0;
+    srand(time(NULL));
+    for (unsigned int i = 0; i<3; i++) 
+      for (unsigned int J = 0; J<3; J++) 
+	F(i,J) += 0.1*(double(rand())/RAND_MAX);
+    cout << "determinant(F) = " << F.determinant() << endl;
+    
+    Vector3d N;
+    N << (double(rand())/RAND_MAX), double(rand())/RAND_MAX, double(rand())/RAND_MAX;
+    N /= N.norm();
+
+    MatMech.compute(Rm, F, &N);
+    
+    cout << "Energy     = " << Rm.W << endl;
+    cout << "P(2,2)     = " << Rm.P(2,2) << endl;
+    cout << "K[0,0,0,0] = " << Rm.K.get(0,0,0,0) << endl;
+    // for (unsigned int i = 0; i<3; i++) {
+    //   for (unsigned int J = 0; J<3; J++) {
+    // 	cout << i << " " << J << " " << (Rm.Dmat).get( 0, i, J ) << " " << (Rm.Dmat).get( 1, i, J ) << endl;
+    //   }
+    // }
+    
+    cout << endl << "Material ID = " << MatMech.getMatID() << endl << endl;
+ 
+    MatMech.checkConsistency(Rm,F,&N);
+  }
+
+  {
+    cout << endl << "Testing Lin Yin Active material. " << endl;
+    LinYinActive MatMech(0, 0.0, -13.03, 36.65, 35.42, 15.52, 1.62);
+    
+    MechanicsMaterial::FKresults Rm;
+    Rm.request = (ENERGY | FORCE | STIFFNESS);
+    Matrix3d F;
+    F << 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0;
+    srand(time(NULL));
+    for (unsigned int i = 0; i<3; i++) 
+      for (unsigned int J = 0; J<3; J++) 
+	F(i,J) += 0.1*(double(rand())/RAND_MAX);
+    // F << 1.06331, 0.0511631, .00747381, 0.081262, 1.0603, 0.0943724, 0.0544078, 0.0547286, 1.05075;
+    cout << "determinant(F) = " << F.determinant() << endl;
+    cout << "F = \n " << F << endl;
+    
+    Vector3d N;
+    N << (double(rand())/RAND_MAX), double(rand())/RAND_MAX, double(rand())/RAND_MAX;
+    N /= N.norm();
+    // N << 1.0, 0.0, 0.0;
+
+    MatMech.compute(Rm, F, &N);
+    
+    cout << "Energy     = " << Rm.W << endl;
+    cout << "P(2,2)     = " << Rm.P(2,2) << endl;
+    cout << "K[0,0,0,0] = " << Rm.K.get(0,0,0,0) << endl;
+    // for (unsigned int i = 0; i<3; i++) {
+    //   for (unsigned int J = 0; J<3; J++) {
+    // 	cout << i << " " << J << " " << (Rm.Dmat).get( 0, i, J ) << " " << (Rm.Dmat).get( 1, i, J ) << endl;
+    //   }
+    // }
+    
+    cout << endl << "Material ID = " << MatMech.getMatID() << endl << endl;
+ 
+    MatMech.checkConsistency(Rm,F,&N);
+  }
+
+  {
+    cout << endl << "Testing Lin Yin Incompressible Active material. " << endl;
+    LinYinActive_Compressible MatMech(0, -13.03, 36.65, 35.42, 0.1, 4.*0.45*0.1/(1. - 2. * 0.45));
+    
+    MechanicsMaterial::FKresults Rm;
+    Rm.request = (ENERGY | FORCE | STIFFNESS);
+    Matrix3d F;
+    F << 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0;
+    srand(time(NULL));
+    for (unsigned int i = 0; i<3; i++) 
+      for (unsigned int J = 0; J<3; J++) 
+	F(i,J) += 0.1*(double(rand())/RAND_MAX);
+    // F << 1.06331, 0.0511631, .00747381, 0.081262, 1.0603, 0.0943724, 0.0544078, 0.0547286, 1.05075;
+    cout << "determinant(F) = " << F.determinant() << endl;
+    cout << "F = \n " << F << endl;
+    
+    Vector3d N;
+    N << (double(rand())/RAND_MAX), double(rand())/RAND_MAX, double(rand())/RAND_MAX;
+    N /= N.norm();
+    // N << 1.0, 0.0, 0.0;
+
+    MatMech.compute(Rm, F, &N);
+    
+    cout << "Energy     = " << Rm.W << endl;
+    cout << "P(2,2)     = " << Rm.P(2,2) << endl;
+    cout << "K[0,0,0,0] = " << Rm.K.get(0,0,0,0) << endl;
+    // for (unsigned int i = 0; i<3; i++) {
+    //   for (unsigned int J = 0; J<3; J++) {
+    // 	cout << i << " " << J << " " << (Rm.Dmat).get( 0, i, J ) << " " << (Rm.Dmat).get( 1, i, J ) << endl;
+    //   }
+    // }
+    
+    cout << endl << "Material ID = " << MatMech.getMatID() << endl << endl;
+ 
+    MatMech.checkConsistency(Rm,F,&N, 1.0e-6);
+  }
+
+  {
+    cout << endl << "Testing Humphrey Compressible material. " << endl;
+    Humphrey_Compressible MatMech(0, 1.0, 3.0, 5.0, 7.0, 9.0, 0.1, 4.*0.45*0.1/(1. - 2. * 0.45) );
+    
+    MechanicsMaterial::FKresults Rm;
+    Rm.request = (ENERGY | FORCE | STIFFNESS);
+    Matrix3d F;
+    F << 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0;
+    srand(time(NULL));
+    for (unsigned int i = 0; i<3; i++) 
+      for (unsigned int J = 0; J<3; J++) 
+	F(i,J) += 0.1*(double(rand())/RAND_MAX);
+    cout << "determinant(F) = " << F.determinant() << endl;
+    
+    Vector3d N;
+    N << (double(rand())/RAND_MAX), double(rand())/RAND_MAX, double(rand())/RAND_MAX;
+    N /= N.norm();
+
+    MatMech.compute(Rm, F, &N);
+    
+    cout << "Energy     = " << Rm.W << endl;
+    cout << "P(2,2)     = " << Rm.P(2,2) << endl;
+    cout << "K[0,0,0,0] = " << Rm.K.get(0,0,0,0) << endl;
+    // for (unsigned int i = 0; i<3; i++) {
+    //   for (unsigned int J = 0; J<3; J++) {
+    // 	cout << i << " " << J << " " << (Rm.Dmat).get( 0, i, J ) << " " << (Rm.Dmat).get( 1, i, J ) << endl;
+    //   }
+    // }
+    
+    cout << endl << "Material ID = " << MatMech.getMatID() << endl << endl;
+ 
+    MatMech.checkConsistency(Rm,F,&N);
+  }
+
     cout << endl << "....................................... " << endl;
     cout << "Test of voom material classes completed " << endl;
   

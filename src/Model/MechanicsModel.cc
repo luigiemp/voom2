@@ -7,21 +7,21 @@ namespace voom {
 				 const uint NodeDoF,
 				 int PressureFlag, Mesh* SurfaceMesh,
 				 int NodalForcesFlag,
-				 int ResetFlag):
+				 int ResetFlag,
+				 int SpringBCflag):
     Model(aMesh, NodeDoF), _materials(materials), 
     _pressureFlag(PressureFlag), _pressure(0.0), _surfaceMesh(SurfaceMesh),
-    _nodalForcesFlag(NodalForcesFlag), _forcesID(NULL), _forces(NULL), _resetFlag(ResetFlag)
+    _nodalForcesFlag(NodalForcesFlag), _forcesID(NULL), _forces(NULL), _resetFlag(ResetFlag), _springBCflag(SpringBCflag)
   {
     // THERE IS ONE MATERIAL PER ELEMENT - CAN BE CHANGED - DIFFERENT THAN BEFORE
     // Resize and initialize (default function) _field vector
     _field.resize(  (_myMesh->getNumberOfNodes() )*_nodeDoF );
     this->initializeField();
 
-    if (_pressureFlag == 1) {
-      _prevField.resize( _field.size() );
-      this->setPrevField();
-    }
-
+    // if (_pressureFlag == 1) {
+    _prevField.resize( _field.size() );
+    this->setPrevField();
+    // }
   }
   
 
@@ -196,6 +196,12 @@ namespace voom {
 
     } // Element loop
 
+    // Insert BC terms from spring
+    if (_springBCflag == 1) {
+      vector<Triplet<Real > >  KtripletList_FromSpring = this->applySpringBC(*R);
+      KtripletList.insert( KtripletList.end(), KtripletList_FromSpring.begin(), KtripletList_FromSpring.end() );
+    }
+
     // Sum up all stiffness entries with the same indices
     if ( R->getRequest() & STIFFNESS ) {
       R->setStiffnessFromTriplets(KtripletList);
@@ -317,6 +323,154 @@ namespace voom {
   } // apply pressure
 
 
+
+
+    vector<Triplet<Real > > MechanicsModel::applySpringBC(Result & R) {
+
+    vector<Triplet<Real > > KtripletList_FromSpring;
+
+    // Set previous field for every solution step
+    this->setPrevField();
+
+    // Recompute normals - no change if _prevField has not changed.
+    this->computeNormals();
+
+    // Loop through _spNodes
+    for(int n = 0; n < _spNodes.size(); n++)
+    {
+      int NodeID = _spNodes[n];
+      Vector3d xa_prev, xa_curr;
+      xa_prev << _prevField[NodeID*3], _prevField[NodeID*3+1], _prevField[NodeID*3+2];
+      xa_curr << _field[NodeID*3], _field[NodeID*3+1], _field[NodeID*3+2];
+      
+      // Compute energy
+      if (R.getRequest() & ENERGY) { 
+	R.addEnergy( 0.5* _springK*pow( (xa_curr - xa_prev).dot(_spNormals[n]), 2.0) );  
+      }
+
+      // Compute Residual
+      if ( (R.getRequest() & FORCE) || (R.getRequest() & DMATPROP) ) {	
+	for(uint i = 0; i < 3; i++) {
+	  R.addResidual(NodeID*3+i,  _springK*_spNormals[n](i)*(xa_curr - xa_prev).dot(_spNormals[n]) ); 
+	} // i loop
+      } // Internal force loop
+
+      // Compute stiffness matrix
+      if ( R.getRequest() & STIFFNESS ) {
+	for(uint i = 0; i < 3; i++) {
+	  for(uint j = 0; j < 3; j++) {
+	    KtripletList_FromSpring.push_back(Triplet<Real >( NodeID*3+i, NodeID*3+j, _springK*_spNormals[n](i)*_spNormals[n](j) ));
+	  } // j loop
+	} // i loop
+      } // Stiffness loop
+
+    } // Spring nodes loop
+
+    return  KtripletList_FromSpring;
+  } // apply SpringBC
+
+
+
+  void MechanicsModel::computeNormals() {
+      
+     // First compute normal of any element in _spMesh
+    const vector<GeomElement* > elements = _spMesh->getElements();
+
+    vector<Vector3d > ElNormals(elements.size(), Vector3d::Zero());
+
+    // Loop over elements
+    for(int e = 0; e < elements.size(); e++)
+    {
+      GeomElement* geomEl = elements[e];
+      const vector<int  >& NodesID = geomEl->getNodesID();
+      const int numQP    = geomEl->getNumberOfQuadPoints();
+      const int numNodes = NodesID.size();
+      
+      // Loop over quadrature points
+      for(int q = 0; q < numQP; q++) {
+
+	// Compute normal based on _prevField
+	Vector3d a1 = Vector3d::Zero(), a2 = Vector3d::Zero(), a3 = Vector3d::Zero();
+	for (int a = 0; a < NodesID.size(); a++) {
+	  int nodeID = NodesID[a];
+	  Vector3d xa_prev;
+	  xa_prev << _prevField[nodeID*3], _prevField[nodeID*3+1], _prevField[nodeID*3+2];
+	  a1 += xa_prev*geomEl->getDN(q, a, 0);
+	  a2 += xa_prev*geomEl->getDN(q, a, 1);
+	}
+	ElNormals[e] += a1.cross(a2); // Not normalized with respect to area (elements with larger area count more)
+      } // loop over QP
+  
+    } // loop over elements
+
+    // loop over _spNodes
+    for (int n = 0; n < _spNodes.size(); n++) {
+      // Reset normal to zero
+      _spNormals[n] = Vector3d::Zero();
+      // Loop over all elements sharing that node
+      for (int m = 0; m < _spNodesToEle[n].size(); m++) {
+	_spNormals[n] += ElNormals[_spNodesToEle[n][m]];
+      }
+      Real normFactor = 1.0/_spNormals[n].norm();
+      _spNormals[n] *= normFactor;
+
+      // For testing only - to be commented out
+      // cout << _spNormals[n](0) << " " << _spNormals[n](1) << " " << _spNormals[n](2) << endl;
+    }
+    
+  } // compute Normals
+
+
+
+  void MechanicsModel::initSpringBC(const string SpNodes, Mesh* SpMesh, Real SpringK) {
+
+    // Activate flag
+    _springBCflag = 1;
+
+    // Store mesh information
+    _spMesh = SpMesh;
+
+    // Store spring constant
+    _springK = SpringK;
+
+    // Store node number on the outer surface
+    ifstream inp(SpNodes.c_str());
+    int nodeNum = 0;
+    while (inp >> nodeNum) 
+    {
+      _spNodes.push_back(nodeNum);
+    }
+
+    // Collect elements that share a node in _spNodes
+    const vector<GeomElement* > elements = _spMesh->getElements();
+
+    for (int n = 0; n < _spNodes.size(); n++) {
+      vector<int > connected;
+      for(int e = 0; e < elements.size(); e++) {
+       const vector<int >& NodesID = elements[e]->getNodesID();
+       for (int m = 0; m < NodesID.size(); m++) {
+	 if (NodesID[m] == _spNodes[n]) {
+	   connected.push_back(e);
+	   break;
+	 } //  check if node belong to element
+       } // loop over nodes of the element
+      } // loop over elements
+      _spNodesToEle.push_back(connected);
+
+      // For testing only - to be commented out
+      // cout << _spNodes[n] << " ";
+      // for (int i = 0; i < connected.size(); i++) {
+      // 	cout << connected[i] << " ";
+      // }
+      // cout << endl;
+      
+    } // loop over _spNodes
+
+    _spNormals.resize(_spNodes.size(), Vector3d::Zero());
+    // Compute initial node normals
+    this->computeNormals();
+
+  } // InitSpringBC
 
 
 

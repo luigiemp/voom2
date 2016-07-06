@@ -6,7 +6,7 @@
 #include "FEMesh.h"
 #include "PassMyoA.h"
 #include "CompNeoHookean.h"
-#include "EigenEllipticResult.h"
+#include "EigenResult.h"
 
 #include "LoopShellMesh.h"
 #include "SCElastic.h"
@@ -67,7 +67,7 @@ int main(int argc, char** argv) {
     // Run consistency test
     uint PbDoF = (myFEmesh.getNumberOfNodes())*myModel.getDoFperNode();
     int TotNumMatProp = NumMat*2;
-    EigenEllipticResult myResults(PbDoF, TotNumMatProp);
+    EigenResult myResults(PbDoF, TotNumMatProp);
 
     Real perturbationFactor = 0.1;
     uint myRequest = 6; // Check both Forces and Stiffness
@@ -96,7 +96,7 @@ int main(int argc, char** argv) {
     // Run consistency test
     uint PbDoF = (icosa_mesh.getNumberOfNodes())*model.getDoFperNode();
     int TotNumMatProp = NumMat*2;
-    EigenEllipticResult myResults(PbDoF, TotNumMatProp);
+    EigenResult myResults(PbDoF, TotNumMatProp);
     ComputeRequest myRequest = FORCE;
     myResults.setRequest(myRequest);
     //model.printField();

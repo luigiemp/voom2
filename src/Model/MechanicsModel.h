@@ -20,7 +20,8 @@ namespace voom{
 		   const uint NodeDoF,
 		   int PressureFlag = 0, Mesh* SurfaceMesh = NULL,
 		   int NodalForcesFlag = 0,
-		   int _resetFlag = 1);
+		   int _resetFlag = 1,
+		   int _springBCflag = 0);
 
 		   // const vector<string > & ElMatType, 
 		   // const map<string, MechanicsMaterial* > & ElMaterials);
@@ -171,6 +172,13 @@ namespace voom{
     // Check consistency of gradg and Hg
     void checkDmat(EigenResult * R, Real perturbationFactor, Real h, Real tol);
 
+    // Functions for applying spring BC
+    // Initialize _springNodes (nodes at which spring BC are applied) and _springElements (elements connected to spring nodes)
+    void initSpringBC(const string SpNodes, Mesh* SpMesh, Real SpringK);
+    void computeNormals();
+    vector<Triplet<Real > > applySpringBC(Result & R);
+
+
 
 
   protected:
@@ -197,6 +205,14 @@ namespace voom{
     vector<Real > _prevField;
 
     int _resetFlag;
+
+    // Spring BC
+    int _springBCflag;
+    vector<int > _spNodes;
+    Mesh* _spMesh;
+    Real _springK;
+    vector<vector<int > > _spNodesToEle;
+    vector<Vector3d > _spNormals;
   };
 
 } // namespace voom
