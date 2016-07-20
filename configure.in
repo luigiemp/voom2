@@ -83,5 +83,6 @@ AC_CONFIG_FILES([
 		  src/Applications/Contraction/Makefile
 	          src/Utils/inpParser/Makefile
 		  src/Geometry/Makefile
+		  src/Output/Makefile
 		])
 AC_OUTPUT
