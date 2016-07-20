@@ -11,18 +11,17 @@
 #include "BlankViscousPotential.h"
 #include "NewtonianViscousPotential.h"
 #include "FEMesh.h"
-//#include "EigenResult.h"
+#include "Jacobian.h"
 #include "MechanicsModel.h"
 #include "EigenNRsolver.h"
-// #include "LBFGSB.h"
 
 using namespace voom;
 
+double calculateEjectionFraction(MechanicsModel* cavityModel, MechanicsModel* myocardiumModel, vector<int> surfaceNodes, vector<double> currentMyocardiumField);
+
 int main(int argc, char** argv)
 {
-
   cout << string(50, '\n'); // Clear Screen
-
 
   // Timing
   time_t start, end;
@@ -34,6 +33,9 @@ int main(int argc, char** argv)
   // Fibers across the wall thickness?
   bool fibersAcrossWall = true;
 
+  // Calculate Ejection Fraction?
+  bool calculateEjectionFractionFlag = true;
+
   // Conduction Velocity (cm/ms)
   double cv = 0.06;
   
@@ -44,24 +46,76 @@ int main(int argc, char** argv)
   double deltaT = 0.01;
 
   // OutputString
-  string outputString = "/u/project/cardio/adityapo/ScratchResults/EllipsoidSpring/Ellipsoid_CV";
+  string outputString = "/u/project/cardio/adityapo/ScratchResults/EllipsoidSpring/Ellipsoid_Beta";
 
   // Fiber Visualization String
   string fiberPlotString = outputString + "_Fiber.vtk";
+
+  // Printing Volume to File
+  string volumeFile = outputString + "_Volume.txt";
 
   // Spring BC:
   int SpringBCflag = 1;
 
   // Spring Stiffnes
-  Real SpringK = 1.0e-6;
+  Real SpringK = 1.0e-2;
 
   // Initialize Mesh
   // Assumptions to use this main as is: strip has a face at z=0; tetrahedral mesh
-  FEMesh Cube("Mesh/Small_A.node", "Mesh/Small_A.ele");
-  FEMesh surfMesh("Mesh/Small_A.node", "Mesh/Small_A.outerSurfEle");
-  string FiberFile = "Mesh/Small_A.fiber";
-  string BCfile = "Mesh/Small_A.bc";
+  FEMesh Cube("Mesh/EllipsoidMeshFiner/Small_B.node", "Mesh/EllipsoidMeshFiner/Small_B.ele");
+  FEMesh surfMesh("Mesh/EllipsoidMeshFiner/Small_B.node", "Mesh/EllipsoidMeshFiner/Small_B.outerSurfEle");
+  string FiberFile = "Mesh/EllipsoidMeshFiner/Small_B.fiber";
+  string BCfile = "Mesh/EllipsoidMeshFiner/Small_B.Null.bc";
   ifstream FiberInp(FiberFile.c_str());
+
+  // Code for calculating Ejection Fraction
+  MechanicsModel* cavityModel = NULL;
+  vector<MechanicsMaterial * > cavityMaterials;
+  FEMesh* cavityMesh;
+  vector <int> surfaceNodes;
+
+  if (calculateEjectionFractionFlag)
+  {
+    // Setup mesh for calculating ejection fraction
+    cavityMesh = new FEMesh("Mesh/EllipsoidMeshFiner/Small_B_Cavity.node", 
+      		            "Mesh/EllipsoidMeshFiner/Small_B_Cavity.ele");
+    string outerSurfFile = "Mesh/EllipsoidMeshFiner/Small_B.innerSurfNode";
+
+    ifstream cavityNodeFileStream (outerSurfFile.c_str());
+
+    if (cavityNodeFileStream.is_open())
+	cout << "** Opened Cavity Surface File Successfully." << endl;
+    else
+    {
+	cout << "** Cannot Open Cavity Surface File." << endl;
+	exit(1);
+    }
+
+    double numSurfaceNodes;
+    cavityNodeFileStream >> numSurfaceNodes;
+
+    for (int i = 0; i < numSurfaceNodes; i++)
+    {
+      double tempSurfaceCavityNode;
+      cavityNodeFileStream >> tempSurfaceCavityNode;
+      surfaceNodes.push_back(tempSurfaceCavityNode);
+    }
+    cavityNodeFileStream.close();
+
+    // Initialize Cavity Model
+    uint cavityNodeDoF = 3;
+    uint cavityNumQP = 1;
+  
+    uint NumMatCavity = cavityMesh->getNumberOfElements()*cavityNumQP;
+    cavityMaterials.reserve(NumMatCavity);
+  
+    for (int k = 0; k < NumMatCavity; k++) {
+      Jacobian* Mat = new Jacobian(k);
+      cavityMaterials.push_back(Mat);
+    }
+  
+    cavityModel = new MechanicsModel(cavityMesh, cavityMaterials, cavityNodeDoF);
+  }
 
   double z_min = 0.0;
   for (int node_iter = 0; node_iter < Cube.getNumberOfNodes(); node_iter++)
@@ -86,7 +140,6 @@ int main(int argc, char** argv)
   Humphrey_Compressible PassiveMat(0, 15.98, 55.85, 0.0, -33.27, 30.21, 3.590, 64.62);
   LinYinActive_Compressible ActiveMat(0, -38.70, 40.83, 25.12, 9.51, 171.18);
 
-  APForceVelPotential TestPotential(1.0, 5000000.0);
   // HillForceVelPotential TestPotential(4.4*pow(10,-3), .01*0.59, 25);
   // BlankPotential TestPotential;
 
@@ -171,7 +224,7 @@ int main(int argc, char** argv)
     sheetNormalVectors.push_back(el_vectors[2]);
 
     // PLmaterials.push_back(&PassiveMat);
-    APForceVelPotential* TestPotential = new APForceVelPotential(1.0, 500.0);
+    APForceVelPotential* TestPotential = new APForceVelPotential(4.0, 50000.0);
     PlasticMaterial* PlMat = new PlasticMaterial(el_iter, &ActiveMat, &PassiveMat, TestPotential, &ViscPotential);
     PlMat->setDirectionVectors(el_vectors);
     PlMat->setHardeningParameters(HardParam);
@@ -203,7 +256,7 @@ int main(int argc, char** argv)
   myModel.updatePressure(Pressure);
   myModel.updateNodalForces(&ForcesID, &Forces);
 
-  myModel.initSpringBC("Mesh/Small_A.outerSurf", &surfMesh, SpringK);
+  myModel.initSpringBC("Mesh/EllipsoidMeshFiner/Small_B.outerSurf", &surfMesh, SpringK);
  
   // Initialize Result
   uint myRequest;
@@ -233,85 +286,133 @@ int main(int argc, char** argv)
   vector<int > BCnodes;
   vector<int > BCid;
   vector<Real > BCvalues;
-  /*
-    ifstream BCinp(BCfile.c_str());
+
+  ifstream BCinp(BCfile.c_str());
    
-    if (BCinp.is_open())
+  if (BCinp.is_open())
     cout << "BC File Opened Successfully!" << endl; 
-    else
+  else
     cout << "ERROR: BC File Failed to Open!" << endl;
    
-    BCinp >> NumBC;
-    cout << "Number of Nodes with EBC: " << NumBC << endl;
-    BCid.reserve(NumBC*3);
-    BCvalues.reserve(NumBC*3);
-    for(int i = 0; i < NumBC; i++) {
+  BCinp >> NumBC;
+  cout << "Number of Nodes with EBC: " << NumBC << endl;
+  BCid.reserve(NumBC*3);
+  BCvalues.reserve(NumBC*3);
+  for(int i = 0; i < NumBC; i++) {
     BCinp >> node;
     BCnodes.push_back(node);
     for (int j = 0; j < 3; j++) {
-    BCid.push_back(node*3 + j);
-    BCvalues.push_back(Cube.getX(node, j));
-    cout << BCid[ind] << " " <<  BCvalues[ind] << endl;
-    ind++;
+      BCid.push_back(node*3 + j);
+      BCvalues.push_back(Cube.getX(node, j));
+      cout << BCid[ind] << " " <<  BCvalues[ind] << endl;
+      ind++;
     }
-    }
-  */
+  }
 
   // Solver
-  Real NRtol = 1.0e-6;
+  Real NRtol = 1.0e-7;
   uint NRmaxIter = 100;
   EigenNRsolver mySolver(&myModel, BCid, BCvalues, CHOL, NRtol, NRmaxIter);
 
   ind = 0;
-  for (int s = 0; s < simTime/deltaT; s++) {
+
+  ofstream outVolume;
+  outVolume.open(volumeFile.c_str());
+
+  for (int s = 0; s < simTime/deltaT; s++)
+  {
     cout << "Step " << s << endl;
     // cout << "Activation Factor: " << ActivationFactor[s] << endl;
       
     if (s == 0)  // Free Contraction = 0, Fixed = 200
-      {
-	// ViscPotential.setViscosity(0.0E-5);
-      }
-    for (int k = 0; k < NumMat; k++)
-      {
-    	(PLmaterials[k])->setTimestep(deltaT/1000);
-	
-	if (s * deltaT < activationTimesQP[k] || s * deltaT > activationTimesQP[k] + cycleLength)
-	  (PLmaterials[k])->setActivationMultiplier(0.0);
-	else
-	  {
-	    // Figure out time in cycle
-	    double tempNormalizedTime = s * deltaT - activationTimesQP[k];
-	    (PLmaterials[k])->setActivationMultiplier(ActivationFactor[tempNormalizedTime/deltaT]);
-	  }
-      }
-      
-      ind++;
-      mySolver.solve(DISP);
-      myModel.setPrevField();
-     
-      for (int k = 0; k < NumMat; k++)
-      {
-    	(PLmaterials[k])->updateStateVariables();
-      }
-      myModel.writeOutputVTK(outputString, ind);
-      // myModel.writeField("CubeSmall_", 1);
-      
-      /*
-      // Check EBCs after Solve:
-      // Get the Field from model
-      vector <double > tempField(Cube.getNumberOfNodes() * 3, 0.0);
-      myModel.getField(tempField);
-      for (int node_iter = 0; node_iter < NumBC; node_iter++)
-      {
-        for (int dim_iter = 0; dim_iter < 3; dim_iter++)
-          cout << BCnodes[node_iter] * 3 + dim_iter << "\t" << tempField[BCnodes[node_iter] * 3 + dim_iter] - Cube.getX(BCnodes[node_iter], dim_iter) << endl;
-      }
-      */
+    {
+      // ViscPotential.setViscosity(0.0E-5);
     }
+    for (int k = 0; k < NumMat; k++)
+    {
+      (PLmaterials[k])->setTimestep(deltaT/1000);
+	
+      if (s * deltaT < activationTimesQP[k] || s * deltaT > activationTimesQP[k] + cycleLength)
+        (PLmaterials[k])->setActivationMultiplier(0.1);
+      else
+      {
+        // Figure out time in cycle
+        double tempNormalizedTime = s * deltaT - activationTimesQP[k];
+        double tempActivationMultiplier = ActivationFactor[tempNormalizedTime/deltaT];
+        if (tempActivationMultiplier < 0.1)
+          tempActivationMultiplier = 0.1;
+	(PLmaterials[k])->setActivationMultiplier(tempActivationMultiplier);
+      }
+    }
+      
+    ind++;
+    mySolver.solve(DISP);
+    myModel.setPrevField();
+
+    // Print out myocardium volume and ejection fraction (if requested)
+    outVolume << s * deltaT << "\t" << myModel.computeCurrentVolume();
+
+    if (calculateEjectionFractionFlag)
+    {
+      vector <double> currentMyocardiumField(Cube.getNumberOfNodes() * Cube.getDimension(), 0.0);
+      myModel.getField(currentMyocardiumField);
+      outVolume << "\t" << calculateEjectionFraction(cavityModel, &myModel, surfaceNodes, currentMyocardiumField);
+      cavityModel->writeOutputVTK(outputString + "Cavity_", ind);
+    }
+    outVolume << endl;
+
+    // Update State Variables:     
+    for (int k = 0; k < NumMat; k++)
+      (PLmaterials[k])->updateStateVariables();
+      
+    // Write Output
+    myModel.writeOutputVTK(outputString, ind);
+  }
+  outVolume.close();
 
   // Timing
   time (&end);
   cout << endl << "BVP solved in " << difftime(end,start) << " s" << endl;
 
   return 0;
+}
+
+double calculateEjectionFraction(MechanicsModel* cavityModel, MechanicsModel* myocardiumModel, vector<int> surfaceNodes, vector<double> currentMyocardiumField)
+{
+  if (cavityModel == NULL)
+  {
+    cout << "** Trying to calculate ejection fraction without turning the flag on." << endl;
+    exit(1);
+  }
+
+  double referenceVolume = cavityModel->computeRefVolume();
+ 
+  // Set the field of the cavity surface nodes 
+  for (int i = 0; i < surfaceNodes.size(); i++)
+  {
+    for (int dim_iter = 0; dim_iter < 3; dim_iter++)
+      cavityModel->setField(i * 3 + dim_iter, currentMyocardiumField[surfaceNodes[i] * 3 + dim_iter]);
+  }
+
+  // Set the z-field of the nodes along the mid-line
+  // TODO: Hard-coded the values for the top and bottom of the cavities! Fix this ASAP!
+  double cavityMinNode = 1105;
+  double cavityMaxNode = 1076;
+  double cavityMinPos = currentMyocardiumField[cavityMinNode * 3 + 2];
+  double cavityMaxPos = currentMyocardiumField[cavityMaxNode * 3 + 2];
+
+  // Linearly interpolate those nodes (assumes last ten nodes are the cavity!)
+  int numberOfVerticalNodes = 10;
+  for (int i = 0; i < numberOfVerticalNodes; i++)
+  {
+    double tempSlope = (cavityMaxPos - cavityMinPos)/(numberOfVerticalNodes + 1.0);
+    cavityModel->setField((cavityMinNode + i) * 3 + 2, tempSlope * (i + 1) + cavityMinPos);
+  }
+
+  double EF = (referenceVolume - cavityModel->computeCurrentVolume())/referenceVolume;
+
+  cout << "Reference Volume: \t" << referenceVolume << endl;
+  cout << "Current Volume:   \t" << cavityModel->computeCurrentVolume() << endl;
+
+  return EF;
 }

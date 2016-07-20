@@ -177,7 +177,9 @@ namespace voom{
     void initSpringBC(const string SpNodes, Mesh* SpMesh, Real SpringK);
     void computeNormals();
     vector<Triplet<Real > > applySpringBC(Result & R);
-
+    
+    Real computeRefVolume();
+    Real computeCurrentVolume();
 
 
 

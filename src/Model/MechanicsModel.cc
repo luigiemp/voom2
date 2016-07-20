@@ -41,6 +41,11 @@ namespace voom {
     const vector<int > & NodesID = geomEl->getNodesID();
     const uint nodeNum = NodesID.size();
 
+    // cout << "Nodes: " << _field[NodesID[0]*3 + 0] << "\t" << _field[NodesID[1]*3 + 0]  << "\t" << _field[NodesID[2]*3 + 0] << "\t" << _field[NodesID[3]*3 + 0]  << endl;
+    // cout << "Nodes: " << _field[NodesID[0]*3 + 1] << "\t" << _field[NodesID[1]*3 + 1]  << "\t" << _field[NodesID[2]*3 + 1] << "\t" << _field[NodesID[3]*3 + 1]  << endl;
+    // cout << "Nodes: " << _field[NodesID[0]*3 + 2] << "\t" << _field[NodesID[1]*3 + 2]  << "\t" << _field[NodesID[2]*3 + 2] << "\t" << _field[NodesID[3]*3 + 2]  << endl;
+    // cout << "Nodes: " << NodesID[0] << "\t" << NodesID[1] << "\t" << NodesID[2] << "\t" << NodesID[3] << endl;
+
     for(uint q = 0; q < numQP; q++) {
       // Initialize F to zero
       Flist[q] = Matrix3d::Zero();
@@ -630,6 +635,62 @@ namespace voom {
 
 
 
+  // Compute volume functions - current and reference volumes 
+  Real MechanicsModel::computeRefVolume()
+  {
+    Real RefVol = 0.0;
+    const vector<GeomElement* > elements = _myMesh->getElements();
+    const int NumEl = elements.size();    
+
+    // Loop through elements, also through material points array, which is unrolled
+    for(int e = 0; e < NumEl; e++)
+    {
+      GeomElement* geomEl = elements[e];
+      const int numQP    = geomEl->getNumberOfQuadPoints();
+      // Loop over quadrature points
+      for(int q = 0; q < numQP; q++) {
+	// Volume associated with QP q
+	RefVol += geomEl->getQPweights(q);
+      } // Loop over QP
+    } // Loop over elements
+
+    return RefVol;
+  }
+
+  Real MechanicsModel::computeCurrentVolume()
+  {
+    Real CurrVol = 0.0;
+    const vector<GeomElement* > elements = _myMesh->getElements();
+    const int NumEl = elements.size();
+
+    // Loop through elements, also through material points array, which is unrolled
+    for(int e = 0; e < NumEl; e++)
+    {
+      GeomElement* geomEl = elements[e];
+      const int numQP    = geomEl->getNumberOfQuadPoints();
+      
+      // F at each quadrature point are computed at the same time in one element
+      vector<Matrix3d > Flist(numQP, Matrix3d::Zero());
+      // Compute deformation gradients for current element
+      this->computeDeformationGradient(Flist, geomEl);
+     
+      // Loop over quadrature points
+      for(int q = 0; q < numQP; q++) {
+	// Volume associated with QP q
+	if (isnan(Flist[q].determinant()))
+        {
+	  // this->computeDeformationGradient(Flist, geomEl);
+	  // cout << Flist[q] << endl;
+	  cout << "Element with nan: " << e << endl;
+	}
+	CurrVol += ( geomEl->getQPweights(q) * Flist[q].determinant() ); 
+      } // Loop over QP
+    } // Loop over elements
+
+    return CurrVol;
+  }
+
+
 
 
 
@@ -723,6 +784,25 @@ namespace voom {
     }    
 
 
+    /*
+    // DELETE FROM HERE - TESTING PLOTTING NORMALS
+
+    int numberSpringNodes = _spMesh->getNumberOfNodes();
+    // out << endl << "POINT_DATA " << numberSpringNodes << endl;
+    out << "LOOKUP_TABLE default" << endl;
+    for (int e = 0; e < _spNodes.size(); e++)
+      out << _spNodes[e] << " ";
+    cout << endl;
+      
+    out << "VECTORS SURF_NORMALS float" << endl;
+
+    for (int e = 0; e < _spNormals.size(); e++)
+      out << _spNormals[e][0] << " " << _spNormals[e][1] << " " << _spNormals[e][2] << endl;
+
+    // DELETE TILL HERE - TESTING PLOTTING NORMALS 
+    */
+    
+
 
     // Cell data section
     // Alpha_1 material property
@@ -731,7 +811,8 @@ namespace voom {
 	<< "LOOKUP_TABLE default" << endl;
     for ( int e = 0; e < NumEl; e++ ) {
       vector<Real > MatProp = _materials[e]->getMaterialParameters();
-      out << MatProp[0] << endl;
+      if (!MatProp.empty())
+        out << MatProp[0] << endl;
     }    
 
     // Alpha_2 material property
@@ -739,7 +820,8 @@ namespace voom {
 	<< "LOOKUP_TABLE default" << endl;
     for ( int e = 0; e < NumEl; e++ ) {
       vector<Real > MatProp = _materials[e]->getMaterialParameters();
-      out << MatProp[1] << endl;
+      if (!MatProp.empty() && MatProp.size() > 1)
+        out << MatProp[1] << endl;
     }
 
     // Material internal variable
