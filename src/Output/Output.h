@@ -32,6 +32,10 @@ namespace voom {
     //! Function to insert tensor
     virtual void insertTensor(DataType type, string tensorName, vector<Matrix3d>& tensorArray) = 0;
 
+    //! Function to insert nodal positions
+    virtual void insertNodalPositions(const vector<Vector3d>& nodalPositions) = 0;
+
+
   private :
     Output() {}; // Default constructor is private because it should never be used by a derived class.
 

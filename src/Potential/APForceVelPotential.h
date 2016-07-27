@@ -10,7 +10,7 @@ namespace voom
   class APForceVelPotential : public Potential
   {
   public:
-    APForceVelPotential(double a, double S0):Potential(),_a(a), _S0(S0){;}
+    APForceVelPotential(double a, double S0, double v0=3.0):Potential(),_a(a), _S0(S0),_v0(v0){;}
     //! Destructor
     ~APForceVelPotential(){;}
 
@@ -24,6 +24,7 @@ namespace voom
   private:
     double _a;
     double _S0;
+    double _v0;
 
   }; // class APForceVelPotential
 

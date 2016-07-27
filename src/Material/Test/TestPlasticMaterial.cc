@@ -26,14 +26,14 @@ int main()
   CompNeoHookean ActiveMat(1, 40.0, 4.0);
 
   // cout << endl << "Creating a Blank Potential Function. " << endl;
-  BlankPotential TestPotential;
+  // BlankPotential TestPotential;
 
   cout << endl << "Creating a Hill Force Velocity Potential Function. " << endl;
   // HillForceVelPotential TestPotential(4.4*pow(10,-3), .01*0.59, 25);
-  // APForceVelPotential TestPotential(1.0, 250.0);
+  APForceVelPotential TestPotential(4.0, 50000.0, 3.0);
 
-  BlankViscousPotential ViscPotential;
-  // NewtonianViscousPotential ViscPotential(0.1, 0.5);
+  // BlankViscousPotential ViscPotential;
+  NewtonianViscousPotential ViscPotential(0.1, 0.5);
 
   PlasticMaterial PlMat(2, &ActiveMat, &PassiveMat, &TestPotential, &ViscPotential);
   vector <Vector3d> dirvec(3, Vector3d::Zero(3,1));

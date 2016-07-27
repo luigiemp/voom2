@@ -46,7 +46,7 @@ int main(int argc, char** argv)
   double deltaT = 0.01;
 
   // OutputString
-  string outputString = "/u/project/cardio/adityapo/ScratchResults/EllipsoidSpring/Ellipsoid_Beta";
+  string outputString = "/u/project/cardio/adityapo/ScratchResults/EllipsoidSpring/Ellipsoid";
 
   // Fiber Visualization String
   string fiberPlotString = outputString + "_Fiber.vtk";
@@ -62,10 +62,10 @@ int main(int argc, char** argv)
 
   // Initialize Mesh
   // Assumptions to use this main as is: strip has a face at z=0; tetrahedral mesh
-  FEMesh Cube("Mesh/EllipsoidMeshFiner/Small_B.node", "Mesh/EllipsoidMeshFiner/Small_B.ele");
-  FEMesh surfMesh("Mesh/EllipsoidMeshFiner/Small_B.node", "Mesh/EllipsoidMeshFiner/Small_B.outerSurfEle");
-  string FiberFile = "Mesh/EllipsoidMeshFiner/Small_B.fiber";
-  string BCfile = "Mesh/EllipsoidMeshFiner/Small_B.Null.bc";
+  FEMesh Cube("Mesh/EllipsoidMesh/Small_A.node", "Mesh/EllipsoidMesh/Small_A.ele");
+  FEMesh surfMesh("Mesh/EllipsoidMesh/Small_A.node", "Mesh/EllipsoidMesh/Small_A.outerSurfEle");
+  string FiberFile = "Mesh/EllipsoidMesh/Small_A.fiber";
+  string BCfile = "Mesh/EllipsoidMesh/Small_A.Null.bc";
   ifstream FiberInp(FiberFile.c_str());
 
   // Code for calculating Ejection Fraction
@@ -77,9 +77,9 @@ int main(int argc, char** argv)
   if (calculateEjectionFractionFlag)
   {
     // Setup mesh for calculating ejection fraction
-    cavityMesh = new FEMesh("Mesh/EllipsoidMeshFiner/Small_B_Cavity.node", 
-      		            "Mesh/EllipsoidMeshFiner/Small_B_Cavity.ele");
-    string outerSurfFile = "Mesh/EllipsoidMeshFiner/Small_B.innerSurfNode";
+    cavityMesh = new FEMesh("Mesh/EllipsoidMesh/Small_A_Cavity.node", 
+      		            "Mesh/EllipsoidMesh/Small_A_Cavity.ele");
+    string outerSurfFile = "Mesh/EllipsoidMesh/Small_A.innerSurfNode";
 
     ifstream cavityNodeFileStream (outerSurfFile.c_str());
 
@@ -224,7 +224,7 @@ int main(int argc, char** argv)
     sheetNormalVectors.push_back(el_vectors[2]);
 
     // PLmaterials.push_back(&PassiveMat);
-    APForceVelPotential* TestPotential = new APForceVelPotential(4.0, 50000.0);
+    APForceVelPotential* TestPotential = new APForceVelPotential(4.0, 50000.0, 3.0);
     PlasticMaterial* PlMat = new PlasticMaterial(el_iter, &ActiveMat, &PassiveMat, TestPotential, &ViscPotential);
     PlMat->setDirectionVectors(el_vectors);
     PlMat->setHardeningParameters(HardParam);
@@ -256,7 +256,7 @@ int main(int argc, char** argv)
   myModel.updatePressure(Pressure);
   myModel.updateNodalForces(&ForcesID, &Forces);
 
-  myModel.initSpringBC("Mesh/EllipsoidMeshFiner/Small_B.outerSurf", &surfMesh, SpringK);
+  myModel.initSpringBC("Mesh/EllipsoidMesh/Small_A.outerSurf", &surfMesh, SpringK);
  
   // Initialize Result
   uint myRequest;
@@ -283,7 +283,7 @@ int main(int argc, char** argv)
   // EBC
   cout << "********" << " Setting up EBCs " << "********" << endl;
   int NumBC = 0, node = 0, ind = 0;;
-  vector<int > BCnodes;
+  vector<int > BCnodes; 
   vector<int > BCid;
   vector<Real > BCvalues;
 
@@ -310,7 +310,7 @@ int main(int argc, char** argv)
   }
 
   // Solver
-  Real NRtol = 1.0e-7;
+  Real NRtol = 1.0e-1;
   uint NRmaxIter = 100;
   EigenNRsolver mySolver(&myModel, BCid, BCvalues, CHOL, NRtol, NRmaxIter);
 
@@ -333,14 +333,14 @@ int main(int argc, char** argv)
       (PLmaterials[k])->setTimestep(deltaT/1000);
 	
       if (s * deltaT < activationTimesQP[k] || s * deltaT > activationTimesQP[k] + cycleLength)
-        (PLmaterials[k])->setActivationMultiplier(0.1);
+        (PLmaterials[k])->setActivationMultiplier(0.01);
       else
       {
         // Figure out time in cycle
         double tempNormalizedTime = s * deltaT - activationTimesQP[k];
         double tempActivationMultiplier = ActivationFactor[tempNormalizedTime/deltaT];
-        if (tempActivationMultiplier < 0.1)
-          tempActivationMultiplier = 0.1;
+        if (tempActivationMultiplier < 0.01)
+          tempActivationMultiplier = 0.01;
 	(PLmaterials[k])->setActivationMultiplier(tempActivationMultiplier);
       }
     }
@@ -361,12 +361,20 @@ int main(int argc, char** argv)
     }
     outVolume << endl;
 
+    cout << "Volume data written." << endl;
+
     // Update State Variables:     
     for (int k = 0; k < NumMat; k++)
+    {
+      cout << k << endl;
       (PLmaterials[k])->updateStateVariables();
-      
+    }    
+
+    cout << "State Variables Updated." << endl;
+    
     // Write Output
     myModel.writeOutputVTK(outputString, ind);
+    cout << "Output Written for step." << endl;
   }
   outVolume.close();
 
@@ -396,8 +404,8 @@ double calculateEjectionFraction(MechanicsModel* cavityModel, MechanicsModel* my
 
   // Set the z-field of the nodes along the mid-line
   // TODO: Hard-coded the values for the top and bottom of the cavities! Fix this ASAP!
-  double cavityMinNode = 1105;
-  double cavityMaxNode = 1076;
+  double cavityMinNode = 4148;
+  double cavityMaxNode = 4068;
   double cavityMinPos = currentMyocardiumField[cavityMinNode * 3 + 2];
   double cavityMaxPos = currentMyocardiumField[cavityMaxNode * 3 + 2];
 

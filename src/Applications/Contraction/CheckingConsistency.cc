@@ -52,8 +52,8 @@ int main(int argc, char** argv)
 
   // Initialize Mesh
   // Assumptions to use this main as is: strip has a face at z=0; tetrahedral mesh
-  FEMesh Cube("Mesh/Cube1.node", "Mesh/Cube1.ele");
-  FEMesh surfMesh("Mesh/Cube1.node", "Mesh/Cube1Surf.ele");
+  FEMesh Cube("Mesh/Cube/Cube1.node", "Mesh/Cube/Cube1.ele");
+  FEMesh surfMesh("Mesh/Cube/Cube1.node", "Mesh/Cube/Cube1Surf.ele");
   Real xmax = 1.0;
   // FEMesh Cube("Strip36.node", "Strip36.ele");
   // FEMesh surfMesh("Strip36.node", "Strip36Surf.ele");
@@ -158,7 +158,7 @@ int main(int argc, char** argv)
     sheetNormalVectors.push_back(el_vectors[2]);
 
     // PLmaterials.push_back(&PassiveMat);
-    APForceVelPotential* TestPotential = new APForceVelPotential(1.0, 500.0);
+    APForceVelPotential* TestPotential = new APForceVelPotential(4.0, 50000.0, 3.0);
     PlasticMaterial* PlMat = new PlasticMaterial(el_iter, &ActiveMat, &PassiveMat, TestPotential, &ViscPotential);
     PlMat->setDirectionVectors(el_vectors);
     PlMat->setHardeningParameters(HardParam);

@@ -5,7 +5,7 @@ namespace voom
 	double APForceVelPotential::Psi(Vector3d deltaQ, double deltaT)
 	{
 		double vel = (deltaQ(0)/deltaT);
-		double psi = deltaT * _S0/_a * exp(_a * vel);
+		double psi = _S0 * _v0/_a * exp(_a * vel/_v0);
 		return psi;
 	}
 
@@ -14,7 +14,7 @@ namespace voom
 		double vel = (deltaQ(0)/deltaT);
 		Vector3d dpsidQ = Vector3d::Zero();
     
-		dpsidQ(0) = _S0 * exp(_a * vel);
+		dpsidQ(0) = 1/deltaT * _S0 * exp(_a * vel/_v0);
 		return dpsidQ;
 	}
 
@@ -25,7 +25,7 @@ namespace voom
 		double vel = (deltaQ(0)/deltaT);
 		Matrix3d D2PsiDQDQ = Matrix3d::Zero();
     
-		D2PsiDQDQ(0,0) = _a * _S0/deltaT * exp(_a * vel);
+		D2PsiDQDQ(0,0) = _S0 * _a/(pow(deltaT,2) * _v0) * exp(_a * vel/_v0);
 		return D2PsiDQDQ;
 	}
 

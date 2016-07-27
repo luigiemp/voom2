@@ -20,14 +20,14 @@ int main()
 	
 
 	Matrix3d F;
-	// F << 1., 0.0, 0.0, 0.0, 1., 0.0, 0.0, 0.0, 1.;
-	F << 1.00031, 0.0671117, 0.0329642, 0.0302786, 1.05347, 0.00105537, 0.00444561, 0.0201215, 1.03399;
+	F << 1., 0.0, 0.0, 0.0, 1., 0.0, 0.0, 0.0, 1.;
+	// F << 1.00031, 0.0671117, 0.0329642, 0.0302786, 1.05347, 0.00105537, 0.00444561, 0.0201215, 1.03399;
 		
 	srand(time(NULL));
-	// for (unsigned int i = 0; i<3; i++) 
-	//	for (unsigned int J = 0; J<3; J++) 
-	//		F(i,J) += 0.1*(double(rand())/RAND_MAX); 
-	// cout << "determinant(F) = " << F.determinant() << endl;
+	for (unsigned int i = 0; i<3; i++) 
+		for (unsigned int J = 0; J<3; J++) 
+			F(i,J) += 0.1*(double(rand())/RAND_MAX); 
+	cout << "determinant(F) = " << F.determinant() << endl;
 	
 	cout << "F = " << endl << F << endl;
 
@@ -86,7 +86,7 @@ int main()
 		for (int j = 0; j < 3; j++) {
 			for (int k = 0; k < 3; k++) {
 				for (int l = 0; l < 3; l++) {
-					cout << d2phidF2.get(i,j,k,l) - d2phidF2int.get(i,j,k,l) << endl;
+					cout << d2phidF2.get(i,j,k,l) << "\t - \t" << d2phidF2int.get(i,j,k,l) << "\t = \t " << d2phidF2.get(i,j,k,l) - d2phidF2int.get(i,j,k,l) << endl;
 				}
 			}
 		}
