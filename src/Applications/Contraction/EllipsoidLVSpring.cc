@@ -36,6 +36,9 @@ int main(int argc, char** argv)
   // Calculate Ejection Fraction?
   bool calculateEjectionFractionFlag = true;
 
+  // Use Conduction Velocity (if false - uses activation Time file)
+  bool useConductionVelocity = true;
+
   // Conduction Velocity (cm/ms)
   double cv = 0.06;
   
@@ -66,7 +69,10 @@ int main(int argc, char** argv)
   FEMesh surfMesh("Mesh/EllipsoidMesh/Small_A.node", "Mesh/EllipsoidMesh/Small_A.outerSurfEle");
   string FiberFile = "Mesh/EllipsoidMesh/Small_A.fiber";
   string BCfile = "Mesh/EllipsoidMesh/Small_A.Null.bc";
+  string ActivationTimeFile = "Mesh/RabbitLV/Small_A.activationTime";   // This is the Element Activation Time File
+  string ActivationFile = "ActivationFunction_1ms.dat";  // This is the Calcium Transient
   ifstream FiberInp(FiberFile.c_str());
+  ifstream ActTime(ActivationTimeFile.c_str());
 
   // Code for calculating Ejection Fraction
   MechanicsModel* cavityModel = NULL;
@@ -163,20 +169,23 @@ int main(int argc, char** argv)
 
   // Read in Activation File:
   ifstream myfile;
-  myfile.open ("ActivationFunction_1ms.dat");
-  vector <double> Time(795, 0.0);
-  vector <double> ActivationFactor(795, 0.0);
-  for (int i = 0; i < 795; i++)
+  myfile.open (ActivationFile.c_str());
+  double tempTime = 0.0;
+  double tempActivationFactor = 0.0;
+  
+  vector <double> Time;
+  vector <double> ActivationFactor;
+
+  while(myfile >> tempTime >> tempActivationFactor)
   {
-    myfile >> Time[i];
-    myfile >> ActivationFactor[i];
+    Time.push_back(tempTime);
+    ActivationFactor.push_back(tempActivationFactor);
   }
+  
+  double cycleLength = Time[Time.size() - 1];
   myfile.close();
-
   deltaT = Time[1] - Time[0];
-
-   // Cycle Length (in ms)
-  double cycleLength = Time[397];
+  
 
   // Calculate the activation time for each quadrature point in each element:
   vector <double> activationTimesQP(NumMat, 0.0);
@@ -196,8 +205,12 @@ int main(int argc, char** argv)
     }
     
     // Activation Time Calculations:
-    if(activationSequence)
-      activationTimesQP[el_iter] = (quadPointZ - z_min)/cv;
+    if(activationSequence) {
+      if (useConductionVelocity)
+        activationTimesQP[el_iter] = (quadPointZ - z_min)/cv;
+      else
+        ActTime >> activationTimesQP[el_iter];
+    }
     else
       activationTimesQP[el_iter] = 0;  // Everything gets activated right away
       
@@ -243,6 +256,7 @@ int main(int argc, char** argv)
   for (int el_iter = 0; el_iter < meshElements.size(); el_iter++)
     out << fiberVectors[el_iter][0] << " " << fiberVectors[el_iter][1] << " " << fiberVectors[el_iter][2] << endl;
   out.close();
+  ActTime.close();
 
   // Initialize Model
   int NodeDoF = 3;
@@ -310,7 +324,7 @@ int main(int argc, char** argv)
   }
 
   // Solver
-  Real NRtol = 1.0e-1;
+  Real NRtol = 1.0e-8;
   uint NRmaxIter = 100;
   EigenNRsolver mySolver(&myModel, BCid, BCvalues, CHOL, NRtol, NRmaxIter);
 
@@ -366,7 +380,6 @@ int main(int argc, char** argv)
     // Update State Variables:     
     for (int k = 0; k < NumMat; k++)
     {
-      cout << k << endl;
       (PLmaterials[k])->updateStateVariables();
     }    
 
