@@ -6,5 +6,5 @@ INCLUDES     = 	-I./ 					\
 # -I/u/home/l/luigiemp/project-cardio/Program/eigenInst/include/eigen3
 
 lib_LIBRARIES=libPotentials.a libViscousPotentials.a
-libPotentials_a_SOURCES = HillForceVelPotential.cc APForceVelPotential.cc
+libPotentials_a_SOURCES = HillForceVelPotential.cc APForceVelPotential.cc APForceVelPotential_Test.cc
 libViscousPotentials_a_SOURCES = NewtonianViscousPotential.cc

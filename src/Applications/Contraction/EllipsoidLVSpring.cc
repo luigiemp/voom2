@@ -4,6 +4,7 @@
 #include "HillForceVelPotential.h"
 #include "BlankPotential.h"
 #include "APForceVelPotential.h"
+#include "APForceVelPotential_Test.h"
 #include "Humphrey_Compressible.h"
 #include "LinYinActive_Compressible.h"
 #include "Potential.h"
@@ -17,7 +18,7 @@
 
 using namespace voom;
 
-double calculateEjectionFraction(MechanicsModel* cavityModel, MechanicsModel* myocardiumModel, vector<int> surfaceNodes, vector<double> currentMyocardiumField);
+double calculateEjectionFraction(MechanicsModel* cavityModel, const MechanicsModel* myocardiumModel, const vector<int> surfaceNodes, const vector<double> currentMyocardiumField);
 
 int main(int argc, char** argv)
 {
@@ -37,7 +38,7 @@ int main(int argc, char** argv)
   bool calculateEjectionFractionFlag = true;
 
   // Use Conduction Velocity (if false - uses activation Time file)
-  bool useConductionVelocity = true;
+  bool useConductionVelocity = false;
 
   // Conduction Velocity (cm/ms)
   double cv = 0.06;
@@ -49,7 +50,7 @@ int main(int argc, char** argv)
   double deltaT = 0.01;
 
   // OutputString
-  string outputString = "/u/project/cardio/adityapo/ScratchResults/EllipsoidSpring/Ellipsoid";
+  string outputString = "/u/project/cardio/adityapo/ScratchResults/EllipsoidSpring/Ellipsoid2";
 
   // Fiber Visualization String
   string fiberPlotString = outputString + "_Fiber.vtk";
@@ -65,10 +66,10 @@ int main(int argc, char** argv)
 
   // Initialize Mesh
   // Assumptions to use this main as is: strip has a face at z=0; tetrahedral mesh
-  FEMesh Cube("Mesh/EllipsoidMesh/Small_A.node", "Mesh/EllipsoidMesh/Small_A.ele");
-  FEMesh surfMesh("Mesh/EllipsoidMesh/Small_A.node", "Mesh/EllipsoidMesh/Small_A.outerSurfEle");
-  string FiberFile = "Mesh/EllipsoidMesh/Small_A.fiber";
-  string BCfile = "Mesh/EllipsoidMesh/Small_A.Null.bc";
+  FEMesh Cube("Mesh/EllipsoidMeshFiner/Small_B.node", "Mesh/EllipsoidMeshFiner/Small_B.ele");
+  FEMesh surfMesh("Mesh/EllipsoidMeshFiner/Small_B.node", "Mesh/EllipsoidMeshFiner/Small_B.outerSurfEle");
+  string FiberFile = "Mesh/EllipsoidMeshFiner/Small_B.fiber";
+  string BCfile = "Mesh/EllipsoidMeshFiner/Small_B.Null.bc";
   string ActivationTimeFile = "Mesh/RabbitLV/Small_A.activationTime";   // This is the Element Activation Time File
   string ActivationFile = "ActivationFunction_1ms.dat";  // This is the Calcium Transient
   ifstream FiberInp(FiberFile.c_str());
@@ -83,9 +84,9 @@ int main(int argc, char** argv)
   if (calculateEjectionFractionFlag)
   {
     // Setup mesh for calculating ejection fraction
-    cavityMesh = new FEMesh("Mesh/EllipsoidMesh/Small_A_Cavity.node", 
-      		            "Mesh/EllipsoidMesh/Small_A_Cavity.ele");
-    string outerSurfFile = "Mesh/EllipsoidMesh/Small_A.innerSurfNode";
+    cavityMesh = new FEMesh("Mesh/EllipsoidMeshFiner/Small_B_Cavity.node", 
+      		            "Mesh/EllipsoidMeshFiner/Small_B_Cavity.ele");
+    string outerSurfFile = "Mesh/EllipsoidMeshFiner/Small_B.innerSurfNode";
 
     ifstream cavityNodeFileStream (outerSurfFile.c_str());
 
@@ -146,8 +147,8 @@ int main(int argc, char** argv)
   Humphrey_Compressible PassiveMat(0, 15.98, 55.85, 0.0, -33.27, 30.21, 3.590, 64.62);
   LinYinActive_Compressible ActiveMat(0, -38.70, 40.83, 25.12, 9.51, 171.18);
 
-  // HillForceVelPotential TestPotential(4.4*pow(10,-3), .01*0.59, 25);
-  // BlankPotential TestPotential;
+  APForceVelPotential TestPotential(4.0, 5000.0, 3.0);
+  // APForceVelPotential_Test TestPotential(4.0, 500000.0);
 
   BlankViscousPotential ViscPotential;
   // NewtonianViscousPotential ViscPotential(0.005, 0.5);
@@ -236,9 +237,7 @@ int main(int argc, char** argv)
     sheetVectors.push_back(el_vectors[1]);
     sheetNormalVectors.push_back(el_vectors[2]);
 
-    // PLmaterials.push_back(&PassiveMat);
-    APForceVelPotential* TestPotential = new APForceVelPotential(4.0, 50000.0, 3.0);
-    PlasticMaterial* PlMat = new PlasticMaterial(el_iter, &ActiveMat, &PassiveMat, TestPotential, &ViscPotential);
+    PlasticMaterial* PlMat = new PlasticMaterial(el_iter, &ActiveMat, &PassiveMat, &TestPotential, &ViscPotential);
     PlMat->setDirectionVectors(el_vectors);
     PlMat->setHardeningParameters(HardParam);
     PlMat->setActiveDeformationGradient(Matrix3d::Identity(3,3));
@@ -270,7 +269,7 @@ int main(int argc, char** argv)
   myModel.updatePressure(Pressure);
   myModel.updateNodalForces(&ForcesID, &Forces);
 
-  myModel.initSpringBC("Mesh/EllipsoidMesh/Small_A.outerSurf", &surfMesh, SpringK);
+  myModel.initSpringBC("Mesh/EllipsoidMeshFiner/Small_B.outerSurf", &surfMesh, SpringK);
  
   // Initialize Result
   uint myRequest;
@@ -347,14 +346,14 @@ int main(int argc, char** argv)
       (PLmaterials[k])->setTimestep(deltaT/1000);
 	
       if (s * deltaT < activationTimesQP[k] || s * deltaT > activationTimesQP[k] + cycleLength)
-        (PLmaterials[k])->setActivationMultiplier(0.01);
+        (PLmaterials[k])->setActivationMultiplier(0.025);
       else
       {
         // Figure out time in cycle
         double tempNormalizedTime = s * deltaT - activationTimesQP[k];
         double tempActivationMultiplier = ActivationFactor[tempNormalizedTime/deltaT];
-        if (tempActivationMultiplier < 0.01)
-          tempActivationMultiplier = 0.01;
+        if (tempActivationMultiplier < 0.025)
+          tempActivationMultiplier = 0.025;
 	(PLmaterials[k])->setActivationMultiplier(tempActivationMultiplier);
       }
     }
@@ -398,7 +397,7 @@ int main(int argc, char** argv)
   return 0;
 }
 
-double calculateEjectionFraction(MechanicsModel* cavityModel, MechanicsModel* myocardiumModel, vector<int> surfaceNodes, vector<double> currentMyocardiumField)
+double calculateEjectionFraction(MechanicsModel* cavityModel, const MechanicsModel* myocardiumModel, const vector<int> surfaceNodes, const vector<double> currentMyocardiumField)
 {
   if (cavityModel == NULL)
   {
@@ -419,15 +418,19 @@ double calculateEjectionFraction(MechanicsModel* cavityModel, MechanicsModel* my
   // TODO: Hard-coded the values for the top and bottom of the cavities! Fix this ASAP!
   double cavityMinNode = 4148;
   double cavityMaxNode = 4068;
+  double bottomMostNode = 1106;
   double cavityMinPos = currentMyocardiumField[cavityMinNode * 3 + 2];
   double cavityMaxPos = currentMyocardiumField[cavityMaxNode * 3 + 2];
+
+  cout << "Min Pos:\t" << cavityMinPos << "\tMax Pos:\t" << cavityMaxPos << endl;
 
   // Linearly interpolate those nodes (assumes last ten nodes are the cavity!)
   int numberOfVerticalNodes = 10;
   for (int i = 0; i < numberOfVerticalNodes; i++)
   {
-    double tempSlope = (cavityMaxPos - cavityMinPos)/(numberOfVerticalNodes + 1.0);
-    cavityModel->setField((cavityMinNode + i) * 3 + 2, tempSlope * (i + 1) + cavityMinPos);
+    double tempSlope = (cavityMaxPos - cavityMinPos)/(numberOfVerticalNodes-1);
+    cavityModel->setField((bottomMostNode + i) * 3 + 2, tempSlope * (i) + cavityMinPos);
+    cout << "Node " << bottomMostNode + i << "\t Position: " << tempSlope * (i) + cavityMinPos << endl;
   }
 
   double EF = (referenceVolume - cavityModel->computeCurrentVolume())/referenceVolume;
