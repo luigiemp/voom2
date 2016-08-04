@@ -21,8 +21,6 @@ namespace voom {
     //! Destructor
     virtual ~Output() {};
 
-    enum DataType {POINT_DATA, CELL_DATA};
-
     //! Function to insert a scalar
     virtual void insertScalar(DataType type, string scalarName, vector<double>& scalarArray) = 0;
 

@@ -1,13 +1,23 @@
 //-*-C++-*-
 /*!
-  \file Output.h
+  \file VTKOutput.h
   \brief A output class which creates VTK type output
  */
 #ifndef __VTKOutput_h__
 #define __VTKOutput_h__
 
-#include "output.h"
+#include "Output.h"
 #include "GeomElement.h"
+
+#include <vtkSmartPointer.h>
+#include <vtkStructuredGridWriter.h>
+#include <vtkUnstructuredGridWriter.h>
+#include <vtkPolyDataWriter.h>
+#include <vtkStructuredGrid.h>
+#include <vtkUnstructuredGrid.h>
+#include <vtkPolyData.h>
+#include <vtkDataWriter.h>
+#include <vtkDataSet.h>
 
 // Todo: 07.27.2016 - Refactor code to use const refs everywhere.
 
@@ -15,10 +25,6 @@ namespace voom {
 
   class VTKOutput : public Output {
   public:
-
-    enum vtkDataTypes{STRUCTUREDGRID,
-		      UNSTRUCTUREDGRID,
-                      POLYDATA};
 
     //! Constructor
     VTKOutput(string outputFileName, vtkDataTypes type);
@@ -44,17 +50,14 @@ namespace voom {
     //! Write output
     void writeOutput()
     {
-      _writer.SetFileName(_outputFileName.c_str());
-      _writer.SetInput(_dataSet);
-      _writer.Write();
+      _writer->SetFileName(_outputFileName.c_str());
+      _writer->SetInput(_dataSet);
+      _writer->Write();
     }
-
-  private :
-    VTKOutput() {}; // Default constructor is private because it should never be used by a derived class.
 
   protected:
    vtkSmartPointer<vtkDataWriter> _writer;
-   vtkDataSet*                    _dataSet;
+   vtkSmartPointer<vtkDataSet>    _dataSet;
 
   }; // VTKOutput
 
