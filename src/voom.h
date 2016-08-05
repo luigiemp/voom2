@@ -66,6 +66,17 @@ namespace voom {
     DMATPROP    = 8
   };
 
+  enum DataType {
+    POINT_DATA,
+    CELL_DATA
+  };
+
+  enum vtkDataTypes {
+    STRUCTUREDGRID,
+    UNSTRUCTUREDGRID,
+    POLYDATA
+  };
+
 }; // namespace voom
 
 #endif // _VOOM_H_
