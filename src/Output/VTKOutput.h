@@ -15,6 +15,7 @@
 #include <vtkPolyDataWriter.h>
 #include <vtkStructuredGrid.h>
 #include <vtkUnstructuredGrid.h>
+#include <vtkDoubleArray.h>
 #include <vtkPolyData.h>
 #include <vtkDataWriter.h>
 #include <vtkDataSet.h>
