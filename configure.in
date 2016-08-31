@@ -84,5 +84,6 @@ AC_CONFIG_FILES([
 	          src/Utils/inpParser/Makefile
 		  src/Geometry/Makefile
 		  src/Output/Makefile
+		  src/Output/Test/Makefile
 		])
 AC_OUTPUT

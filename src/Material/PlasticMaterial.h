@@ -45,6 +45,9 @@ namespace voom
     //! Set Direction Vectors
     void setDirectionVectors(vector<Vector3d> dirVec) {_dirVec = dirVec;}
 
+    //! Get Direction Vectors
+    vector<Vector3d> getDirectionVectors() {return _dirVec;}
+
     //! Get active deformation gradient at previous timestep
     Matrix3d getActiveDeformationGradient() {return _Fa;}
 

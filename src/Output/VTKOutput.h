@@ -43,10 +43,10 @@ namespace voom {
     void insertTensor(DataType type, string tensorName, vector<Matrix3d>& tensorArray);
 
     //! Function to insert nodal positions
-    void insertNodalPositions(const vector<Vector3d>& nodalPositions);
+    void insertNodalPositions(const vector<Vector3d>& nodalPositions){;};
 
     //! Function to insert connectivity
-    void insertConnectivity(const vector<GeomElement *>& elements);
+    void insertConnectivity(const vector<GeomElement *>& elements){;};
 
     //! Write output
     void writeOutput()

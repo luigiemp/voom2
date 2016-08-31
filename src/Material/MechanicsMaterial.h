@@ -67,6 +67,15 @@ namespace voom
     virtual void setTimestep(double deltaT){;}
     virtual void setActivationMultiplier(double activation){;}
     virtual void updateStateVariables(){;}
+    
+    virtual vector<Vector3d> getDirectionVectors() {
+      Vector3d dir1(1.0, 0.0, 0.0);
+      Vector3d dir2(0.0, 1.0, 0.0);
+      Vector3d dir3(0.0, 0.0, 1.0);
+      vector<Vector3d> dirVecs;
+      dirVecs.push_back(dir1); dirVecs.push_back(dir2); dirVecs.push_back(dir3);
+      return dirVecs;
+    }
 
   protected:
     int _matID;

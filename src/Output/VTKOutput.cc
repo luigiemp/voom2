@@ -53,9 +53,11 @@ namespace voom {
     vtkVectorArray->SetNumberOfTuples(tensorArray.size());
 
     for (int array_iter = 0; array_iter < tensorArray.size(); array_iter++) {
-      for (int row_iter = 0; row_iter < 3; row_iter++)
-        for (int col_iter = 0; col_iter < 3; col_iter++)
-          vtkVectorArray->SetComponent(array_iter, row_iter*3 + col_iter, (tensorArray[array_iter])[row_iter][col_iter]);
+      for (int row_iter = 0; row_iter < 3; row_iter++) {
+        for (int col_iter = 0; col_iter < 3; col_iter++) {
+          vtkVectorArray->SetComponent(array_iter, row_iter*3 + col_iter, (tensorArray[array_iter])(row_iter, col_iter));
+        }
+      }
     }
   }
 }
