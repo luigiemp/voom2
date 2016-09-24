@@ -38,10 +38,10 @@ namespace voom
     virtual MechanicsMaterial* clone() const = 0;
 
     //! Compute function
-    virtual void compute(FKresults & R, const Matrix3d & F, Vector3d * fiber = NULL) = 0;
+    virtual void compute(FKresults & R, const Matrix3d & F) = 0;
 
     //! Consistency Check for all Mecahnics Material Classes
-    void checkConsistency(FKresults & R, const Matrix3d & F, Vector3d * fiber = NULL,
+    void checkConsistency(FKresults & R, const Matrix3d & F,
 			  const Real h = 1.0e-7, const Real tol = 1.0e-6);
 
     //! SetMaterialParameters function

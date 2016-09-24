@@ -16,11 +16,12 @@ namespace voom{
     //! Basic Constructor
     /*! Construct from basic data structures defining the mesh, materials, BCs. 
      */
-    MechanicsModel(Mesh* aMesh, vector<MechanicsMaterial * > _materials, 
+    MechanicsModel(Mesh* aMesh, vector<MechanicsMaterial * > Materials, 
 		   const uint NodeDoF,
 		   int PressureFlag = 0, Mesh* SurfaceMesh = NULL,
 		   int NodalForcesFlag = 0,
-		   int _resetFlag = 1);
+		   int _resetFlag = 1,
+		   int _springBCflag = 0);
 
 		   // const vector<string > & ElMatType, 
 		   // const map<string, MechanicsMaterial* > & ElMaterials);
@@ -31,8 +32,8 @@ namespace voom{
     //! Destructor
     ~MechanicsModel() {
       set<MechanicsMaterial *> UNIQUEmaterials;
-      for (uint i = 0; i < _materials.size(); i++) 
-	UNIQUEmaterials.insert(_materials[i]);
+      for (uint i = 0; i < _materials.size(); i++)
+	  UNIQUEmaterials.insert(_materials[i]);
 	
       for (set<MechanicsMaterial *>::iterator it = UNIQUEmaterials.begin();
 	   it != UNIQUEmaterials.end(); it++) 
@@ -83,7 +84,7 @@ namespace voom{
       _field.assign(value, value+_field.size());
     };
 
-    void getField(vector<double> & x) {
+    void getField(vector<Real > & x) {
       assert(x.size() == _field.size());
       x = _field;
     }
@@ -129,6 +130,7 @@ namespace voom{
       set<MechanicsMaterial *> UNIQUEmaterials;
       for (uint i = 0; i < _materials.size(); i++) 
 	UNIQUEmaterials.insert(_materials[i]);
+      // Assume all materials are of the same type
 	
       return ( UNIQUEmaterials.size() * (_materials[0]->getMaterialParameters()).size() );
     }
@@ -171,14 +173,23 @@ namespace voom{
     // Check consistency of gradg and Hg
     void checkDmat(EigenEllipticResult & R, Real perturbationFactor, Real h, Real tol);
 
+    // Functions for applying spring BC
+    // Initialize _springNodes (nodes at which spring BC are applied) and _springElements (elements connected to spring nodes)
+    void initSpringBC(const string SpNodes, Mesh* SpMesh, Real SpringK);
+    void computeNormals();
+    vector<Triplet<Real > > applySpringBC(EllipticResult & R);
+
+    // Utils functions
+    Real computeRefVolume();
+    Real computeCurrentVolume();
+
 
 
   protected:
     //! Compute Deformation Gradient
     void computeDeformationGradient(vector<Matrix3d > & Flist, GeomElement* geomEl);
 
-    //! List of Material data at each element in the model
-    // (need to be modified for history dependent materials, e.g. plasticity)
+    //! List of Material data at each QP in the model
     vector<MechanicsMaterial * > _materials;
 
     //! Solution value at all nodes, local and ghost
@@ -197,6 +208,14 @@ namespace voom{
     vector<Real > _prevField;
 
     int _resetFlag;
+
+    // Spring BC
+    int _springBCflag;
+    vector<int > _spNodes;
+    Mesh* _spMesh;
+    Real _springK;
+    vector<vector<int > > _spNodesToEle;
+    vector<Vector3d > _spNormals;
   };
 
 } // namespace voom

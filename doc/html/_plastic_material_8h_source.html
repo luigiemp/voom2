@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
-<title>voom2: /u/home/a/adityapo/Research/voom2/src/Material/PlasticMaterial.h Source File</title>
+<title>voom2: /u/project/cardio/luigiemp/voom2/src/Material/PlasticMaterial.h Source File</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <link href="doxygen.css" rel="stylesheet" type="text/css"/>
 </head>
@@ -22,7 +22,7 @@
       <li><a href="files.html"><span>File&nbsp;List</span></a></li>
     </ul>
   </div>
-<h1>/u/home/a/adityapo/Research/voom2/src/Material/PlasticMaterial.h</h1><div class="fragment"><pre class="fragment"><a name="l00001"></a>00001 <span class="comment">//-*-C++-*-</span>
+<h1>/u/project/cardio/luigiemp/voom2/src/Material/PlasticMaterial.h</h1><div class="fragment"><pre class="fragment"><a name="l00001"></a>00001 <span class="comment">//-*-C++-*-</span>
 <a name="l00002"></a>00002 <span class="preprocessor">#ifndef __Plastic_Material_h__</span>
 <a name="l00003"></a>00003 <span class="preprocessor"></span><span class="preprocessor">#define __Plastic_Material_h__</span>
 <a name="l00004"></a>00004 <span class="preprocessor"></span>
@@ -48,7 +48,7 @@
 <a name="l00025"></a><a class="code" href="classvoom_1_1_plastic_material.html#af26654bca102e9ac426e5a01d11dd485">00025</a>     <a class="code" href="classvoom_1_1_plastic_material.html#af26654bca102e9ac426e5a01d11dd485" title="Destructor.">~PlasticMaterial</a>(){;}
 <a name="l00026"></a>00026 
 <a name="l00028"></a>00028     <span class="comment">// TODO: Change Compute Function to take three vectors.</span>
-<a name="l00029"></a>00029     <span class="keywordtype">void</span> <a class="code" href="classvoom_1_1_plastic_material.html#af6b63ab69c8a8b8b919014bf3fce0807" title="Compute function.">compute</a>(FKresults &amp; R, <span class="keyword">const</span> Matrix3d &amp; F, Vector3d * fiber = NULL);
+<a name="l00029"></a>00029     <span class="keywordtype">void</span> <a class="code" href="classvoom_1_1_plastic_material.html#a714ba24594efdba099f79b6da74cb879" title="Compute function.">compute</a>(<a class="code" href="structvoom_1_1_f_kresults.html">FKresults</a> &amp; R, <span class="keyword">const</span> Matrix3d &amp; F);
 <a name="l00030"></a>00030 
 <a name="l00032"></a>00032     Vector3d <a class="code" href="classvoom_1_1_plastic_material.html#af0a7c1b596b35566107c86e9aa0d11c6" title="Functions for Internal Variable Optimization.">computedWdQ</a>();
 <a name="l00033"></a>00033     Matrix3d computed2WdQ2();
@@ -138,7 +138,7 @@
 <a name="l00148"></a>00148 
 <a name="l00149"></a>00149 <span class="preprocessor">#endif</span>
 </pre></div></div>
-<hr size="1"/><address style="text-align: right;"><small>Generated on 23 Jul 2015 for voom2 by&nbsp;
+<hr size="1"/><address style="text-align: right;"><small>Generated on 22 Jun 2016 for voom2 by&nbsp;
 <a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.6.1 </small></address>
 </body>

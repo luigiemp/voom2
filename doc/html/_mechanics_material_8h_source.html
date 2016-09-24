@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
-<title>voom2: /u/home/a/adityapo/Research/voom2/src/Material/MechanicsMaterial.h Source File</title>
+<title>voom2: /u/project/cardio/luigiemp/voom2/src/Material/MechanicsMaterial.h Source File</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <link href="doxygen.css" rel="stylesheet" type="text/css"/>
 </head>
@@ -22,7 +22,7 @@
       <li><a href="files.html"><span>File&nbsp;List</span></a></li>
     </ul>
   </div>
-<h1>/u/home/a/adityapo/Research/voom2/src/Material/MechanicsMaterial.h</h1><div class="fragment"><pre class="fragment"><a name="l00001"></a>00001 <span class="comment">//-*-C++-*-</span>
+<h1>/u/project/cardio/luigiemp/voom2/src/Material/MechanicsMaterial.h</h1><div class="fragment"><pre class="fragment"><a name="l00001"></a>00001 <span class="comment">//-*-C++-*-</span>
 <a name="l00002"></a>00002 <span class="preprocessor">#ifndef __Mechanics_Material_h__</span>
 <a name="l00003"></a>00003 <span class="preprocessor"></span><span class="preprocessor">#define __Mechanics_Material_h__</span>
 <a name="l00004"></a>00004 <span class="preprocessor"></span>
@@ -58,9 +58,9 @@
 <a name="l00036"></a>00036 
 <a name="l00038"></a>00038     <span class="keyword">virtual</span> <a class="code" href="classvoom_1_1_mechanics_material.html">MechanicsMaterial</a>* <a class="code" href="classvoom_1_1_mechanics_material.html#a443b8bae4637df4dcb049185ea272962" title="Clone.">clone</a>() <span class="keyword">const</span> = 0;
 <a name="l00039"></a>00039 
-<a name="l00041"></a>00041     <span class="keyword">virtual</span> <span class="keywordtype">void</span> <a class="code" href="classvoom_1_1_mechanics_material.html#a5ea31f34fef964858e089a8585c2d6ae" title="Compute function.">compute</a>(FKresults &amp; R, <span class="keyword">const</span> Matrix3d &amp; F, Vector3d * fiber = NULL) = 0;
+<a name="l00041"></a>00041     <span class="keyword">virtual</span> <span class="keywordtype">void</span> <a class="code" href="classvoom_1_1_mechanics_material.html#a0a78cf77ca39a636e8e2d46f4b141f48" title="Compute function.">compute</a>(<a class="code" href="structvoom_1_1_f_kresults.html">FKresults</a> &amp; R, <span class="keyword">const</span> Matrix3d &amp; F) = 0;
 <a name="l00042"></a>00042 
-<a name="l00044"></a>00044     <span class="keywordtype">void</span> <a class="code" href="classvoom_1_1_mechanics_material.html#af8582d4f201b071a7e2340dd0a0f5769" title="Consistency Check for all Mecahnics Material Classes.">checkConsistency</a>(FKresults &amp; R, <span class="keyword">const</span> Matrix3d &amp; F, Vector3d * fiber = NULL,
+<a name="l00044"></a>00044     <span class="keywordtype">void</span> <a class="code" href="classvoom_1_1_mechanics_material.html#a605d5ba240e3ef64b1a30599f48db6db" title="Consistency Check for all Mecahnics Material Classes.">checkConsistency</a>(<a class="code" href="structvoom_1_1_f_kresults.html">FKresults</a> &amp; R, <span class="keyword">const</span> Matrix3d &amp; F,
 <a name="l00045"></a>00045               <span class="keyword">const</span> Real h = 1.0e-7, <span class="keyword">const</span> Real tol = 1.0e-6);
 <a name="l00046"></a>00046 
 <a name="l00048"></a>00048     <span class="keyword">virtual</span> <span class="keywordtype">void</span> <a class="code" href="classvoom_1_1_mechanics_material.html#ac629ead3dfd57c34e67fb4f358d8c77f" title="SetMaterialParameters function.">setMaterialParameters</a>(<span class="keyword">const</span> vector&lt;Real &gt; &amp;) = 0;
@@ -97,7 +97,7 @@
 <a name="l00081"></a>00081 
 <a name="l00082"></a>00082 <span class="preprocessor">#endif</span>
 </pre></div></div>
-<hr size="1"/><address style="text-align: right;"><small>Generated on 23 Jul 2015 for voom2 by&nbsp;
+<hr size="1"/><address style="text-align: right;"><small>Generated on 22 Jun 2016 for voom2 by&nbsp;
 <a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.6.1 </small></address>
 </body>

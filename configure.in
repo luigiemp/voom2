@@ -78,6 +78,7 @@ AC_CONFIG_FILES([
 		  src/Solver/Test/Makefile
 		  src/Applications/TestBVP/Makefile
 		  src/Applications/PassiveLV/Makefile
+	          src/Applications/DispInt/Makefile
 	          src/Utils/inpParser/Makefile
 		])
 AC_OUTPUT

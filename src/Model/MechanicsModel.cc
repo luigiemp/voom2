@@ -3,24 +3,25 @@
 namespace voom {
 
   // Constructor
-  MechanicsModel::MechanicsModel(Mesh* aMesh, vector<MechanicsMaterial * > materials, 
+  MechanicsModel::MechanicsModel(Mesh* aMesh, vector<MechanicsMaterial * > Materials, 
 				 const uint NodeDoF,
 				 int PressureFlag, Mesh* SurfaceMesh,
 				 int NodalForcesFlag,
-				 int ResetFlag):
-    EllipticModel(aMesh, NodeDoF), _materials(materials), 
+				 int ResetFlag,
+				 int SpringBCflag):
+    EllipticModel(aMesh, NodeDoF), _materials(Materials), 
     _pressureFlag(PressureFlag), _pressure(0.0), _surfaceMesh(SurfaceMesh),
-    _nodalForcesFlag(NodalForcesFlag), _forcesID(NULL), _forces(NULL), _resetFlag(ResetFlag)
+    _nodalForcesFlag(NodalForcesFlag), _forcesID(NULL), _forces(NULL), _resetFlag(ResetFlag), _springBCflag(SpringBCflag)
   {
     // THERE IS ONE MATERIAL PER ELEMENT - CAN BE CHANGED - DIFFERENT THAN BEFORE
     // Resize and initialize (default function) _field vector
     _field.resize(  (_myMesh->getNumberOfNodes() )*_nodeDoF );
     this->initializeField();
 
-    if (_pressureFlag == 1) {
+   // if (_pressureFlag == 1) {
       _prevField.resize( _field.size() );
       this->setPrevField();
-    }
+   // }
 
   }
   
@@ -107,7 +108,6 @@ namespace voom {
       GeomElement* geomEl = elements[e];
       const vector<int  >& NodesID = geomEl->getNodesID();
       const int numQP    = geomEl->getNumberOfQuadPoints();
-      Vector3d Fiber = geomEl->getFiber();
       const int numNodes = NodesID.size();
       MatrixXd Kele = MatrixXd::Zero(numNodes*dim, numNodes*dim);
       
@@ -118,7 +118,7 @@ namespace voom {
      
       // Loop over quadrature points
       for(int q = 0; q < numQP; q++) {
-	_materials[e]->compute(FKres, Flist[q], &Fiber);
+	_materials[e*numQP + q]->compute(FKres, Flist[q]);
 
 	// Volume associated with QP q
 	Real Vol = geomEl->getQPweights(q);
@@ -174,7 +174,7 @@ namespace voom {
 		  tempdRdalpha += FKres.Dmat.get(alpha,i,J) * geomEl->getDN(q, a, J);
 		} // J loop
 		tempdRdalpha *= Vol;
-		(dRdalpha[ (_materials[e]->getMatID())*NumPropPerMat + alpha])( NodesID[a]*dim + i) += tempdRdalpha;
+		(dRdalpha[ (_materials[e*numQP + q]->getMatID())*NumPropPerMat + alpha])( NodesID[a]*dim + i) += tempdRdalpha;
 	      } // i loop
 	    } // a loop
 	  } // alpha loop
@@ -197,6 +197,12 @@ namespace voom {
       }
 
     } // Element loop
+
+    // Insert BC terms from spring
+    if (_springBCflag == 1) {
+      vector<Triplet<Real > >  KtripletList_FromSpring = this->applySpringBC(R);
+      KtripletList.insert( KtripletList.end(), KtripletList_FromSpring.begin(), KtripletList_FromSpring.end() ); 
+    }
 
     // Sum up all stiffness entries with the same indices
     if ( R.getRequest() & STIFFNESS ) {
@@ -317,6 +323,215 @@ namespace voom {
     } // loop over elements
 
   } // apply pressure
+
+
+
+
+
+
+
+  vector<Triplet<Real > > MechanicsModel::applySpringBC(EllipticResult & R) {
+
+    vector<Triplet<Real > > KtripletList_FromSpring;
+
+    // Recompute normals - no change if _prevField has not changed.
+    this->computeNormals();
+
+    // Loop through _spNodes
+    for(int n = 0; n < _spNodes.size(); n++)
+    {
+      int NodeID = _spNodes[n];
+      Vector3d xa_prev, xa_curr;
+      xa_prev << _prevField[NodeID*3], _prevField[NodeID*3+1], _prevField[NodeID*3+2];
+      xa_curr << _field[NodeID*3], _field[NodeID*3+1], _field[NodeID*3+2];
+      
+      // Compute energy
+      if (R.getRequest() & ENERGY) { 
+	R.addEnergy( 0.5* _springK*pow( (xa_curr - xa_prev).dot(_spNormals[n]), 2.0) );  
+      }
+
+      // Compute Residual
+      if ( (R.getRequest() & FORCE) || (R.getRequest() & DMATPROP) ) {	
+	for(uint i = 0; i < 3; i++) {
+	  R.addResidual(NodeID*3+i,  _springK*_spNormals[n](i)*(xa_curr - xa_prev).dot(_spNormals[n]) ); 
+	} // i loop
+      } // Internal force loop
+
+      // Compute stiffness matrix
+      if ( R.getRequest() & STIFFNESS ) {
+	for(uint i = 0; i < 3; i++) {
+	  for(uint j = 0; j < 3; j++) {
+	    KtripletList_FromSpring.push_back(Triplet<Real >( NodeID*3+i, NodeID*3+j, _springK*_spNormals[n](i)*_spNormals[n](j) ));
+	  } // j loop
+	} // i loop
+      } // Stiffness loop
+
+    } // Spring nodes loop
+
+    return  KtripletList_FromSpring;
+  } // apply SpringBC
+
+
+
+  void MechanicsModel::computeNormals() {
+      
+     // First compute normal of any element in _spMesh
+    const vector<GeomElement* > elements = _spMesh->getElements();
+
+    vector<Vector3d > ElNormals(elements.size(), Vector3d::Zero());
+
+    // Loop over elements
+    for(int e = 0; e < elements.size(); e++)
+    {
+      GeomElement* geomEl = elements[e];
+      const vector<int  >& NodesID = geomEl->getNodesID();
+      const int numQP    = geomEl->getNumberOfQuadPoints();
+      const int numNodes = NodesID.size();
+      
+      // Loop over quadrature points
+      for(int q = 0; q < numQP; q++) {
+
+	// Compute normal based on _prevField
+	Vector3d a1 = Vector3d::Zero(), a2 = Vector3d::Zero(), a3 = Vector3d::Zero();
+	for (int a = 0; a < NodesID.size(); a++) {
+	  int nodeID = NodesID[a];
+	  Vector3d xa_prev;
+	  xa_prev << _prevField[nodeID*3], _prevField[nodeID*3+1], _prevField[nodeID*3+2];
+	  a1 += xa_prev*geomEl->getDN(q, a, 0);
+	  a2 += xa_prev*geomEl->getDN(q, a, 1);
+	}
+	ElNormals[e] += a1.cross(a2); // Not normalized with respect to area (elements with larger area count more)
+      } // loop over QP
+  
+    } // loop over elements
+
+    // loop over _spNodes
+    for (int n = 0; n < _spNodes.size(); n++) {
+      // Reset normal to zero
+      _spNormals[n] = Vector3d::Zero();
+      // Loop over all elements sharing that node
+      for (int m = 0; m < _spNodesToEle[n].size(); m++) {
+	_spNormals[n] += ElNormals[_spNodesToEle[n][m]];
+      }
+      Real normFactor = 1.0/_spNormals[n].norm();
+      _spNormals[n] *= normFactor;
+
+      // For testing only - to be commented out
+      // cout << _spNormals[n](0) << " " << _spNormals[n](1) << " " << _spNormals[n](2) << endl;
+    }
+    
+  } // compute Normals
+
+
+
+  void MechanicsModel::initSpringBC(const string SpNodes, Mesh* SpMesh, Real SpringK) {
+
+    // Activate flag
+    _springBCflag = 1;
+
+    // Store mesh information
+    _spMesh = SpMesh;
+
+    // Store spring constant
+    _springK = SpringK;
+
+    // Store node number on the outer surface
+    ifstream inp(SpNodes.c_str());
+    int nodeNum = 0;
+    while (inp >> nodeNum) 
+    {
+      _spNodes.push_back(nodeNum);
+    }
+
+    // Collect elements that share a node in _spNodes
+    const vector<GeomElement* > elements = _spMesh->getElements();
+
+    for (int n = 0; n < _spNodes.size(); n++) {
+      vector<int > connected;
+      for(int e = 0; e < elements.size(); e++) {
+       const vector<int >& NodesID = elements[e]->getNodesID();
+       for (int m = 0; m < NodesID.size(); m++) {
+	 if (NodesID[m] == _spNodes[n]) {
+	   connected.push_back(e);
+	   break;
+	 } //  check if node belong to element
+       } // loop over nodes of the element
+      } // loop over elements
+      _spNodesToEle.push_back(connected);
+
+      // For testing only - to be commented out
+      // cout << _spNodes[n] << " ";
+      // for (int i = 0; i < connected.size(); i++) {
+      // 	cout << connected[i] << " ";
+      // }
+      // cout << endl;
+      
+    } // loop over _spNodes
+
+    _spNormals.resize(_spNodes.size(), Vector3d::Zero());
+    // Compute initial node normals
+    this->computeNormals();
+
+  } // InitSpringBC
+
+
+
+
+
+
+
+
+  // Compute volume functions - current and reference volumes 
+  Real MechanicsModel::computeRefVolume()
+  {
+    Real RefVol = 0.0;
+    const vector<GeomElement* > elements = _myMesh->getElements();
+    const int NumEl = elements.size();    
+
+    // Loop through elements, also through material points array, which is unrolled
+    for(int e = 0; e < NumEl; e++)
+    {
+      GeomElement* geomEl = elements[e];
+      const int numQP = geomEl->getNumberOfQuadPoints();
+      // Loop over quadrature points
+      for(int q = 0; q < numQP; q++) {
+	// Volume associated with QP q
+	RefVol += geomEl->getQPweights(q);
+      } // Loop over QP
+    } // Loop over elements
+
+    return RefVol;
+  }
+
+
+
+  Real MechanicsModel::computeCurrentVolume()
+  {
+    Real CurrVol = 0.0;
+    const vector<GeomElement* > elements = _myMesh->getElements();
+    const int NumEl = elements.size();
+
+    // Loop through elements, also through material points array, which is unrolled
+    for(int e = 0; e < NumEl; e++)
+    {
+      GeomElement* geomEl = elements[e];
+      const int numQP = geomEl->getNumberOfQuadPoints();
+      
+      // F at each quadrature point are computed at the same time in one element
+      vector<Matrix3d > Flist(numQP, Matrix3d::Zero());
+      // Compute deformation gradients for current element
+      this->computeDeformationGradient(Flist, geomEl);
+     
+      // Loop over quadrature points
+      for(int q = 0; q < numQP; q++) {
+	// Volume associated with QP q
+	CurrVol += ( geomEl->getQPweights(q) * Flist[q].determinant() ); 
+      } // Loop over QP
+    } // Loop over elements
+
+    return CurrVol;
+  }
+  
 
 
 
@@ -485,6 +700,9 @@ namespace voom {
   // Writing output
   void MechanicsModel::writeOutputVTK(const string OutputFile, int step) 
   {
+    ///// 
+    // NEED TO BE REWRITTEN TAKING INTO ACCOUNT MULTIPLE QUADRATURE POINTS PER ELEMENT !!!
+    /////
     // Create outputFile name
     stringstream FileNameStream;
     FileNameStream << OutputFile << step << ".vtk";
@@ -502,7 +720,7 @@ namespace voom {
 
     // For now we assumed dim == 3 !
     for (int i = 0; i < NumNodes; i++ ) {
-      out << _myMesh->getX(i) << endl;
+      out << _myMesh->getX(i)(0) << " " << _myMesh->getX(i)(1) << " " << _myMesh->getX(i)(2) << endl;
     }
 
     vector<GeomElement* > elements = _myMesh->getElements();
@@ -548,9 +766,10 @@ namespace voom {
     for (int i = 0; i < NumNodes; i++ ) {
       VectorXd x = VectorXd::Zero(dim);
       for (int j = 0; j < dim; j++) {
-	x(j) = _field[i*dim + j];
+	x(j) = _field[i*dim + j]; 
       }
-      out << x - _myMesh->getX(i) << endl;
+      x -= _myMesh->getX(i);
+      out << x(0) << " " << x(1) << " " << x(2) << endl;
     }    
 
     // Residuals
@@ -578,37 +797,49 @@ namespace voom {
 	<< "SCALARS Alpha1 double" << endl
 	<< "LOOKUP_TABLE default" << endl;
     for ( int e = 0; e < NumEl; e++ ) {
-      vector<Real > MatProp = _materials[e]->getMaterialParameters();
-      out << MatProp[0] << endl;
+      GeomElement* geomEl = elements[e];
+      const int numQP = geomEl->getNumberOfQuadPoints();
+      Real AvgMatProp = 0.0;
+      for ( int q = 0; q < numQP; q++ ) {
+	vector<Real > MatProp = _materials[e*numQP + q]->getMaterialParameters();
+	AvgMatProp += MatProp[0];
+      }
+      out << AvgMatProp/double(numQP) << endl;
     }    
 
     // Alpha_2 material property
     out << "SCALARS Alpha2 double" << endl
 	<< "LOOKUP_TABLE default" << endl;
     for ( int e = 0; e < NumEl; e++ ) {
-      vector<Real > MatProp = _materials[e]->getMaterialParameters();
-      out << MatProp[1] << endl;
-    }
-
-    // Material internal variable
-    out << "SCALARS InternalVariable double" << endl
-	<< "LOOKUP_TABLE default" << endl;
-    for ( int e = 0; e < NumEl; e++ ) {
-      vector<Real > IntProp = _materials[e]->getInternalParameters();
-      // for ( int i = 0; i < IntProp.size(); i++ ) {
- /* 
-	     WARNING 
-	     THIS ONLY PRINTS THE FIRST INTERNAL VARIABLE
-	     BAD - NEED TO BE CHANGED!!
- */
-      if ( IntProp.size() > 0 ) {
-	out << IntProp[0] << endl;
-      } else {
-	out << 0.0 << endl;
+      GeomElement* geomEl = elements[e];
+      const int numQP = geomEl->getNumberOfQuadPoints();
+      Real AvgMatProp = 0.0;
+      for ( int q = 0; q < numQP; q++ ) {
+	vector<Real > MatProp = _materials[e*numQP + q]->getMaterialParameters();
+	AvgMatProp += MatProp[1];
       }
-
-	//}
+      out << AvgMatProp/double(numQP) << endl;
     }
+
+    // // Material internal variable
+ //    out << "SCALARS InternalVariable double" << endl
+ // 	<< "LOOKUP_TABLE default" << endl;
+ //    for ( int e = 0; e < NumEl; e++ ) {
+ //      vector<Real > IntProp = _materials[e]->getInternalParameters();
+ //      // for ( int i = 0; i < IntProp.size(); i++ ) {
+ // /* 
+ // 	     WARNING 
+ // 	     THIS ONLY PRINTS THE FIRST INTERNAL VARIABLE
+ // 	     BAD - NEED TO BE CHANGED!!
+ // */
+ //      if ( IntProp.size() > 0 ) {
+ // 	out << IntProp[0] << endl;
+ //      } else {
+ // 	out << 0.0 << endl;
+ //      }
+
+ // 	//}
+ //    }
 
     // Material stress tensor
     out << "TENSORS P double" << endl;
@@ -621,7 +852,6 @@ namespace voom {
       {
 	GeomElement* geomEl = elements[e];
 	const int numQP = geomEl->getNumberOfQuadPoints();
-	Vector3d Fiber = geomEl->getFiber();
 	
 	// F at each quadrature point are computed at the same time in one element
 	vector<Matrix3d > Flist(numQP, Matrix3d::Zero());
@@ -630,14 +860,15 @@ namespace voom {
      
 	// Loop over quadrature points
 	// for(int q = 0; q < numQP; q++) {
-	// _materials[e]->compute(FKres, Flist[q], &Fiber);
+	// _materials[e]->compute(FKres, Flist[q]);
 	  /* 
 	     WARNING 
 	     THIS ONLY WORKS WITH 1QP PER ELEMENT
 	     BAD - NEED TO BE CHANGED!!
 	  */
 	  // }
-	_materials[e]->compute(FKres, Flist[0], &Fiber);
+	// Only print stress tensor at the first QP !!!
+	_materials[e*numQP]->compute(FKres, Flist[0]);
 	out << FKres.P(0,0) << " " <<  FKres.P(0,1) << " " << FKres.P(0,2) << endl << 
 	       FKres.P(1,0) << " " <<  FKres.P(1,1) << " " << FKres.P(1,2) << endl << 
 	       FKres.P(2,0) << " " <<  FKres.P(2,1) << " " << FKres.P(2,2) << endl;
@@ -646,6 +877,8 @@ namespace voom {
     // Close file
     out.close();
   } // writeOutput
+
+
 
 
 

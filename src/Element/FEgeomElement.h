@@ -37,6 +37,9 @@ namespace voom {
 		  const vector<VectorXd > & nodesX, 
 		  vector<Shape* > shape, Quadrature* quadrature);
 
+    FEgeomElement(const int elemID, const vector<int > & nodesID):
+      GeomElement(elemID, nodesID) {};
+
     //! Get number of quadrature points
     uint getNumberOfQuadPoints() { return _QPweights.size(); }
 

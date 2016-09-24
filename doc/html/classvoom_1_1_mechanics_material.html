@@ -30,7 +30,7 @@
 </div>
 <div class="contents">
 <h1>voom::MechanicsMaterial Class Reference</h1><!-- doxytag: class="voom::MechanicsMaterial" -->
-<p>Inherited by <a class="el" href="classvoom_1_1_comp_neo_hookean.html">voom::CompNeoHookean</a>, <a class="el" href="classvoom_1_1_pass_myo_a.html">voom::PassMyoA</a>, and <a class="el" href="classvoom_1_1_plastic_material.html">voom::PlasticMaterial</a>.</p>
+<p>Inherited by <a class="el" href="classvoom_1_1_comp_neo_hookean.html">voom::CompNeoHookean</a>, <a class="el" href="classvoom_1_1_guccione.html">voom::Guccione</a>, <a class="el" href="classvoom_1_1_holzapfel.html">voom::Holzapfel</a>, <a class="el" href="classvoom_1_1_jacobian.html">voom::Jacobian</a>, <a class="el" href="classvoom_1_1_pass_myo_a.html">voom::PassMyoA</a>, and <a class="el" href="classvoom_1_1_plastic_material.html">voom::PlasticMaterial</a>.</p>
 
 <p><a href="classvoom_1_1_mechanics_material-members.html">List of all members.</a></p>
 <table border="0" cellpadding="0" cellspacing="0">
@@ -46,11 +46,11 @@ virtual&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="c
 <tr><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a443b8bae4637df4dcb049185ea272962"></a><!-- doxytag: member="voom::MechanicsMaterial::clone" ref="a443b8bae4637df4dcb049185ea272962" args="() const =0" -->
 virtual <a class="el" href="classvoom_1_1_mechanics_material.html">MechanicsMaterial</a> *&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classvoom_1_1_mechanics_material.html#a443b8bae4637df4dcb049185ea272962">clone</a> () const =0</td></tr>
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Clone. <br/></td></tr>
-<tr><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a5ea31f34fef964858e089a8585c2d6ae"></a><!-- doxytag: member="voom::MechanicsMaterial::compute" ref="a5ea31f34fef964858e089a8585c2d6ae" args="(FKresults &amp;R, const Matrix3d &amp;F, Vector3d *fiber=NULL)=0" -->
-virtual void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classvoom_1_1_mechanics_material.html#a5ea31f34fef964858e089a8585c2d6ae">compute</a> (<a class="el" href="structvoom_1_1_mechanics_material_1_1_f_kresults.html">FKresults</a> &amp;R, const Matrix3d &amp;F, Vector3d *fiber=NULL)=0</td></tr>
+<tr><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a0a78cf77ca39a636e8e2d46f4b141f48"></a><!-- doxytag: member="voom::MechanicsMaterial::compute" ref="a0a78cf77ca39a636e8e2d46f4b141f48" args="(FKresults &amp;R, const Matrix3d &amp;F)=0" -->
+virtual void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classvoom_1_1_mechanics_material.html#a0a78cf77ca39a636e8e2d46f4b141f48">compute</a> (<a class="el" href="structvoom_1_1_mechanics_material_1_1_f_kresults.html">FKresults</a> &amp;R, const Matrix3d &amp;F)=0</td></tr>
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Compute function. <br/></td></tr>
-<tr><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="af8582d4f201b071a7e2340dd0a0f5769"></a><!-- doxytag: member="voom::MechanicsMaterial::checkConsistency" ref="af8582d4f201b071a7e2340dd0a0f5769" args="(FKresults &amp;R, const Matrix3d &amp;F, Vector3d *fiber=NULL, const Real h=1.0e&#45;7, const Real tol=1.0e&#45;6)" -->
-void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classvoom_1_1_mechanics_material.html#af8582d4f201b071a7e2340dd0a0f5769">checkConsistency</a> (<a class="el" href="structvoom_1_1_mechanics_material_1_1_f_kresults.html">FKresults</a> &amp;R, const Matrix3d &amp;F, Vector3d *fiber=NULL, const Real h=1.0e-7, const Real tol=1.0e-6)</td></tr>
+<tr><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a605d5ba240e3ef64b1a30599f48db6db"></a><!-- doxytag: member="voom::MechanicsMaterial::checkConsistency" ref="a605d5ba240e3ef64b1a30599f48db6db" args="(FKresults &amp;R, const Matrix3d &amp;F, const Real h=1.0e&#45;7, const Real tol=1.0e&#45;6)" -->
+void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classvoom_1_1_mechanics_material.html#a605d5ba240e3ef64b1a30599f48db6db">checkConsistency</a> (<a class="el" href="structvoom_1_1_mechanics_material_1_1_f_kresults.html">FKresults</a> &amp;R, const Matrix3d &amp;F, const Real h=1.0e-7, const Real tol=1.0e-6)</td></tr>
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Consistency Check for all Mecahnics Material Classes. <br/></td></tr>
 <tr><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ac629ead3dfd57c34e67fb4f358d8c77f"></a><!-- doxytag: member="voom::MechanicsMaterial::setMaterialParameters" ref="ac629ead3dfd57c34e67fb4f358d8c77f" args="(const vector&lt; Real &gt; &amp;)=0" -->
 virtual void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classvoom_1_1_mechanics_material.html#ac629ead3dfd57c34e67fb4f358d8c77f">setMaterialParameters</a> (const vector&lt; Real &gt; &amp;)=0</td></tr>
@@ -82,11 +82,11 @@ virtual void&nbsp;</td><td class="memItemRight" valign="bottom"><b>updateStateVa
 int&nbsp;</td><td class="memItemRight" valign="bottom"><b>_matID</b></td></tr>
 </table>
 <hr/>The documentation for this class was generated from the following files:<ul>
-<li>/u/home/a/adityapo/Research/voom2/src/Material/<a class="el" href="_mechanics_material_8h_source.html">MechanicsMaterial.h</a></li>
-<li>/u/home/a/adityapo/Research/voom2/src/Material/MechanicsMaterial.cc</li>
+<li>/u/project/cardio/luigiemp/voom2/src/Material/<a class="el" href="_mechanics_material_8h_source.html">MechanicsMaterial.h</a></li>
+<li>/u/project/cardio/luigiemp/voom2/src/Material/MechanicsMaterial.cc</li>
 </ul>
 </div>
-<hr size="1"/><address style="text-align: right;"><small>Generated on 23 Jul 2015 for voom2 by&nbsp;
+<hr size="1"/><address style="text-align: right;"><small>Generated on 22 Jun 2016 for voom2 by&nbsp;
 <a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.6.1 </small></address>
 </body>

@@ -35,8 +35,8 @@
 <p><a href="classvoom_1_1_mechanics_model-members.html">List of all members.</a></p>
 <table border="0" cellpadding="0" cellspacing="0">
 <tr><td colspan="2"><h2>Public Member Functions</h2></td></tr>
-<tr><td class="memItemLeft" align="right" valign="top">&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classvoom_1_1_mechanics_model.html#add7088e6811b40dbfe55e32552fc2a10">MechanicsModel</a> (<a class="el" href="classvoom_1_1_mesh.html">Mesh</a> *aMesh, vector&lt; <a class="el" href="classvoom_1_1_mechanics_material.html">MechanicsMaterial</a> * &gt; <a class="el" href="classvoom_1_1_mechanics_model.html#abdba86a197a3e053f7fc3d98a4c35e8d">_materials</a>, const uint NodeDoF, int PressureFlag=0, <a class="el" href="classvoom_1_1_mesh.html">Mesh</a> *SurfaceMesh=NULL, int NodalForcesFlag=0, int _resetFlag=1)</td></tr>
-<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Basic Constructor.  <a href="#add7088e6811b40dbfe55e32552fc2a10"></a><br/></td></tr>
+<tr><td class="memItemLeft" align="right" valign="top">&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classvoom_1_1_mechanics_model.html#a8b24dd67f8e395576c7d90ee9faf373c">MechanicsModel</a> (<a class="el" href="classvoom_1_1_mesh.html">Mesh</a> *aMesh, vector&lt; <a class="el" href="classvoom_1_1_mechanics_material.html">MechanicsMaterial</a> * &gt; Materials, const uint NodeDoF, int PressureFlag=0, <a class="el" href="classvoom_1_1_mesh.html">Mesh</a> *SurfaceMesh=NULL, int NodalForcesFlag=0, int _resetFlag=1, int _springBCflag=0)</td></tr>
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Basic Constructor.  <a href="#a8b24dd67f8e395576c7d90ee9faf373c"></a><br/></td></tr>
 <tr><td class="memItemLeft" align="right" valign="top">&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classvoom_1_1_mechanics_model.html#a39cab4fab5f26d8bf83e63a6d91e33f6">~MechanicsModel</a> ()</td></tr>
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Input-file-based Constructor.  <a href="#a39cab4fab5f26d8bf83e63a6d91e33f6"></a><br/></td></tr>
 <tr><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a5315460244606255a586557fcd8d3020"></a><!-- doxytag: member="voom::MechanicsModel::initializeField" ref="a5315460244606255a586557fcd8d3020" args="(const Real value=1.0)" -->
@@ -91,6 +91,12 @@ void&nbsp;</td><td class="memItemRight" valign="bottom"><b>updatePressure</b> (R
 void&nbsp;</td><td class="memItemRight" valign="bottom"><b>updateNodalForces</b> (vector&lt; int &gt; *ForcesID, vector&lt; Real &gt; *Forces)</td></tr>
 <tr><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a5523c57bc22db1193a3dd52edd46d1bc"></a><!-- doxytag: member="voom::MechanicsModel::checkDmat" ref="a5523c57bc22db1193a3dd52edd46d1bc" args="(EigenEllipticResult &amp;R, Real perturbationFactor, Real h, Real tol)" -->
 void&nbsp;</td><td class="memItemRight" valign="bottom"><b>checkDmat</b> (<a class="el" href="structvoom_1_1_eigen_elliptic_result.html">EigenEllipticResult</a> &amp;R, Real perturbationFactor, Real h, Real tol)</td></tr>
+<tr><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="af9b1594af982c78afa3f881ea6d6da8a"></a><!-- doxytag: member="voom::MechanicsModel::initSpringBC" ref="af9b1594af982c78afa3f881ea6d6da8a" args="(const string SpNodes, Mesh *SpMesh, Real SpringK)" -->
+void&nbsp;</td><td class="memItemRight" valign="bottom"><b>initSpringBC</b> (const string SpNodes, <a class="el" href="classvoom_1_1_mesh.html">Mesh</a> *SpMesh, Real SpringK)</td></tr>
+<tr><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a9c66d41d4334f8e9b1376aef9136ceda"></a><!-- doxytag: member="voom::MechanicsModel::computeNormals" ref="a9c66d41d4334f8e9b1376aef9136ceda" args="()" -->
+void&nbsp;</td><td class="memItemRight" valign="bottom"><b>computeNormals</b> ()</td></tr>
+<tr><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a10f2985362e2fc641a59a0d3d8a5e5a8"></a><!-- doxytag: member="voom::MechanicsModel::applySpringBC" ref="a10f2985362e2fc641a59a0d3d8a5e5a8" args="(EllipticResult &amp;R)" -->
+vector&lt; Triplet&lt; Real &gt; &gt;&nbsp;</td><td class="memItemRight" valign="bottom"><b>applySpringBC</b> (<a class="el" href="structvoom_1_1_elliptic_result.html">EllipticResult</a> &amp;R)</td></tr>
 <tr><td colspan="2"><h2>Protected Member Functions</h2></td></tr>
 <tr><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aa44a8b08dc23ea0279ed2bf6b78e56f8"></a><!-- doxytag: member="voom::MechanicsModel::computeDeformationGradient" ref="aa44a8b08dc23ea0279ed2bf6b78e56f8" args="(vector&lt; Matrix3d &gt; &amp;Flist, GeomElement *geomEl)" -->
 void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classvoom_1_1_mechanics_model.html#aa44a8b08dc23ea0279ed2bf6b78e56f8">computeDeformationGradient</a> (vector&lt; Matrix3d &gt; &amp;Flist, <a class="el" href="classvoom_1_1_geom_element.html">GeomElement</a> *geomEl)</td></tr>
@@ -98,7 +104,7 @@ void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="clas
 <tr><td colspan="2"><h2>Protected Attributes</h2></td></tr>
 <tr><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="abdba86a197a3e053f7fc3d98a4c35e8d"></a><!-- doxytag: member="voom::MechanicsModel::_materials" ref="abdba86a197a3e053f7fc3d98a4c35e8d" args="" -->
 vector&lt; <a class="el" href="classvoom_1_1_mechanics_material.html">MechanicsMaterial</a> * &gt;&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classvoom_1_1_mechanics_model.html#abdba86a197a3e053f7fc3d98a4c35e8d">_materials</a></td></tr>
-<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">List of Material data at each element in the model. <br/></td></tr>
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">List of Material data at each QP in the model. <br/></td></tr>
 <tr><td class="memItemLeft" align="right" valign="top">vector&lt; Real &gt;&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classvoom_1_1_mechanics_model.html#a0c96adf9c1e07f5b604a3db9ffe9b750">_field</a></td></tr>
 <tr><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a29fe651bd66bebc10f448c2a1e0cb255"></a><!-- doxytag: member="voom::MechanicsModel::_pressureFlag" ref="a29fe651bd66bebc10f448c2a1e0cb255" args="" -->
 int&nbsp;</td><td class="memItemRight" valign="bottom"><b>_pressureFlag</b></td></tr>
@@ -116,9 +122,21 @@ vector&lt; Real &gt; *&nbsp;</td><td class="memItemRight" valign="bottom"><b>_fo
 vector&lt; Real &gt;&nbsp;</td><td class="memItemRight" valign="bottom"><b>_prevField</b></td></tr>
 <tr><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a8751b1a88f45dc3e93b0c6e59d382c9a"></a><!-- doxytag: member="voom::MechanicsModel::_resetFlag" ref="a8751b1a88f45dc3e93b0c6e59d382c9a" args="" -->
 int&nbsp;</td><td class="memItemRight" valign="bottom"><b>_resetFlag</b></td></tr>
+<tr><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="add2e7412f90d4303b4614e81d038954f"></a><!-- doxytag: member="voom::MechanicsModel::_springBCflag" ref="add2e7412f90d4303b4614e81d038954f" args="" -->
+int&nbsp;</td><td class="memItemRight" valign="bottom"><b>_springBCflag</b></td></tr>
+<tr><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ad0e0b5a13b5d02c4f9e5c007f0a301cc"></a><!-- doxytag: member="voom::MechanicsModel::_spNodes" ref="ad0e0b5a13b5d02c4f9e5c007f0a301cc" args="" -->
+vector&lt; int &gt;&nbsp;</td><td class="memItemRight" valign="bottom"><b>_spNodes</b></td></tr>
+<tr><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a030f1eefe07f95538832872ac49f14af"></a><!-- doxytag: member="voom::MechanicsModel::_spMesh" ref="a030f1eefe07f95538832872ac49f14af" args="" -->
+<a class="el" href="classvoom_1_1_mesh.html">Mesh</a> *&nbsp;</td><td class="memItemRight" valign="bottom"><b>_spMesh</b></td></tr>
+<tr><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ad39c5ea49ea98e819e014020e9a78139"></a><!-- doxytag: member="voom::MechanicsModel::_springK" ref="ad39c5ea49ea98e819e014020e9a78139" args="" -->
+Real&nbsp;</td><td class="memItemRight" valign="bottom"><b>_springK</b></td></tr>
+<tr><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a6065895e3fa89a946d4a28202b60b4f1"></a><!-- doxytag: member="voom::MechanicsModel::_spNodesToEle" ref="a6065895e3fa89a946d4a28202b60b4f1" args="" -->
+vector&lt; vector&lt; int &gt; &gt;&nbsp;</td><td class="memItemRight" valign="bottom"><b>_spNodesToEle</b></td></tr>
+<tr><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aa28b005acf80f71bacf71ae2618ad374"></a><!-- doxytag: member="voom::MechanicsModel::_spNormals" ref="aa28b005acf80f71bacf71ae2618ad374" args="" -->
+vector&lt; Vector3d &gt;&nbsp;</td><td class="memItemRight" valign="bottom"><b>_spNormals</b></td></tr>
 </table>
 <hr/><h2>Constructor &amp; Destructor Documentation</h2>
-<a class="anchor" id="add7088e6811b40dbfe55e32552fc2a10"></a><!-- doxytag: member="voom::MechanicsModel::MechanicsModel" ref="add7088e6811b40dbfe55e32552fc2a10" args="(Mesh *aMesh, vector&lt; MechanicsMaterial * &gt; _materials, const uint NodeDoF, int PressureFlag=0, Mesh *SurfaceMesh=NULL, int NodalForcesFlag=0, int _resetFlag=1)" -->
+<a class="anchor" id="a8b24dd67f8e395576c7d90ee9faf373c"></a><!-- doxytag: member="voom::MechanicsModel::MechanicsModel" ref="a8b24dd67f8e395576c7d90ee9faf373c" args="(Mesh *aMesh, vector&lt; MechanicsMaterial * &gt; Materials, const uint NodeDoF, int PressureFlag=0, Mesh *SurfaceMesh=NULL, int NodalForcesFlag=0, int _resetFlag=1, int _springBCflag=0)" -->
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
@@ -132,7 +150,7 @@ int&nbsp;</td><td class="memItemRight" valign="bottom"><b>_resetFlag</b></td></t
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">vector&lt; <a class="el" href="classvoom_1_1_mechanics_material.html">MechanicsMaterial</a> * &gt;&nbsp;</td>
-          <td class="paramname"> <em>_materials</em>, </td>
+          <td class="paramname"> <em>Materials</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
@@ -162,7 +180,13 @@ int&nbsp;</td><td class="memItemRight" valign="bottom"><b>_resetFlag</b></td></t
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">int&nbsp;</td>
-          <td class="paramname"> <em>_resetFlag</em> = <code>1</code></td><td>&nbsp;</td>
+          <td class="paramname"> <em>_resetFlag</em> = <code>1</code>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&nbsp;</td>
+          <td class="paramname"> <em>_springBCflag</em> = <code>0</code></td><td>&nbsp;</td>
         </tr>
         <tr>
           <td></td>
@@ -214,11 +238,12 @@ int&nbsp;</td><td class="memItemRight" valign="bottom"><b>_resetFlag</b></td></t
 </div>
 </div>
 <hr/>The documentation for this class was generated from the following files:<ul>
-<li>/u/home/a/adityapo/Research/voom2/src/Model/<a class="el" href="_mechanics_model_8h_source.html">MechanicsModel.h</a></li>
-<li>/u/home/a/adityapo/Research/voom2/src/Model/MechanicsModel.cc</li>
+<li>/u/project/cardio/luigiemp/voom2/src/Model/<a class="el" href="_mechanics_model_8h_source.html">MechanicsModel.h</a></li>
+<li>/u/project/cardio/luigiemp/voom2/src/Model/MechanicsModel.cc</li>
+<li>/u/project/cardio/luigiemp/voom2/src/Model/OLD/MechanicsModelOLD.cc</li>
 </ul>
 </div>
-<hr size="1"/><address style="text-align: right;"><small>Generated on 23 Jul 2015 for voom2 by&nbsp;
+<hr size="1"/><address style="text-align: right;"><small>Generated on 22 Jun 2016 for voom2 by&nbsp;
 <a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.6.1 </small></address>
 </body>

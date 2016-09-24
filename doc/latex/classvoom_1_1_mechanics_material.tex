@@ -4,7 +4,7 @@
 }
 
 
-Inherited by \hyperlink{classvoom_1_1_comp_neo_hookean}{voom::CompNeoHookean}, \hyperlink{classvoom_1_1_pass_myo_a}{voom::PassMyoA}, and \hyperlink{classvoom_1_1_plastic_material}{voom::PlasticMaterial}.\subsection*{Classes}
+Inherited by \hyperlink{classvoom_1_1_comp_neo_hookean}{voom::CompNeoHookean}, \hyperlink{classvoom_1_1_guccione}{voom::Guccione}, \hyperlink{classvoom_1_1_holzapfel}{voom::Holzapfel}, \hyperlink{classvoom_1_1_jacobian}{voom::Jacobian}, \hyperlink{classvoom_1_1_pass_myo_a}{voom::PassMyoA}, and \hyperlink{classvoom_1_1_plastic_material}{voom::PlasticMaterial}.\subsection*{Classes}
 \begin{DoxyCompactItemize}
 \item 
 struct \hyperlink{structvoom_1_1_mechanics_material_1_1_f_kresults}{FKresults}
@@ -27,14 +27,14 @@ virtual \hyperlink{classvoom_1_1_mechanics_material}{MechanicsMaterial} $\ast$ \
 \label{classvoom_1_1_mechanics_material_a443b8bae4637df4dcb049185ea272962}
 
 \begin{DoxyCompactList}\small\item\em Clone. \item\end{DoxyCompactList}\item 
-\hypertarget{classvoom_1_1_mechanics_material_a5ea31f34fef964858e089a8585c2d6ae}{
-virtual void \hyperlink{classvoom_1_1_mechanics_material_a5ea31f34fef964858e089a8585c2d6ae}{compute} (\hyperlink{structvoom_1_1_mechanics_material_1_1_f_kresults}{FKresults} \&R, const Matrix3d \&F, Vector3d $\ast$fiber=NULL)=0}
-\label{classvoom_1_1_mechanics_material_a5ea31f34fef964858e089a8585c2d6ae}
+\hypertarget{classvoom_1_1_mechanics_material_a0a78cf77ca39a636e8e2d46f4b141f48}{
+virtual void \hyperlink{classvoom_1_1_mechanics_material_a0a78cf77ca39a636e8e2d46f4b141f48}{compute} (\hyperlink{structvoom_1_1_mechanics_material_1_1_f_kresults}{FKresults} \&R, const Matrix3d \&F)=0}
+\label{classvoom_1_1_mechanics_material_a0a78cf77ca39a636e8e2d46f4b141f48}
 
 \begin{DoxyCompactList}\small\item\em Compute function. \item\end{DoxyCompactList}\item 
-\hypertarget{classvoom_1_1_mechanics_material_af8582d4f201b071a7e2340dd0a0f5769}{
-void \hyperlink{classvoom_1_1_mechanics_material_af8582d4f201b071a7e2340dd0a0f5769}{checkConsistency} (\hyperlink{structvoom_1_1_mechanics_material_1_1_f_kresults}{FKresults} \&R, const Matrix3d \&F, Vector3d $\ast$fiber=NULL, const Real h=1.0e-\/7, const Real tol=1.0e-\/6)}
-\label{classvoom_1_1_mechanics_material_af8582d4f201b071a7e2340dd0a0f5769}
+\hypertarget{classvoom_1_1_mechanics_material_a605d5ba240e3ef64b1a30599f48db6db}{
+void \hyperlink{classvoom_1_1_mechanics_material_a605d5ba240e3ef64b1a30599f48db6db}{checkConsistency} (\hyperlink{structvoom_1_1_mechanics_material_1_1_f_kresults}{FKresults} \&R, const Matrix3d \&F, const Real h=1.0e-\/7, const Real tol=1.0e-\/6)}
+\label{classvoom_1_1_mechanics_material_a605d5ba240e3ef64b1a30599f48db6db}
 
 \begin{DoxyCompactList}\small\item\em Consistency Check for all Mecahnics Material Classes. \item\end{DoxyCompactList}\item 
 \hypertarget{classvoom_1_1_mechanics_material_ac629ead3dfd57c34e67fb4f358d8c77f}{
@@ -104,5 +104,5 @@ int {\bfseries \_\-matID}}
 
 The documentation for this class was generated from the following files:\begin{DoxyCompactItemize}
 \item 
-/u/home/a/adityapo/Research/voom2/src/Material/MechanicsMaterial.h\item 
-/u/home/a/adityapo/Research/voom2/src/Material/MechanicsMaterial.cc\end{DoxyCompactItemize}
+/u/project/cardio/luigiemp/voom2/src/Material/MechanicsMaterial.h\item 
+/u/project/cardio/luigiemp/voom2/src/Material/MechanicsMaterial.cc\end{DoxyCompactItemize}

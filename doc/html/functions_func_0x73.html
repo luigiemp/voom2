@@ -80,9 +80,6 @@
 <li>setDirectionVectors()
 : <a class="el" href="classvoom_1_1_plastic_material.html#adeed31ed97955b441efa8beeb56ce7e1">voom::PlasticMaterial</a>
 </li>
-<li>setFibers()
-: <a class="el" href="classvoom_1_1_mesh.html#a85244420c5b19505f93bfe41b9a93c92">voom::Mesh</a>
-</li>
 <li>setHardeningParameters()
 : <a class="el" href="classvoom_1_1_plastic_material.html#ab958d2ac32859e9ffab6e196e09fd5cd">voom::PlasticMaterial</a>
 </li>
@@ -104,6 +101,9 @@
 </li>
 <li>setMaterialParameters()
 : <a class="el" href="classvoom_1_1_comp_neo_hookean.html#adbd6b2e63c86293b5d50ad46e19da831">voom::CompNeoHookean</a>
+, <a class="el" href="classvoom_1_1_guccione.html#a2276b4a19057e2c16cf0fd1bba44ba00">voom::Guccione</a>
+, <a class="el" href="classvoom_1_1_holzapfel.html#a7eac5d118f15c02b42bccd3611a0597a">voom::Holzapfel</a>
+, <a class="el" href="classvoom_1_1_jacobian.html#a4a5526b4c0e160d7d9c9acdde116aa24">voom::Jacobian</a>
 , <a class="el" href="classvoom_1_1_mechanics_material.html#ac629ead3dfd57c34e67fb4f358d8c77f">voom::MechanicsMaterial</a>
 , <a class="el" href="classvoom_1_1_pass_myo_a.html#aed01249dfdcb6fb10df34160872addf6">voom::PassMyoA</a>
 , <a class="el" href="classvoom_1_1_plastic_material.html#aaa65a7b7dc8aac8078ba6f4e18c2ded4">voom::PlasticMaterial</a>
@@ -112,11 +112,10 @@
 : <a class="el" href="classvoom_1_1_e_p_solver.html#a5d21fb473643d546d40c6f3ac6ecaecd">voom::EPSolver</a>
 </li>
 <li>setRate()
-: <a class="el" href="classvoom_1_1_ionic_material.html#a604eb2e996c55355a0a421ecdf2a0ffc">voom::IonicMaterial</a>
+: <a class="el" href="classvoom_1_1_ionic_material.html#ab77d8356cf923c8af2a630a4d678300e">voom::IonicMaterial</a>
 </li>
 <li>setResidual()
-: <a class="el" href="structvoom_1_1_epetra_elliptic_result.html#ae1bc6da535080844bb4d6e437c7b6a87">voom::EpetraEllipticResult</a>
-, <a class="el" href="structvoom_1_1_eigen_elliptic_result.html#a135890b43c0f9c3a338ca17f743d8966">voom::EigenEllipticResult</a>
+: <a class="el" href="structvoom_1_1_eigen_elliptic_result.html#a135890b43c0f9c3a338ca17f743d8966">voom::EigenEllipticResult</a>
 , <a class="el" href="structvoom_1_1_epetra_elliptic_result.html#ae1bc6da535080844bb4d6e437c7b6a87">voom::EpetraEllipticResult</a>
 </li>
 <li>setState()
@@ -129,7 +128,7 @@
 : <a class="el" href="classvoom_1_1_plastic_material.html#a0f9289951fce0ea5f41905aa2ee86a10">voom::PlasticMaterial</a>
 </li>
 <li>setu()
-: <a class="el" href="classvoom_1_1_mechanics_node.html#af20141b233b0dc97cf69f78d78be1845">voom::MechanicsNode</a>
+: <a class="el" href="classvoom_1_1_mechanics_node.html#a280fe5d1ca89fea539acaec37425e574">voom::MechanicsNode</a>
 </li>
 <li>setX()
 : <a class="el" href="classvoom_1_1_field_node.html#a766de8ed257fa4db8a4bf90c6fe24f15">voom::FieldNode</a>
@@ -140,28 +139,26 @@
 <li>Shape()
 : <a class="el" href="classvoom_1_1_shape.html#af394d29af8e1bedba39a0db73a258d1e">voom::Shape</a>
 </li>
-<li>solve()
-: <a class="el" href="classvoom_1_1_l_b_f_g_s_b.html#a6cf27127b3b19100b5d7e21d84ab6995">voom::LBFGSB</a>
-</li>
-<li>Solve()
-: <a class="el" href="classvoom_1_1_e_p___crank_nicholson.html#a6be9e6e44b8fa95b085b661700eded66">voom::EP_CrankNicholson</a>
-</li>
-<li>solve()
-: <a class="el" href="classvoom_1_1_eigen_n_rsolver.html#a77322c0870ebd3cb945f470eeef6e109">voom::EigenNRsolver</a>
-</li>
 <li>Solve()
 : <a class="el" href="classvoom_1_1_mechanics_solver.html#ae2e76cd8dca609a2303bcd0783727a42">voom::MechanicsSolver&lt; nodeType, dim &gt;</a>
-, <a class="el" href="classvoom_1_1_e_p_solver.html#a4eedcdb113d7c15df7b23dd69dc46e0e">voom::EPSolver</a>
 </li>
 <li>solve()
 : <a class="el" href="classvoom_1_1_epetra_n_rsolver.html#af4f00db1556eede3b832bf6150521d37">voom::EpetraNRsolver</a>
+</li>
+<li>Solve()
+: <a class="el" href="classvoom_1_1_e_p_solver.html#a4eedcdb113d7c15df7b23dd69dc46e0e">voom::EPSolver</a>
+, <a class="el" href="classvoom_1_1_e_p___crank_nicholson.html#a6be9e6e44b8fa95b085b661700eded66">voom::EP_CrankNicholson</a>
+</li>
+<li>solve()
+: <a class="el" href="classvoom_1_1_eigen_n_rsolver.html#a77322c0870ebd3cb945f470eeef6e109">voom::EigenNRsolver</a>
+, <a class="el" href="classvoom_1_1_l_b_f_g_s_b.html#a6cf27127b3b19100b5d7e21d84ab6995">voom::LBFGSB</a>
 </li>
 <li>Solver()
 : <a class="el" href="classvoom_1_1_solver.html#a3ce583fb0f21f2c09cf2a7157f283d36">voom::Solver</a>
 </li>
 </ul>
 </div>
-<hr size="1"/><address style="text-align: right;"><small>Generated on 23 Jul 2015 for voom2 by&nbsp;
+<hr size="1"/><address style="text-align: right;"><small>Generated on 22 Jun 2016 for voom2 by&nbsp;
 <a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.6.1 </small></address>
 </body>

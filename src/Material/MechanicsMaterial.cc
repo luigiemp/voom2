@@ -3,10 +3,10 @@
 namespace voom
 {
 
-  void MechanicsMaterial::checkConsistency(FKresults & R, const Matrix3d & F, Vector3d * Fiber,
+  void MechanicsMaterial::checkConsistency(FKresults & R, const Matrix3d & F,
 					   const Real h, const Real tol)
   {
-    this->compute(R,F,Fiber);
+    this->compute(R,F);
     Real Wplus = 0.0, Wminus = 0.0, Pnum = 0.0, Cnum = 0.0, error = 0.0;
     Matrix3d Pan = R.P, Floc = F, Pplus, Pminus;
     Pplus << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
@@ -21,11 +21,11 @@ namespace voom
 	for (unsigned int J = 0; J<3; J++) {
 
 	  Floc(i,J) += h;
-	  this->compute(R,Floc,Fiber);
+	  this->compute(R,Floc);
 	  Wplus = R.W;
 
 	  Floc(i,J) -= 2.0*h;
-	  this->compute(R,Floc,Fiber);
+	  this->compute(R,Floc);
 	  Wminus = R.W;
 
 	  Floc(i,J) += h;
@@ -56,11 +56,11 @@ namespace voom
 	    for (unsigned int L = 0; L<3; L++) {
     
                 Floc(k,L) += h;
-		this->compute(R,Floc,Fiber);
+		this->compute(R,Floc);
 		Pplus = R.P;
 
 		Floc(k,L) -= 2.0*h;
-		this->compute(R,Floc,Fiber);
+		this->compute(R,Floc);
 		Pminus = R.P;
 
 		Floc(k,L) += h;
@@ -94,12 +94,12 @@ namespace voom
       for (unsigned int a = 0; a < NumMat; a++) {
 	MatProp[a] += h;
 	this->setMaterialParameters(MatProp);
-	this->compute(R,Floc,Fiber);
+	this->compute(R,Floc);
 	Pplus = R.P;
 
 	MatProp[a] -= 2.0*h;
 	this->setMaterialParameters(MatProp);
-	this->compute(R,Floc,Fiber);
+	this->compute(R,Floc);
 	Pminus = R.P;
 	
 	MatProp[a] += h;
@@ -123,12 +123,12 @@ namespace voom
 	for (unsigned int b = 0; b < NumMat; b++) {
 	  MatProp[b] += h;
 	  this->setMaterialParameters(MatProp);
-	  this->compute(R,Floc,Fiber);
+	  this->compute(R,Floc);
 	  DmatPlus = R.Dmat;
 
 	  MatProp[b] -= 2.0*h;
 	  this->setMaterialParameters(MatProp);
-	  this->compute(R,Floc,Fiber);
+	  this->compute(R,Floc);
 	  DmatMinus = R.Dmat;
 	
 	  MatProp[b] += h;

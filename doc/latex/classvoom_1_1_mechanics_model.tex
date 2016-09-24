@@ -7,7 +7,7 @@
 Inherits \hyperlink{classvoom_1_1_elliptic_model}{voom::EllipticModel}.\subsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
-\hyperlink{classvoom_1_1_mechanics_model_add7088e6811b40dbfe55e32552fc2a10}{MechanicsModel} (\hyperlink{classvoom_1_1_mesh}{Mesh} $\ast$aMesh, vector$<$ \hyperlink{classvoom_1_1_mechanics_material}{MechanicsMaterial} $\ast$ $>$ \hyperlink{classvoom_1_1_mechanics_model_abdba86a197a3e053f7fc3d98a4c35e8d}{\_\-materials}, const uint NodeDoF, int PressureFlag=0, \hyperlink{classvoom_1_1_mesh}{Mesh} $\ast$SurfaceMesh=NULL, int NodalForcesFlag=0, int \_\-resetFlag=1)
+\hyperlink{classvoom_1_1_mechanics_model_a8b24dd67f8e395576c7d90ee9faf373c}{MechanicsModel} (\hyperlink{classvoom_1_1_mesh}{Mesh} $\ast$aMesh, vector$<$ \hyperlink{classvoom_1_1_mechanics_material}{MechanicsMaterial} $\ast$ $>$ Materials, const uint NodeDoF, int PressureFlag=0, \hyperlink{classvoom_1_1_mesh}{Mesh} $\ast$SurfaceMesh=NULL, int NodalForcesFlag=0, int \_\-resetFlag=1, int \_\-springBCflag=0)
 \begin{DoxyCompactList}\small\item\em Basic Constructor. \item\end{DoxyCompactList}\item 
 \hyperlink{classvoom_1_1_mechanics_model_a39cab4fab5f26d8bf83e63a6d91e33f6}{$\sim$MechanicsModel} ()
 \begin{DoxyCompactList}\small\item\em Input-\/file-\/based Constructor. \item\end{DoxyCompactList}\item 
@@ -125,6 +125,21 @@ void {\bfseries updateNodalForces} (vector$<$ int $>$ $\ast$ForcesID, vector$<$ 
 void {\bfseries checkDmat} (\hyperlink{structvoom_1_1_eigen_elliptic_result}{EigenEllipticResult} \&R, Real perturbationFactor, Real h, Real tol)}
 \label{classvoom_1_1_mechanics_model_a5523c57bc22db1193a3dd52edd46d1bc}
 
+\item 
+\hypertarget{classvoom_1_1_mechanics_model_af9b1594af982c78afa3f881ea6d6da8a}{
+void {\bfseries initSpringBC} (const string SpNodes, \hyperlink{classvoom_1_1_mesh}{Mesh} $\ast$SpMesh, Real SpringK)}
+\label{classvoom_1_1_mechanics_model_af9b1594af982c78afa3f881ea6d6da8a}
+
+\item 
+\hypertarget{classvoom_1_1_mechanics_model_a9c66d41d4334f8e9b1376aef9136ceda}{
+void {\bfseries computeNormals} ()}
+\label{classvoom_1_1_mechanics_model_a9c66d41d4334f8e9b1376aef9136ceda}
+
+\item 
+\hypertarget{classvoom_1_1_mechanics_model_a10f2985362e2fc641a59a0d3d8a5e5a8}{
+vector$<$ Triplet$<$ Real $>$ $>$ {\bfseries applySpringBC} (\hyperlink{structvoom_1_1_elliptic_result}{EllipticResult} \&R)}
+\label{classvoom_1_1_mechanics_model_a10f2985362e2fc641a59a0d3d8a5e5a8}
+
 \end{DoxyCompactItemize}
 \subsection*{Protected Member Functions}
 \begin{DoxyCompactItemize}
@@ -141,7 +156,7 @@ void \hyperlink{classvoom_1_1_mechanics_model_aa44a8b08dc23ea0279ed2bf6b78e56f8}
 vector$<$ \hyperlink{classvoom_1_1_mechanics_material}{MechanicsMaterial} $\ast$ $>$ \hyperlink{classvoom_1_1_mechanics_model_abdba86a197a3e053f7fc3d98a4c35e8d}{\_\-materials}}
 \label{classvoom_1_1_mechanics_model_abdba86a197a3e053f7fc3d98a4c35e8d}
 
-\begin{DoxyCompactList}\small\item\em List of Material data at each element in the model. \item\end{DoxyCompactList}\item 
+\begin{DoxyCompactList}\small\item\em List of Material data at each QP in the model. \item\end{DoxyCompactList}\item 
 vector$<$ Real $>$ \hyperlink{classvoom_1_1_mechanics_model_a0c96adf9c1e07f5b604a3db9ffe9b750}{\_\-field}
 \item 
 \hypertarget{classvoom_1_1_mechanics_model_a29fe651bd66bebc10f448c2a1e0cb255}{
@@ -183,15 +198,45 @@ vector$<$ Real $>$ {\bfseries \_\-prevField}}
 int {\bfseries \_\-resetFlag}}
 \label{classvoom_1_1_mechanics_model_a8751b1a88f45dc3e93b0c6e59d382c9a}
 
+\item 
+\hypertarget{classvoom_1_1_mechanics_model_add2e7412f90d4303b4614e81d038954f}{
+int {\bfseries \_\-springBCflag}}
+\label{classvoom_1_1_mechanics_model_add2e7412f90d4303b4614e81d038954f}
+
+\item 
+\hypertarget{classvoom_1_1_mechanics_model_ad0e0b5a13b5d02c4f9e5c007f0a301cc}{
+vector$<$ int $>$ {\bfseries \_\-spNodes}}
+\label{classvoom_1_1_mechanics_model_ad0e0b5a13b5d02c4f9e5c007f0a301cc}
+
+\item 
+\hypertarget{classvoom_1_1_mechanics_model_a030f1eefe07f95538832872ac49f14af}{
+\hyperlink{classvoom_1_1_mesh}{Mesh} $\ast$ {\bfseries \_\-spMesh}}
+\label{classvoom_1_1_mechanics_model_a030f1eefe07f95538832872ac49f14af}
+
+\item 
+\hypertarget{classvoom_1_1_mechanics_model_ad39c5ea49ea98e819e014020e9a78139}{
+Real {\bfseries \_\-springK}}
+\label{classvoom_1_1_mechanics_model_ad39c5ea49ea98e819e014020e9a78139}
+
+\item 
+\hypertarget{classvoom_1_1_mechanics_model_a6065895e3fa89a946d4a28202b60b4f1}{
+vector$<$ vector$<$ int $>$ $>$ {\bfseries \_\-spNodesToEle}}
+\label{classvoom_1_1_mechanics_model_a6065895e3fa89a946d4a28202b60b4f1}
+
+\item 
+\hypertarget{classvoom_1_1_mechanics_model_aa28b005acf80f71bacf71ae2618ad374}{
+vector$<$ Vector3d $>$ {\bfseries \_\-spNormals}}
+\label{classvoom_1_1_mechanics_model_aa28b005acf80f71bacf71ae2618ad374}
+
 \end{DoxyCompactItemize}
 
 
 \subsection{Constructor \& Destructor Documentation}
-\hypertarget{classvoom_1_1_mechanics_model_add7088e6811b40dbfe55e32552fc2a10}{
+\hypertarget{classvoom_1_1_mechanics_model_a8b24dd67f8e395576c7d90ee9faf373c}{
 \index{voom::MechanicsModel@{voom::MechanicsModel}!MechanicsModel@{MechanicsModel}}
 \index{MechanicsModel@{MechanicsModel}!voom::MechanicsModel@{voom::MechanicsModel}}
-\subsubsection[{MechanicsModel}]{\setlength{\rightskip}{0pt plus 5cm}voom::MechanicsModel::MechanicsModel ({\bf Mesh} $\ast$ {\em aMesh}, \/  vector$<$ {\bf MechanicsMaterial} $\ast$ $>$ {\em \_\-materials}, \/  const uint {\em NodeDoF}, \/  int {\em PressureFlag} = {\ttfamily 0}, \/  {\bf Mesh} $\ast$ {\em SurfaceMesh} = {\ttfamily NULL}, \/  int {\em NodalForcesFlag} = {\ttfamily 0}, \/  int {\em \_\-resetFlag} = {\ttfamily 1})}}
-\label{classvoom_1_1_mechanics_model_add7088e6811b40dbfe55e32552fc2a10}
+\subsubsection[{MechanicsModel}]{\setlength{\rightskip}{0pt plus 5cm}voom::MechanicsModel::MechanicsModel ({\bf Mesh} $\ast$ {\em aMesh}, \/  vector$<$ {\bf MechanicsMaterial} $\ast$ $>$ {\em Materials}, \/  const uint {\em NodeDoF}, \/  int {\em PressureFlag} = {\ttfamily 0}, \/  {\bf Mesh} $\ast$ {\em SurfaceMesh} = {\ttfamily NULL}, \/  int {\em NodalForcesFlag} = {\ttfamily 0}, \/  int {\em \_\-resetFlag} = {\ttfamily 1}, \/  int {\em \_\-springBCflag} = {\ttfamily 0})}}
+\label{classvoom_1_1_mechanics_model_a8b24dd67f8e395576c7d90ee9faf373c}
 
 
 Basic Constructor. Construct from basic data structures defining the mesh, materials, BCs. \hypertarget{classvoom_1_1_mechanics_model_a39cab4fab5f26d8bf83e63a6d91e33f6}{
@@ -213,5 +258,6 @@ Solution value at all nodes, local and ghost Displacement are stored unrolled, \
 
 The documentation for this class was generated from the following files:\begin{DoxyCompactItemize}
 \item 
-/u/home/a/adityapo/Research/voom2/src/Model/MechanicsModel.h\item 
-/u/home/a/adityapo/Research/voom2/src/Model/MechanicsModel.cc\end{DoxyCompactItemize}
+/u/project/cardio/luigiemp/voom2/src/Model/MechanicsModel.h\item 
+/u/project/cardio/luigiemp/voom2/src/Model/MechanicsModel.cc\item 
+/u/project/cardio/luigiemp/voom2/src/Model/OLD/MechanicsModelOLD.cc\end{DoxyCompactItemize}

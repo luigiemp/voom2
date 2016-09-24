@@ -36,6 +36,7 @@ namespace voom
     void set(uint i, uint j, uint k, uint l, Real a) {
       A[i + _sizeI*(j + _sizeJ*(k + l*_sizeK))] = a;
     };
+
     Real get(uint i, uint j, uint k, uint l)  {
       return A[i + _sizeI*(j + _sizeJ*(k + l*_sizeK))];
     };

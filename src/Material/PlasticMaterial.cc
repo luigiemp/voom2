@@ -173,7 +173,7 @@ namespace voom
 		return d2WdQ2;
 	}
 	// TODO: Change the compute function to take vector<Vector3d> for all three directions.
-	void PlasticMaterial::compute(FKresults & R, const Matrix3d & Fnp1, Vector3d * fiber)
+  void PlasticMaterial::compute(FKresults & R, const Matrix3d & Fnp1, vector<Vector3d * > * Fibers)
 	{
 		//cout << R.request << endl;
 		_Fnp1 = Fnp1;

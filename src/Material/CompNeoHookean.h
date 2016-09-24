@@ -63,7 +63,7 @@ namespace voom {
     
     // Operators
     //! Based on deformation gradient tensor F, calculates state of material
-    void compute(FKresults & R, const Matrix3d & F, Vector3d * Fiber = NULL);
+    void compute(FKresults & R, const Matrix3d & F);
 
     //! Tells if material has history variables and needs to be duplicated at each quadrature point
     // It is used in the Model derived classes

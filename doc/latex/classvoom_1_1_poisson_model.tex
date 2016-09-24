@@ -7,9 +7,9 @@
 Inherits \hyperlink{classvoom_1_1_elliptic_model}{voom::EllipticModel}.\subsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
-\hypertarget{classvoom_1_1_poisson_model_aab711862cd787889ea7c472523b15ed1}{
-\hyperlink{classvoom_1_1_poisson_model_aab711862cd787889ea7c472523b15ed1}{PoissonModel} (\hyperlink{classvoom_1_1_mesh}{Mesh} $\ast$myMesh, const vector$<$ string $>$ \&ElMatType, const map$<$ string, \hyperlink{classvoom_1_1_diffusion_material}{DiffusionMaterial} $\ast$ $>$ \&ElMaterials)}
-\label{classvoom_1_1_poisson_model_aab711862cd787889ea7c472523b15ed1}
+\hypertarget{classvoom_1_1_poisson_model_abc08b62e56271ce2f4cfd51535ebea4a}{
+\hyperlink{classvoom_1_1_poisson_model_abc08b62e56271ce2f4cfd51535ebea4a}{PoissonModel} (\hyperlink{classvoom_1_1_mesh}{Mesh} $\ast$myMesh, vector$<$ \hyperlink{classvoom_1_1_diffusion_material}{DiffusionMaterial} $\ast$ $>$ Materials, const uint NodeDoF)}
+\label{classvoom_1_1_poisson_model_abc08b62e56271ce2f4cfd51535ebea4a}
 
 \begin{DoxyCompactList}\small\item\em Constructor. \item\end{DoxyCompactList}\item 
 \hypertarget{classvoom_1_1_poisson_model_ad86ec594230a943038a85a6ff491d200}{
@@ -27,14 +27,19 @@ void \hyperlink{classvoom_1_1_poisson_model_a6ee2770be3608c762c20cb83806d98d2}{i
 \label{classvoom_1_1_poisson_model_a6ee2770be3608c762c20cb83806d98d2}
 
 \begin{DoxyCompactList}\small\item\em From array. \item\end{DoxyCompactList}\item 
-\hypertarget{classvoom_1_1_poisson_model_a092fb6b43a79418df497d1500beb49f0}{
-void \hyperlink{classvoom_1_1_poisson_model_a092fb6b43a79418df497d1500beb49f0}{linearizedUpdate} (const Real $\ast$localValues, const Real $\ast$ghostValues)}
-\label{classvoom_1_1_poisson_model_a092fb6b43a79418df497d1500beb49f0}
+\hypertarget{classvoom_1_1_poisson_model_a5722990a785e745f112166841f6c828e}{
+void \hyperlink{classvoom_1_1_poisson_model_a5722990a785e745f112166841f6c828e}{linearizedUpdate} (const Real $\ast$localValues, Real fact=1.0)}
+\label{classvoom_1_1_poisson_model_a5722990a785e745f112166841f6c828e}
 
-\begin{DoxyCompactList}\small\item\em Linearized update (local and ghost solution). \item\end{DoxyCompactList}\item 
+\begin{DoxyCompactList}\small\item\em Linearized update. \item\end{DoxyCompactList}\item 
 \hypertarget{classvoom_1_1_poisson_model_a87b6ce39234402175a8e013195fd67b7}{
 void {\bfseries linearizedUpdate} (const int id, const int dof, const Real value)}
 \label{classvoom_1_1_poisson_model_a87b6ce39234402175a8e013195fd67b7}
+
+\item 
+\hypertarget{classvoom_1_1_poisson_model_a32d75d3425514ae500ed114ca1602d26}{
+void {\bfseries linearizedUpdate} (const int dof, const Real value)}
+\label{classvoom_1_1_poisson_model_a32d75d3425514ae500ed114ca1602d26}
 
 \item 
 \hypertarget{classvoom_1_1_poisson_model_ad2c5fd263fd83a5f658795d015b61ffb}{
@@ -42,45 +47,68 @@ void {\bfseries setField} (uint dof, Real value)}
 \label{classvoom_1_1_poisson_model_ad2c5fd263fd83a5f658795d015b61ffb}
 
 \item 
-\hypertarget{classvoom_1_1_poisson_model_a9b691b10ceb50f16e41dd3aef9a2f018}{
-void {\bfseries PrintField} ()}
-\label{classvoom_1_1_poisson_model_a9b691b10ceb50f16e41dd3aef9a2f018}
+\hypertarget{classvoom_1_1_poisson_model_a48a0505273d667ad080c6644df9a557d}{
+void {\bfseries setField} (const Real $\ast$value)}
+\label{classvoom_1_1_poisson_model_a48a0505273d667ad080c6644df9a557d}
 
 \item 
-\hypertarget{classvoom_1_1_poisson_model_a66e9190970d630ca289a1afdcfbc8aee}{
-void \hyperlink{classvoom_1_1_poisson_model_a66e9190970d630ca289a1afdcfbc8aee}{writeOutput} (const string OutputFile, const string format=\char`\"{}BINARY\char`\"{})}
-\label{classvoom_1_1_poisson_model_a66e9190970d630ca289a1afdcfbc8aee}
+\hypertarget{classvoom_1_1_poisson_model_a753269675e38528ea7b19d97641b4cca}{
+void {\bfseries setPrevField} ()}
+\label{classvoom_1_1_poisson_model_a753269675e38528ea7b19d97641b4cca}
+
+\item 
+\hypertarget{classvoom_1_1_poisson_model_ab4e2aea1aa9ed07af4bb9586adfd6d03}{
+void {\bfseries getField} (vector$<$ double $>$ \&x)}
+\label{classvoom_1_1_poisson_model_ab4e2aea1aa9ed07af4bb9586adfd6d03}
+
+\item 
+\hypertarget{classvoom_1_1_poisson_model_a7dd4fb8adfc12949dcd58cdff1e719c8}{
+void {\bfseries printField} ()}
+\label{classvoom_1_1_poisson_model_a7dd4fb8adfc12949dcd58cdff1e719c8}
+
+\item 
+\hypertarget{classvoom_1_1_poisson_model_aec86d71b58935c094633a624f88db0b3}{
+uint \hyperlink{classvoom_1_1_poisson_model_aec86d71b58935c094633a624f88db0b3}{getNumMat} ()}
+\label{classvoom_1_1_poisson_model_aec86d71b58935c094633a624f88db0b3}
+
+\begin{DoxyCompactList}\small\item\em Return number of unique material pointers. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_poisson_model_ae9eb61d294ec2a4df697f40e4395d2e9}{
+void \hyperlink{classvoom_1_1_poisson_model_ae9eb61d294ec2a4df697f40e4395d2e9}{writeOutputVTK} (const string OutputFile, int step)}
+\label{classvoom_1_1_poisson_model_ae9eb61d294ec2a4df697f40e4395d2e9}
 
 \begin{DoxyCompactList}\small\item\em Write output. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_poisson_model_a3fec9c7ffa0019db13f26f819d3c503e}{
+void {\bfseries writeOutput} (const string OutputFile, const string format)}
+\label{classvoom_1_1_poisson_model_a3fec9c7ffa0019db13f26f819d3c503e}
+
+\item 
 \hypertarget{classvoom_1_1_poisson_model_abebe125119aedfef8e067e1ef35dae57}{
 void \hyperlink{classvoom_1_1_poisson_model_abebe125119aedfef8e067e1ef35dae57}{compute} (\hyperlink{structvoom_1_1_elliptic_result}{EllipticResult} \&result)}
 \label{classvoom_1_1_poisson_model_abebe125119aedfef8e067e1ef35dae57}
 
 \begin{DoxyCompactList}\small\item\em Solve the system. \item\end{DoxyCompactList}\end{DoxyCompactItemize}
-\subsection*{Protected Member Functions}
-\begin{DoxyCompactItemize}
-\item 
-\hypertarget{classvoom_1_1_poisson_model_a3e6a10280942063968d9fb80fade83c4}{
-\hyperlink{classvoom_1_1_poisson_model_a3e6a10280942063968d9fb80fade83c4}{PoissonModel} ()}
-\label{classvoom_1_1_poisson_model_a3e6a10280942063968d9fb80fade83c4}
-
-\begin{DoxyCompactList}\small\item\em Return component of residual vector given nodal id and DoF. \item\end{DoxyCompactList}\end{DoxyCompactItemize}
 \subsection*{Protected Attributes}
 \begin{DoxyCompactItemize}
 \item 
-\hypertarget{classvoom_1_1_poisson_model_aa719cf6337a762f803f389ad39192057}{
-vector$<$ \hyperlink{classvoom_1_1_diffusion_material}{DiffusionMaterial} $\ast$ $>$ \hyperlink{classvoom_1_1_poisson_model_aa719cf6337a762f803f389ad39192057}{\_\-materials}}
-\label{classvoom_1_1_poisson_model_aa719cf6337a762f803f389ad39192057}
+\hypertarget{classvoom_1_1_poisson_model_ae0f6c86849f8dc795a749b14d8189b02}{
+vector$<$ \hyperlink{classvoom_1_1_diffusion_material}{DiffusionMaterial} $\ast$ $>$ \hyperlink{classvoom_1_1_poisson_model_ae0f6c86849f8dc795a749b14d8189b02}{\_\-materials}}
+\label{classvoom_1_1_poisson_model_ae0f6c86849f8dc795a749b14d8189b02}
 
 \begin{DoxyCompactList}\small\item\em List of material data at each quad point in the model. \item\end{DoxyCompactList}\item 
 \hypertarget{classvoom_1_1_poisson_model_af09bf3fbb7500cf5ee7547cd26ee7cb0}{
 vector$<$ Real $>$ \hyperlink{classvoom_1_1_poisson_model_af09bf3fbb7500cf5ee7547cd26ee7cb0}{\_\-field}}
 \label{classvoom_1_1_poisson_model_af09bf3fbb7500cf5ee7547cd26ee7cb0}
 
-\begin{DoxyCompactList}\small\item\em Solution value at all nodes, local and ghost. \item\end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em Solution value at all nodes, local and ghost. \item\end{DoxyCompactList}\item 
+\hypertarget{classvoom_1_1_poisson_model_aa69723311e235a2e6904720af3a730a5}{
+vector$<$ Real $>$ {\bfseries \_\-prevField}}
+\label{classvoom_1_1_poisson_model_aa69723311e235a2e6904720af3a730a5}
+
+\end{DoxyCompactItemize}
 
 
 The documentation for this class was generated from the following files:\begin{DoxyCompactItemize}
 \item 
-/u/home/a/adityapo/Research/voom2/src/Model/PoissonModel.h\item 
-/u/home/a/adityapo/Research/voom2/src/Model/PoissonModel.cc\end{DoxyCompactItemize}
+/u/project/cardio/luigiemp/voom2/src/Model/PoissonModel.h\item 
+/u/project/cardio/luigiemp/voom2/src/Model/PoissonModel.cc\item 
+/u/project/cardio/luigiemp/voom2/src/Model/PoissonModelOLD.cc\end{DoxyCompactItemize}

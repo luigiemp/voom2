@@ -26,9 +26,25 @@ class \hyperlink{classvoom_1_1_comp_neo_hookean}{CompNeoHookean}
 \item 
 class \hyperlink{classvoom_1_1_diffusion_material}{DiffusionMaterial}
 \item 
+class \hyperlink{classvoom_1_1_guccione}{Guccione}
+\item 
+class \hyperlink{classvoom_1_1_holzapfel}{Holzapfel}
+\item 
 class \hyperlink{classvoom_1_1_isotropic_diffusion}{IsotropicDiffusion}
 \item 
+class \hyperlink{classvoom_1_1_jacobian}{Jacobian}
+\item 
 class \hyperlink{classvoom_1_1_mechanics_material}{MechanicsMaterial}
+\item 
+struct \hyperlink{structvoom_1_1_material_results}{MaterialResults}
+\item 
+struct \hyperlink{structvoom_1_1_f_kresults}{FKresults}
+\item 
+struct \hyperlink{structvoom_1_1_e_presults}{EPresults}
+\item 
+class \hyperlink{classvoom_1_1_mechanic_material}{MechanicMaterial}
+\item 
+class \hyperlink{classvoom_1_1_e_p_material}{EPMaterial}
 \item 
 class \hyperlink{classvoom_1_1_pass_myo_a}{PassMyoA}
 \item 
@@ -110,6 +126,8 @@ class \hyperlink{classvoom_1_1_quad_tri_shape}{QuadTriShape}
 \item 
 class \hyperlink{classvoom_1_1_shape}{Shape}
 \item 
+class \hyperlink{classvoom_1_1_l_m_e_shape3_d}{LMEShape3D}
+\item 
 class \hyperlink{classvoom_1_1_eigen_n_rsolver}{EigenNRsolver}
 \item 
 class \hyperlink{classvoom_1_1_e_p___crank_nicholson}{EP\_\-CrankNicholson}
@@ -121,6 +139,8 @@ class \hyperlink{classvoom_1_1_e_p_solver}{EPSolver}
 class \hyperlink{classvoom_1_1_l_b_f_g_s_b}{LBFGSB}
 \item 
 class \hyperlink{classvoom_1_1_mechanics_solver}{MechanicsSolver}
+\item 
+struct \hyperlink{structvoom_1_1_epetra_diff_res}{EpetraDiffRes}
 \item 
 class \hyperlink{classvoom_1_1_solver}{Solver}
 \item 
@@ -200,6 +220,21 @@ enum \hyperlink{namespacevoom_a449acd18e685696f17351ba84a9ac7fb}{ComputeRequest}
 \subsection*{Functions}
 \begin{DoxyCompactItemize}
 \item 
+\hypertarget{namespacevoom_a0fc16b6df880da9ce71c59a0b154a69f}{
+inp {\bfseries close} ()}
+\label{namespacevoom_a0fc16b6df880da9ce71c59a0b154a69f}
+
+\item 
+\hypertarget{namespacevoom_a74dedd3125bcc5508111ca6c4c96afdc}{
+{\bfseries for} (uint e=0;e$<$ elements.size();e++) for(uint qp=0}
+\label{namespacevoom_a74dedd3125bcc5508111ca6c4c96afdc}
+
+\item 
+\hypertarget{namespacevoom_a307df5655294fdce7cd310059ec404cf}{
+qp$<$ elements\mbox{[}i\mbox{]}-\/$>$ {\bfseries getNumberOfQuadPoints} ()}
+\label{namespacevoom_a307df5655294fdce7cd310059ec404cf}
+
+\item 
 \hypertarget{namespacevoom_af2702eef77261bb83ce6aa820c102d1a}{
 {\bfseries EP\_\-CrankNicholson} (Epetra\_\-MpiComm $\ast$comm, const \hyperlink{classvoom_1_1_model}{Model} \&model, EPetraEPResult \&result)}
 \label{namespacevoom_af2702eef77261bb83ce6aa820c102d1a}
@@ -245,6 +280,14 @@ Matrix3d {\bfseries VoomExpSymmMatrix} (const Matrix3d \&A)}
 \hypertarget{namespacevoom_ad79c23f3d8d827d5b671afa1c5f8c028}{
 Real {\bfseries square} (Real a)}
 \label{namespacevoom_ad79c23f3d8d827d5b671afa1c5f8c028}
+
+\end{DoxyCompactItemize}
+\subsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{namespacevoom_a9adc9296c35fe063d642842663379268}{
+const vector$<$ \hyperlink{classvoom_1_1_geom_element}{GeomElement} $\ast$ $>$ {\bfseries elements} = \_\-myMesh-\/$>$getElements()}
+\label{namespacevoom_a9adc9296c35fe063d642842663379268}
 
 \end{DoxyCompactItemize}
 
