@@ -34,4 +34,4 @@
 ./missing
 ./depcomp
 ./config.status
-*/Makefile.in
+*Makefile.in
