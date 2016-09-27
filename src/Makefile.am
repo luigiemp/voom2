@@ -2,7 +2,7 @@
 SUBDIRS = VoomMath VoomMath/Test Geometry Potential Material Material/Test  	\
 	  Quadrature Quadrature/Test Shape Shape/Test Element 	   		\
 	  Element/Test HalfEdgeMesh HalfEdgeMesh/Test Mesh Mesh/Test Model 	\
-	  Solver Potential/Test Solver/Test Geometry Output
+	  Solver Potential/Test Solver/Test Geometry Output Output/Test
 #	  Utils/inpParser   \
 #	  Source/IonicSource Source/MechanicsLoad
 #	  Model/Test
