@@ -5,7 +5,7 @@ namespace voom {
   PoissonModel::PoissonModel(Mesh* myMesh, 
 			     vector<DiffusionMaterial * > Materials, 
 			     const uint NodeDoF):
-    EllipticModel(myMesh, NodeDoF), _materials(Materials)
+    Model(myMesh, NodeDoF), _materials(Materials)
   {
     // Assume NodeDoF = 1 //
 
@@ -19,7 +19,7 @@ namespace voom {
 
 
   // Compute Function - Compute Energy, Force, Stiffness
-  void PoissonModel::compute(EllipticResult & R) 
+  void PoissonModel::compute(Result & R) 
   {
     const vector<GeomElement* > elements = _myMesh->getElements();
     const int AvgNodePerEl = ((elements[0])->getNodesID()).size();

@@ -3,14 +3,14 @@
 namespace voom {
 
   // Operators
-  void Humphrey::compute(FKresults & R, const Matrix3d & F, Vector3d * Fiber)
+  void Humphrey::compute(FKresults & R, const Matrix3d & F)
   {
     // Needed for all requests
     Matrix3d C = F.transpose() * F;
     Real I1 = C.trace();
-    Real I4 = Fiber->transpose() * C * (*Fiber);
+    Real I4 = _fibers[0].transpose() * C * (_fibers[0]);
     Real sI4 = sqrt(I4);
-    Matrix3d FNN = F * ((*Fiber) * Fiber->transpose());
+    Matrix3d FNN = F * ((_fibers[0]) * _fibers[0].transpose());
 
     Matrix3d invF, ID;
     ID << 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0;
@@ -33,7 +33,7 @@ namespace voom {
           for (unsigned int J = 0; J<3; J++) {
             for (unsigned int i = 0; i<3; i++) {
               R.K.sequentialSet(2.0*(_C3 + _C4*(sI4-1.0) + 2.0*_C5*(I1-3.0))*ID(i,k)*ID(J,L) +
-                             ((1.0-1.0/sI4)*(2.0*_C1 + 3.0*_C2*(sI4-1.0)) + _C4*(I1-3.0)/sI4)* ((*Fiber)[L])*((*Fiber)[J])*ID(i,k) +
+                             ((1.0-1.0/sI4)*(2.0*_C1 + 3.0*_C2*(sI4-1.0)) + _C4*(I1-3.0)/sI4)* ((_fibers[0])[L])*((_fibers[0])[J])*ID(i,k) +
                              ((2.0*_C4/sI4)*FNN(k,L) + 8.0*_C5*F(k,L))*F(i,J) +
                              FNN(i,J)*(FNN(k,L)*((2.0*_C1 + 3.0*_C2*(sI4-1.0))*pow(sI4,(-3.0)) + (1.0-1.0/sI4)*(3.0*_C2/sI4) -
                                        _C4*(I1-3.0)*pow(sI4,(-3.0))) + 2.0*_C4*F(k,L)/sI4));

@@ -300,7 +300,7 @@ int main(int argc, char** argv)
 	  FKres.request = 0;
 	  // TODO: Only works for one quad point because tempPlasticMaterial is not indexed by q
 	  // TODO: doesn't use el_vectors[0]
-	  tempPlasticMaterial->compute(FKres, Fcomp, NULL); 
+	  tempPlasticMaterial->compute(FKres, Fcomp); 
 	  tempPlasticMaterial->updateStateVariables();
 	  cout << tempPlasticMaterial->getTotalDeformationGradient() << endl;
 	  cout << tempPlasticMaterial->getActiveDeformationGradient() << endl;
@@ -408,7 +408,7 @@ int main(int argc, char** argv)
       
       // TODO: Only works for one quad point because tempPlasticMaterial is not indexed by q
       // TODO: doesn't use el_vectors[0]
-      tempPlasticMaterial->compute(FKres, Fcomp, NULL); 
+      tempPlasticMaterial->compute(FKres, Fcomp); 
       tempPlasticMaterial->updateStateVariables();
       // cout << tempPlasticMaterial->getTotalDeformationGradient() << endl;
       // cout << tempPlasticMaterial->getActiveDeformationGradient() << endl;

@@ -2,13 +2,13 @@
 #ifndef __PoissonModel_h__
 #define __PoissonModel_h__
 
-#include "EllipticModel.h"
+#include "Model.h"
 #include "DiffusionMaterial.h"
-#include "EigenEllipticResult.h"
+#include "EigenResult.h"
 
 namespace voom{
 
-  class PoissonModel: public EllipticModel {
+  class PoissonModel: public Model {
   public:
 
     //! Constructor
@@ -91,7 +91,7 @@ namespace voom{
     void writeOutput(const string OutputFile, const string format);
 
     //! Solve the system
-    void compute(EllipticResult& result);
+    void compute(Result& result);
 
    
 

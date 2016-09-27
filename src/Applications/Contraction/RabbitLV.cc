@@ -75,9 +75,6 @@ int main(int argc, char** argv)
   vector<MechanicsMaterial * > PLmaterials;
   PLmaterials.reserve(NumMat);
 
-  Humphrey_Compressible PassiveMat(0, 15.98, 55.85, 0.0, -33.27, 30.21, 3.590, 64.62);
-  LinYinActive_Compressible ActiveMat(0, -38.70, 40.83, 25.12, 9.51, 171.18);
-
   BlankViscousPotential ViscPotential;
   // NewtonianViscousPotential ViscPotential(0.005, 0.5);
   Vector3d HardParam(0.,0.,0.);
@@ -162,7 +159,11 @@ int main(int argc, char** argv)
 
     // PLmaterials.push_back(&PassiveMat);
     APForceVelPotential* TestPotential = new APForceVelPotential(1.0, 50000.0);
-    PlasticMaterial* PlMat = new PlasticMaterial(el_iter, &ActiveMat, &PassiveMat, TestPotential, &ViscPotential);
+    Humphrey_Compressible* PassiveMat = new Humphrey_Compressible(0, 15.98, 55.85, 0.0, -33.27, 30.21, 3.590, 64.62, el_vectors);
+    LinYinActive_Compressible* ActiveMat = new LinYinActive_Compressible(0, -38.70, 40.83, 25.12, 9.51, 171.18, el_vectors);
+
+
+    PlasticMaterial* PlMat = new PlasticMaterial(el_iter, ActiveMat, PassiveMat, TestPotential, &ViscPotential);
     PlMat->setDirectionVectors(el_vectors);
     PlMat->setHardeningParameters(HardParam);
     PlMat->setActiveDeformationGradient(Matrix3d::Identity(3,3));

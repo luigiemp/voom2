@@ -248,7 +248,17 @@ int main()
 
   {
     cout << endl << "Testing Humphrey material. " << endl;
-    Humphrey MatMech(0, 1.0, 3.0, 5.0, 7.0, 9.0);
+    Vector3d N;
+    N << (double(rand())/RAND_MAX), double(rand())/RAND_MAX, double(rand())/RAND_MAX;
+    N /= N.norm();
+
+    vector<Vector3d> DirVecs;
+    DirVecs.push_back(N);
+    DirVecs.push_back(N);
+    DirVecs.push_back(N);
+
+
+    Humphrey MatMech(0, 1.0, 3.0, 5.0, 7.0, 9.0, DirVecs);
     
     MechanicsMaterial::FKresults Rm;
     Rm.request = (ENERGY | FORCE | STIFFNESS);
@@ -260,11 +270,7 @@ int main()
 	F(i,J) += 0.1*(double(rand())/RAND_MAX);
     cout << "determinant(F) = " << F.determinant() << endl;
     
-    Vector3d N;
-    N << (double(rand())/RAND_MAX), double(rand())/RAND_MAX, double(rand())/RAND_MAX;
-    N /= N.norm();
-
-    MatMech.compute(Rm, F, &N);
+    MatMech.compute(Rm, F);
     
     cout << "Energy     = " << Rm.W << endl;
     cout << "P(2,2)     = " << Rm.P(2,2) << endl;
@@ -277,12 +283,22 @@ int main()
     
     cout << endl << "Material ID = " << MatMech.getMatID() << endl << endl;
  
-    MatMech.checkConsistency(Rm,F,&N);
+    MatMech.checkConsistency(Rm,F);
   }
 
   {
     cout << endl << "Testing Lin Yin Active material. " << endl;
-    LinYinActive MatMech(0, 0.0, -13.03, 36.65, 35.42, 15.52, 1.62);
+    Vector3d N;
+    N << (double(rand())/RAND_MAX), double(rand())/RAND_MAX, double(rand())/RAND_MAX;
+    N /= N.norm();
+
+    vector<Vector3d> DirVecs;
+    DirVecs.push_back(N);
+    DirVecs.push_back(N);
+    DirVecs.push_back(N);
+
+
+    LinYinActive MatMech(0, 0.0, -13.03, 36.65, 35.42, 15.52, 1.62, DirVecs);
     
     MechanicsMaterial::FKresults Rm;
     Rm.request = (ENERGY | FORCE | STIFFNESS);
@@ -296,12 +312,7 @@ int main()
     cout << "determinant(F) = " << F.determinant() << endl;
     cout << "F = \n " << F << endl;
     
-    Vector3d N;
-    N << (double(rand())/RAND_MAX), double(rand())/RAND_MAX, double(rand())/RAND_MAX;
-    N /= N.norm();
-    // N << 1.0, 0.0, 0.0;
-
-    MatMech.compute(Rm, F, &N);
+    MatMech.compute(Rm, F);
     
     cout << "Energy     = " << Rm.W << endl;
     cout << "P(2,2)     = " << Rm.P(2,2) << endl;
@@ -314,12 +325,21 @@ int main()
     
     cout << endl << "Material ID = " << MatMech.getMatID() << endl << endl;
  
-    MatMech.checkConsistency(Rm,F,&N);
+    MatMech.checkConsistency(Rm,F);
   }
 
   {
     cout << endl << "Testing Lin Yin Incompressible Active material. " << endl;
-    LinYinActive_Compressible MatMech(0, -13.03, 36.65, 35.42, 0.1, 4.*0.45*0.1/(1. - 2. * 0.45));
+    Vector3d N;
+    N << (double(rand())/RAND_MAX), double(rand())/RAND_MAX, double(rand())/RAND_MAX;
+    N /= N.norm();
+
+    vector<Vector3d> DirVecs;
+    DirVecs.push_back(N);
+    DirVecs.push_back(N);
+    DirVecs.push_back(N);
+
+    LinYinActive_Compressible MatMech(0, -13.03, 36.65, 35.42, 0.1, 4.*0.45*0.1/(1. - 2. * 0.45), DirVecs);
     
     MechanicsMaterial::FKresults Rm;
     Rm.request = (ENERGY | FORCE | STIFFNESS);
@@ -333,12 +353,7 @@ int main()
     cout << "determinant(F) = " << F.determinant() << endl;
     cout << "F = \n " << F << endl;
     
-    Vector3d N;
-    N << (double(rand())/RAND_MAX), double(rand())/RAND_MAX, double(rand())/RAND_MAX;
-    N /= N.norm();
-    // N << 1.0, 0.0, 0.0;
-
-    MatMech.compute(Rm, F, &N);
+    MatMech.compute(Rm, F);
     
     cout << "Energy     = " << Rm.W << endl;
     cout << "P(2,2)     = " << Rm.P(2,2) << endl;
@@ -351,12 +366,21 @@ int main()
     
     cout << endl << "Material ID = " << MatMech.getMatID() << endl << endl;
  
-    MatMech.checkConsistency(Rm,F,&N, 1.0e-6);
+    MatMech.checkConsistency(Rm,F, 1.0e-6);
   }
 
   {
+    Vector3d N;
+    N << (double(rand())/RAND_MAX), double(rand())/RAND_MAX, double(rand())/RAND_MAX;
+    N /= N.norm();
+
+    vector<Vector3d> DirVecs;
+    DirVecs.push_back(N);
+    DirVecs.push_back(N);
+    DirVecs.push_back(N);
+
     cout << endl << "Testing Humphrey Compressible material. " << endl;
-    Humphrey_Compressible MatMech(0, 1.0, 3.0, 5.0, 7.0, 9.0, 0.1, 4.*0.45*0.1/(1. - 2. * 0.45) );
+    Humphrey_Compressible MatMech(0, 1.0, 3.0, 5.0, 7.0, 9.0, 0.1, 4.*0.45*0.1/(1. - 2. * 0.45), DirVecs );
     
     MechanicsMaterial::FKresults Rm;
     Rm.request = (ENERGY | FORCE | STIFFNESS);
@@ -367,12 +391,8 @@ int main()
       for (unsigned int J = 0; J<3; J++) 
 	F(i,J) += 0.1*(double(rand())/RAND_MAX);
     cout << "determinant(F) = " << F.determinant() << endl;
-    
-    Vector3d N;
-    N << (double(rand())/RAND_MAX), double(rand())/RAND_MAX, double(rand())/RAND_MAX;
-    N /= N.norm();
 
-    MatMech.compute(Rm, F, &N);
+    MatMech.compute(Rm, F);
     
     cout << "Energy     = " << Rm.W << endl;
     cout << "P(2,2)     = " << Rm.P(2,2) << endl;
@@ -385,7 +405,7 @@ int main()
     
     cout << endl << "Material ID = " << MatMech.getMatID() << endl << endl;
  
-    MatMech.checkConsistency(Rm,F,&N);
+    MatMech.checkConsistency(Rm,F);
   }
 
     cout << endl << "....................................... " << endl;

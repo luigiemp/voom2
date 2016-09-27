@@ -182,18 +182,6 @@ namespace voom{
     Real computeRefVolume();
     Real computeCurrentVolume();
 
-    // Functions for applying spring BC
-    // Initialize _springNodes (nodes at which spring BC are applied) and _springElements (elements connected to spring nodes)
-    void initSpringBC(const string SpNodes, Mesh* SpMesh, Real SpringK);
-    void computeNormals();
-    vector<Triplet<Real > > applySpringBC(EllipticResult & R);
-
-    // Utils functions
-    Real computeRefVolume();
-    Real computeCurrentVolume();
-
-
-
   protected:
     //! Compute Deformation Gradient
     void computeDeformationGradient(vector<Matrix3d > & Flist, GeomElement* geomEl);

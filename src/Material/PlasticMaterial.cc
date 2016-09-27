@@ -59,7 +59,7 @@ namespace voom
 		// Compute Active Stress
 		FKresults ActiveResults;
 		ActiveResults.request = 2;
-		_ActiveMaterial->compute(ActiveResults, Fenp1, &_dirVec[0]);
+		_ActiveMaterial->compute(ActiveResults, Fenp1);
 		
 		// Method 1: BEGIN
 		vector<Matrix3d> Gammap(3, Matrix3d::Zero());
@@ -137,7 +137,7 @@ namespace voom
 		FKresults ActiveResults;
 		ActiveResults.request = 6;
 
-		_ActiveMaterial->compute(ActiveResults, Fenp1, &_dirVec[0]);
+		_ActiveMaterial->compute(ActiveResults, Fenp1);
 
 
 		// Method 1: BEGIN
@@ -277,8 +277,7 @@ namespace voom
 		_Fanp1 = Fanp1;
 	}
 
-	// TODO: Change the compute function to take vector<Vector3d> for all three directions.
-	void PlasticMaterial::compute(FKresults & R, const Matrix3d & Fnp1, Vector3d * fiber)
+	void PlasticMaterial::compute(FKresults & R, const Matrix3d & Fnp1)
 	{		
 	        preComputeHelper(Fnp1);
 		// cout << "Internal Variables: " << _Qnp1[0] << ", " << _Qnp1[1] << ", " << _Qnp1[2] << endl;
@@ -309,8 +308,8 @@ namespace voom
 				ActiveResults.request = ActiveResults.request | FORCE;
 			  }
 		}
-		_PassiveMaterial->compute(PassiveResults, Fnp1, &_dirVec[0]);
-		_ActiveMaterial->compute(ActiveResults, Fenp1, &_dirVec[0]);
+		_PassiveMaterial->compute(PassiveResults, Fnp1);
+		_ActiveMaterial->compute(ActiveResults, Fenp1);
 		
 		if (R.request & ENERGY)
 		{
@@ -320,8 +319,8 @@ namespace voom
 			// At the Old Timestep (Only needed for computing Energy)
 			// TODO: CAUTION: The dirVec can change between timesteps (How do we deal with this)
 			FKresults PassiveResults_OldTimestep = R; FKresults ActiveResults_OldTimestep = R;
-			_PassiveMaterial->compute(PassiveResults_OldTimestep, _Fn, &_dirVec[0]);
-			_ActiveMaterial->compute(ActiveResults_OldTimestep, Fen, &_dirVec[0]);
+			_PassiveMaterial->compute(PassiveResults_OldTimestep, _Fn);
+			_ActiveMaterial->compute(ActiveResults_OldTimestep, Fen);
 			
 			// Compute \psi^{*} from the Force-velocity potential
 			double psistar = _activation * _KineticPotential->Psi(deltaQ, _deltaT);

@@ -77,11 +77,15 @@ int main(int argc, char** argv)
   cout << "\033[1;31mMaterial Point Compute Begin \033[0m" << endl;
   
   
+  vector <Vector3d> el_vectors(3, Vector3d::Zero(3,1));
+  el_vectors[0] << 1., 0., 0.;
+  el_vectors[1] << 0., 1., 0.;
+  el_vectors[2] << 0., 0., 1.; 
    
   // Initialize Material
   // Humphrey PassiveMat(0, 15.98, 55.85, 0.0, -33.27, 30.21);
-  Humphrey_Compressible PassiveMat(0, 15.98, 55.85, 0.0, -33.27, 30.21, 3.590, 64.62);
-  LinYinActive_Compressible ActiveMat(0, -38.70, 40.83, 25.12, 9.51, 171.18);
+  Humphrey_Compressible PassiveMat(0, 15.98, 55.85, 0.0, -33.27, 30.21, 3.590, 64.62, el_vectors);
+  LinYinActive_Compressible ActiveMat(0, -38.70, 40.83, 25.12, 9.51, 171.18, el_vectors);
 
   // CompNeoHookean PassiveMat(0, 4.0, 0.4);
   // CompNeoHookean ActiveMat(0, 4.0, 0.4);
@@ -92,11 +96,6 @@ int main(int argc, char** argv)
 
   Vector3d HardParam(0.,0.,0.);
 
-  vector <Vector3d> el_vectors(3, Vector3d::Zero(3,1));
-  el_vectors[0] << 1., 0., 0.;
-  el_vectors[1] << 0., 1., 0.;
-  el_vectors[2] << 0., 0., 1.;
-    
   // PLmaterials.push_back(&PassiveMat);
   APForceVelPotential* TestPotential = new APForceVelPotential(APForceVelPotential_a, APForceVelPotential_S0); //1.0, 5.0);
   PlasticMaterial* PlMat = new PlasticMaterial(0, &ActiveMat, &PassiveMat, TestPotential, &ViscPotential);
@@ -168,13 +167,13 @@ int main(int argc, char** argv)
     double deltaLambda = 1.0;
     while(fabs(deltaLambda) > TOL)
     {
-      PlMat->compute(FKres, F, NULL);
+      PlMat->compute(FKres, F);
       deltaLambda = -1.0 * FKres.P(1,1)/(FKres.K(1,1,1,1) + FKres.K(1,1,2,2));
       F(1,1) += deltaLambda;
       F(2,2) += deltaLambda;
     }
     // cout << "F = \n" << F << endl;
-    PlMat->compute(FKres, F, NULL);
+    PlMat->compute(FKres, F);
     Pelastic = PlMat->getElasticStressOnly();
     InternalVariables = PlMat->getCurrentHardeningParameters();
     ActiveDefGradient = PlMat->getCurrentActiveDeformationGradient();
@@ -212,7 +211,7 @@ int main(int argc, char** argv)
       // Newton solve stress conditions
       while(deltaLambda.norm() > TOL)
       {
-	PlMat->compute(FKres, F, NULL);
+	PlMat->compute(FKres, F);
 	
 	Matrix2d Ctemp;
 	Ctemp << FKres.K(0,0,0,0) , FKres.K(0,0,1,1) , FKres.K(1,1,0,0) , FKres.K(1,1,1,1);
@@ -225,7 +224,7 @@ int main(int argc, char** argv)
       }
     }
     // cout << "F = \n" << F << endl;
-    PlMat->compute(FKres, F, NULL);
+    PlMat->compute(FKres, F);
     Pelastic = PlMat->getElasticStressOnly();
     InternalVariables = PlMat->getCurrentHardeningParameters();
     ActiveDefGradient = PlMat->getCurrentActiveDeformationGradient();
