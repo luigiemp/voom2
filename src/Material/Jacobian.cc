@@ -3,7 +3,7 @@
 namespace voom {
 
   // Operators
-  void Jacobian::compute(FKresults & R, const Matrix3d & F, Vector3d * Fiber)
+  void Jacobian::compute(FKresults & R, const Matrix3d & F)
   {
     // Needed for all requests
     Real DetF = F.determinant();

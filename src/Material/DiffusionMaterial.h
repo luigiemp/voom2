@@ -37,7 +37,7 @@ namespace voom
     //! Compute function - useful only if A depends on scalar field (e.g. T)
     virtual void compute(DiffusionResults & R, Real scalar = 0.0) = 0;
     
-  }; // class MechanicsMaterial
+  }; // class DiffusionMaterial
 
 } // namespace voom
 

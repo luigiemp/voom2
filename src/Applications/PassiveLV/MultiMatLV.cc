@@ -5,6 +5,8 @@
 #include "MechanicsModel.h"
 #include "EigenNRsolver.h"
 
+#include <Eigen/Eigenvalues> 
+
 using namespace voom;
 
 void writeNeumannBC(vector<int > BCid, vector<Real > Forces, string OutputFile, int step);
@@ -254,6 +256,15 @@ int main(int argc, char** argv)
 	}
 	UniqueMaterials[k]->setMaterialParameters(MatProp);
       }
+
+      // Compute condition number
+      MatrixXd dHg;
+      dHg = MatrixXd(*(myResults._Hg));
+      VectorXcd evals = dHg.eigenvalues();
+      cout << "Max eigenvalues = " << evals.real().maxCoeff() << "; Min eigenvalues = " << evals.real().minCoeff() 
+	   << "; Condition Number = " << evals.real().maxCoeff()/evals.real().minCoeff() << endl;
+      cout << "Max imag eigenvalues = " << evals.imag().maxCoeff() << "; Min imag eigenvalues = " << evals.imag().minCoeff() << endl;
+
 
       // Update iter and error
       iter++;

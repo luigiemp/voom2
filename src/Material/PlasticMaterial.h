@@ -28,7 +28,7 @@ namespace voom
 
     //! Compute function
     // TODO: Change Compute Function to take three vectors.
-    void compute(FKresults & R, const Matrix3d & F, Vector3d * fiber = NULL);
+    void compute(FKresults & R, const Matrix3d & F);
 
     //! Helper function prior to doing the compute
     void preComputeHelper(const Matrix3d & F);

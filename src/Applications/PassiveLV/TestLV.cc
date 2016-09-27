@@ -5,6 +5,13 @@
 #include "MechanicsModel.h"
 #include "EigenNRsolver.h"
 
+#include <boost/random.hpp>
+#include <boost/random/mersenne_twister.hpp>
+#include <boost/random/normal_distribution.hpp>
+#include <boost/random/variate_generator.hpp>
+
+#include <Eigen/Eigenvalues> 
+
 using namespace voom;
 
 void writeNeumannBC(vector<int > BCid, vector<Real > Forces, string OutputFile, int step);
@@ -34,7 +41,8 @@ int main(int argc, char** argv)
   ifstream FiberInp(FiberFile.c_str());
   int NumMat = 1;
   
-  PassMyoA* Mat = new PassMyoA(0, 35.19, 7.06, 100.0, 0.025, 2.87, 2.82);
+  // PassMyoA* Mat = new PassMyoA(0, 35.19, 7.06, 100.0, 0.025, 2.87, 2.82);
+  PassMyoA* Mat = new PassMyoA(0, 35.19, 7.06, 0.0, 0.025, 2.87, 2.82);
 
   vector<Vector3d > Fibers;
   Fibers.reserve(NumEl);
@@ -180,12 +188,87 @@ int main(int argc, char** argv)
     uint iter = 0;
     uint DeltaSteps = 3;
 
+
+
+
+
+
+
+    // Generate noise according to a specified SNR
+    Real SNR = 10000.0;
+    boost::mt19937 eng;
+    boost::normal_distribution<double> dist(0.0, 1.0);
+    boost::variate_generator< boost::mt19937, boost::normal_distribution<double> > gen(eng, dist);
+
+    // Store undeformed nodal position
+    int NumDoF = LVmesh.getNumberOfNodes() * 3;
+    VectorXd X0(NumDoF);
+    vector<VectorXd > noise( 10, VectorXd(NumDoF) );
+    for (int n = 0; n < LVmesh.getNumberOfNodes(); n++) {
+      X0(n*3) = LVmesh.getX(n, 0);
+      X0(n*3 + 1) = LVmesh.getX(n, 1);
+      X0(n*3 + 2) = LVmesh.getX(n, 2);
+    }
+    
+    // Loop over time steps
+    ind = 0;
+    Real IM_Max = 1.2;
+    for ( int s = 1; s <= NumPsteps; s+=DeltaSteps ) {
+     
+      // Read in displacements
+      stringstream DispFileNameStream;
+      DispFileNameStream << "LV_Fdisp_" << s << ".dat";
+      ifstream DBCinp;
+      DBCinp.open( (DispFileNameStream.str()).c_str() );
+      Real temp = 0.0;
+      DBCinp >> temp;
+
+      // Add noise
+      for (int n = 0; n < LVmesh.getNumberOfNodes()*3; n++) {
+	// Compute displacement values
+	DBCinp >> temp;
+	// cout << temp << "  ";
+	// Decompose displacement in real and imaginary component
+	Real u = (temp - X0(n));
+	// cout << u << " ";
+	Real phi = M_PI * fabs(u/IM_Max);
+	// cout << phi << " ";
+	Real a = cos(phi), b = sin(phi);
+	// cout << a << " " << b << endl;
+	// Compute randomly distributed noise consisten with given SNR
+	Real r1 = gen(), r2 = gen();
+	if (fabs(r1) > 1.96) {r1 = 1.96;}; if (fabs(r2) > 1.96) {r2 = 1.96;}; 
+	Real c = (1.0/sqrt(SNR*SNR-1.0))*r1;
+	Real d = (1.0/sqrt(SNR*SNR-1.0))*r2;
+	// Sum noise to signal and compute new phi
+	a += c; b += d;
+	// cout << a << " " << b << endl;
+	Real phiNoise = atan(b/a);
+	// cout << phiNoise <<  endl;
+	if ( a < 0 ) { phiNoise += 0.5*M_PI; };
+	
+	// Transform back noise to displacement
+	temp = phiNoise*IM_Max*double( (u/IM_Max > 0) - (u/IM_Max < 0) )/M_PI;
+	// cout << X0(n) + temp << endl;
+	noise[ind](n) = X0(n) + temp;
+      }
+      ind++;
+      
+    }
+    
+
+
+
+
+
+
     // NR loop
     while (iter < NRmaxIter && error > NRtol)
     {
       myResults.setRequest(8);
       myModel.setResetFlag(1);
 
+      ind = 0;
       for ( int s = 1; s <= NumPsteps; s+=DeltaSteps ) {
 	
 	cout << "Step considered = " << s << endl;
@@ -201,11 +284,17 @@ int main(int argc, char** argv)
 	DBCinp >> DoF;
 	vector<int > DoFid(DoF, 0);
 	vector<Real > DoFvalues(DoF, 0);
+	Real temp = 0.0;
 	for(int i = 0; i < DoF; i++) {
 	  DoFid[i] = i;
 	  DBCinp >> DoFvalues[i];
+	  DoFvalues[i] +=  abs(DoFvalues[i] - noise[ind](i)); // 0.001*(double(rand())/double(RAND_MAX));
+	  // if ( abs(DoFvalues[i] - noise[ind](i)) > 1.0e-3 ) {
+ 	  // DoFvalues[i] = noise[ind](i);
+	  // cout << DoFvalues[i] << " " << noise[ind](i) << endl; }
 	  myModel.setField(i, DoFvalues[i]);
 	}
+	ind++;
    
 	// Read in forces
 	stringstream ForceFileNameStream;
@@ -245,6 +334,14 @@ int main(int argc, char** argv)
 	(*MatIt)->setMaterialParameters(MatProp);
       }
 
+      // Compute condition number
+      MatrixXd dHg;
+      dHg = MatrixXd(*(myResults._Hg));
+      VectorXcd evals = dHg.eigenvalues();
+      cout << "Max eigenvalues = " << evals.real().maxCoeff() << "; Min eigenvalues = " << evals.real().minCoeff() 
+	   << "; Condition Number = " << evals.real().maxCoeff()/evals.real().minCoeff() << endl;
+      cout << "Max imag eigenvalues = " << evals.imag().maxCoeff() << "; Min imag eigenvalues = " << evals.imag().minCoeff() << endl;
+
       // Update iter and error
       iter++;
       error = DeltaAlpha.norm();
@@ -283,6 +380,9 @@ int main(int argc, char** argv)
     }
 
     cout << "L2 norm of Mat Prop Error = " << pow(MatPropError, 0.5) << endl;
+
+    // Print final configuration
+    // myModel.writeOutputVTK("LV_F_", 31);
   } // End of material properties solution
 
 

@@ -25,7 +25,7 @@ namespace voom {
       \param nodesID is a vector of Node ID
     */
     GeomElement(const int elemID, const vector<int > & nodesID):
-      _elemID(elemID), _nodesID(nodesID), _fiber(Vector3d::Zero()) {}
+      _elemID(elemID), _nodesID(nodesID) {}
     
     //! Get element ID
     int getGeomElementID() {return _elemID; }
@@ -35,15 +35,6 @@ namespace voom {
 
     //! Get node list
     const vector<int > & getNodesID() {return _nodesID; }
-
-    //! Get and set N
-    const Vector3d & getFiber() {
-      return _fiber;
-    }
-    void setFiber(Vector3d Fiber) {
-      _fiber = Fiber;
-    }
-
 
     // Virtual functions //
     //! Get number of quadrature points
@@ -64,9 +55,6 @@ namespace voom {
 
     //! List of nodes
     vector<int >           _nodesID;
-
-    //! Fiber if any (LEP: probably not the best place ... need to rethink at the code so that it can include EMFO in a nicer way)
-    Vector3d               _fiber;
     
   }; // GeomElement
 

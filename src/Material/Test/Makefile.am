@@ -1,4 +1,4 @@
-bin_PROGRAMS 	= TestMaterial TestPlasticMaterial
+bin_PROGRAMS 	= TestMaterial
 INCLUDES =		-I./../					\
 			-I./../../				\
 	 		-I./../../VoomMath/ 			\
@@ -12,4 +12,3 @@ AM_LDFLAGS 	= 	-L./../	                                \
 			-L./../../Geometry
 LDADD   = -lMaterials -lPotentials -lVoomMath -lViscousPotentials -lGeometry  
 TestMaterial_SOURCES = TestMaterial.cc
-TestPlasticMaterial_SOURCES = TestPlasticMaterial.cc

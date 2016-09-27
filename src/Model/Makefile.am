@@ -11,4 +11,4 @@ INCLUDES     = 	-I./ 						\
 		-I./../Geometry -I./../HalfEdgeMesh
 
 lib_LIBRARIES = libModel.a
-libModel_a_SOURCES = Model.cc MechanicsModel.cc LoopShellModel.cc LBModel.cc
+libModel_a_SOURCES = Model.cc MechanicsModel.cc LoopShellModel.cc LBModel.cc PoissonModel.cc

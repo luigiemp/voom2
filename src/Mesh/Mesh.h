@@ -87,17 +87,6 @@ namespace voom
       return _elements;
     }
 
-    //! Set fibers in elements
-    void setFibers(vector<Vector3d > & Fibers) {
-
-      assert( Fibers.size() == _elements.size() );
-
-      for (int e = 0; e < Fibers.size(); e++) {
-	_elements[e]->setFiber(Fibers[e]);
-      }
-
-    }
-
     // //! Return mapping between local and global DoF and ghost DoF
     // const vector<int > & getLocalDoF() { return _localDoF; };
     // const vector<int > & getGhostDoF() { return _ghostDoF; };

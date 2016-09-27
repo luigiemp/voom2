@@ -4,6 +4,7 @@
 
 #include "EllipticModel.h"
 #include "DiffusionMaterial.h"
+#include "EigenEllipticResult.h"
 
 namespace voom{
 
@@ -12,13 +13,13 @@ namespace voom{
 
     //! Constructor
     PoissonModel(Mesh* myMesh, 
-		 const vector<string > & ElMatType, 
-		 const map<string, DiffusionMaterial* > & ElMaterials);
+		 vector<DiffusionMaterial * > Materials, 
+		 const uint NodeDoF);
 
     //! Destructor
     ~PoissonModel() {
       set<DiffusionMaterial *> UNIQUEmaterials;
-      for (uint i =0; i < _materials.size(); i++) 
+      for (uint i = 0; i < _materials.size(); i++) 
 	UNIQUEmaterials.insert(_materials[i]);
 	
       for (set<DiffusionMaterial *>::iterator it = UNIQUEmaterials.begin();
@@ -37,44 +38,60 @@ namespace voom{
       _field.assign(value, value+_field.size());
     };
 
-    //! Linearized update (local and ghost solution)
-    // From solution array (Used by Solver)
-    void linearizedUpdate(const Real* localValues, 
-			  const Real* ghostValues) {
-      const int nLocalDof = (_myMesh->getLocalDoF()).size();
+    //! Linearized update
+    // From solution array
+    void linearizedUpdate(const Real* localValues, Real fact=1.0) {
+      const int nLocalDof = (_myMesh->getNumberOfNodes())*_nodeDoF;
       for(uint i = 0; i < nLocalDof; i++)
-	_field[i] += localValues[i];
-      for(uint i = 0; i < (_myMesh->getGhostDoF()).size(); i++)
-	_field[i + nLocalDof] += ghostValues[i];
+	_field[i] += localValues[i]*fact;
     };
 
     // One value at the time (Node ID, dof index, value)
     void linearizedUpdate(const int id, const int dof, const Real value) {
-      assert( id < _field.size() && dof == 0 );
+      // assert( id < _field.size() && dof == 0 );
       _field[id] += value;
-    }
+    };
+
+    void linearizedUpdate(const int dof, const Real value) {
+      _field[dof] += value;
+    };
 
     void setField(uint dof, Real value) {
       _field[dof] = value;
+    };
+
+    void setField(const Real* value) {
+      _field.assign(value, value+_field.size());
+    };
+
+    void setPrevField() {
+      _prevField = _field;
+    };
+
+    void getField(vector<double> & x) {
+      assert(x.size() == _field.size());
+      x = _field;
     }
 
-    void PrintField() {
+    void printField() {
       for (uint i = 0; i < _field.size(); i++)
 	cout << _field[i] << endl;
+    };
+
+    uint getNumMat() {
+      set<DiffusionMaterial *> UNIQUEmaterials;
+      for (uint i = 0; i < _materials.size(); i++) 
+	UNIQUEmaterials.insert(_materials[i]);
+	
+      return UNIQUEmaterials.size();
     }
 
     //! Write output
-    void writeOutput(const string OutputFile, const string format = "BINARY"); 
+    void writeOutputVTK(const string OutputFile, int step);  
+    void writeOutput(const string OutputFile, const string format);
 
     //! Solve the system
     void compute(EllipticResult& result);
-
-    //! Return component of residual vector given nodal id and DoF
-    /*Real getResidualComponent(EllipticResult & R, int ID, int dim) {
-      assert(dim == 0);
-      return 0.0; //R.getResidual(ID);
-    };
-    */
 
    
 
@@ -82,10 +99,11 @@ protected:
     // Default constructor cannot be used, Material need to be provided
     PoissonModel();
     //! List of material data at each quad point in the model
-    vector<DiffusionMaterial *> _materials;
+    vector<DiffusionMaterial* > _materials;
 
     //! Solution value at all nodes, local and ghost
     vector<Real > _field;
+    vector<Real > _prevField;
 
   };
 

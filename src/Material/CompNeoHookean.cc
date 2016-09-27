@@ -8,7 +8,7 @@ namespace voom {
 
 
   // Operators
-  void CompNeoHookean::compute(FKresults & R, const Matrix3d & F, Vector3d * Fiber)
+  void CompNeoHookean::compute(FKresults & R, const Matrix3d & F)
   {
     // Needed for all requests
     Real LogDetF = log(F.determinant());
