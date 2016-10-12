@@ -53,6 +53,7 @@ int main()
 
 
   {
+    cout << ".................................... " << endl << endl;
     cout << endl << "Testing PassMyoA material. " << endl;
     Vector3d N;
     N << (double(rand())/RAND_MAX), double(rand())/RAND_MAX, double(rand())/RAND_MAX;
@@ -93,6 +94,7 @@ int main()
 
 
   {
+    cout << ".................................... " << endl << endl;
     cout << endl << "Testing Jacobian material. " << endl;
     Jacobian MatMech(0);
     
@@ -126,6 +128,7 @@ int main()
 
 
   {
+    cout << ".................................... " << endl << endl;
     cout << endl << "Testing Holzapfel material. " << endl;
     Vector3d f, s;
     f << (double(rand())/RAND_MAX), double(rand())/RAND_MAX, double(rand())/RAND_MAX;
@@ -168,6 +171,7 @@ int main()
 
 
  {
+   cout << ".................................... " << endl << endl;
     cout << endl << "Testing Guccione material. " << endl;
     Vector3d f, c, r;
     f << (double(rand())/RAND_MAX), double(rand())/RAND_MAX, double(rand())/RAND_MAX;
@@ -209,12 +213,10 @@ int main()
     MatMech.checkConsistency(Rm, F);
   }
 
-
-
-  cout << endl << "Testing diffusion material class ... " << endl;
-  cout << ".................................... " << endl << endl;
-
-  {
+ {
+   cout << ".................................... " << endl << endl;
+   cout << endl << "Testing diffusion material class ... " << endl;
+ 
     Real k = double(rand())/RAND_MAX;
     IsotropicDiffusion MatDiff(k);
     
@@ -226,8 +228,8 @@ int main()
   }
 
   {
+    cout << endl << ".................................... " << endl << endl;
     cout << endl << "Testing curvature elasticity material class ... " << endl;
-    cout << ".................................... " << endl << endl;
     Real t = M_PI/2; Real p = M_PI/4;
     vector<Vector3d> a(2,Vector3d::Zero());
     a[0] << cos(p)*cos(t), sin(p)*cos(t), -sin(t);  //a_theta
@@ -247,6 +249,7 @@ int main()
   }
 
   {
+    cout << endl << ".................................... " << endl << endl;
     cout << endl << "Testing Humphrey material. " << endl;
     Vector3d N;
     N << (double(rand())/RAND_MAX), double(rand())/RAND_MAX, double(rand())/RAND_MAX;
@@ -261,7 +264,7 @@ int main()
     Humphrey MatMech(0, 1.0, 3.0, 5.0, 7.0, 9.0, DirVecs);
     
     MechanicsMaterial::FKresults Rm;
-    Rm.request = (ENERGY | FORCE | STIFFNESS);
+    Rm.request = (ENERGY | FORCE | STIFFNESS | DMATPROP);
     Matrix3d F;
     F << 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0;
     srand(time(NULL));
@@ -275,11 +278,12 @@ int main()
     cout << "Energy     = " << Rm.W << endl;
     cout << "P(2,2)     = " << Rm.P(2,2) << endl;
     cout << "K[0,0,0,0] = " << Rm.K.get(0,0,0,0) << endl;
-    // for (unsigned int i = 0; i<3; i++) {
-    //   for (unsigned int J = 0; J<3; J++) {
-    // 	cout << i << " " << J << " " << (Rm.Dmat).get( 0, i, J ) << " " << (Rm.Dmat).get( 1, i, J ) << endl;
-    //   }
-    // }
+
+    for (unsigned int i = 0; i<3; i++) {
+      for (unsigned int J = 0; J<3; J++) {
+	cout << i << " " << J << " " << (Rm.Dmat).get( 0, i, J ) << endl;
+      }
+    }
     
     cout << endl << "Material ID = " << MatMech.getMatID() << endl << endl;
  
@@ -287,6 +291,7 @@ int main()
   }
 
   {
+    cout << endl << ".................................... " << endl << endl;
     cout << endl << "Testing Lin Yin Active material. " << endl;
     Vector3d N;
     N << (double(rand())/RAND_MAX), double(rand())/RAND_MAX, double(rand())/RAND_MAX;
@@ -329,6 +334,7 @@ int main()
   }
 
   {
+    cout << endl << ".................................... " << endl << endl;
     cout << endl << "Testing Lin Yin Incompressible Active material. " << endl;
     Vector3d N;
     N << (double(rand())/RAND_MAX), double(rand())/RAND_MAX, double(rand())/RAND_MAX;
@@ -370,6 +376,7 @@ int main()
   }
 
   {
+    cout << endl << ".................................... " << endl << endl;
     Vector3d N;
     N << (double(rand())/RAND_MAX), double(rand())/RAND_MAX, double(rand())/RAND_MAX;
     N /= N.norm();
@@ -383,7 +390,7 @@ int main()
     Humphrey_Compressible MatMech(0, 1.0, 3.0, 5.0, 7.0, 9.0, 0.1, 4.*0.45*0.1/(1. - 2. * 0.45), DirVecs );
     
     MechanicsMaterial::FKresults Rm;
-    Rm.request = (ENERGY | FORCE | STIFFNESS);
+    Rm.request = (ENERGY | FORCE | STIFFNESS | DMATPROP);
     Matrix3d F;
     F << 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0;
     srand(time(NULL));

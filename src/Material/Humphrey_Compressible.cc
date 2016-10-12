@@ -27,7 +27,7 @@ namespace voom {
 
     if(R.request & FORCE)
     {
-      R.P =  2.0*(_C3 + _C4*(sI4-1) + 2.0*_C5*(I1-3)) * F + (1.0/sI4) * ((sI4-1.0) * (2.0*_C1 + 3.0 * _C2 * (sI4-1.0)) + _C4 * (I1-3.0))*FNN + _C6*(dI1dF - 2 * Finv.transpose()) + _C7 * (log(detF) * Finv.transpose());
+      R.P =  2.0*(_C3 + _C4*(sI4-1) + 2.0*_C5*(I1-3.0)) * F + (1.0/sI4) * ((sI4-1.0) * (2.0*_C1 + 3.0 * _C2 * (sI4-1.0)) + _C4 * (I1-3.0))*FNN + _C6*(dI1dF - 2.0 * Finv.transpose()) + _C7 * (log(detF) * Finv.transpose());
     }
 
     if( R.request & STIFFNESS )
@@ -38,11 +38,11 @@ namespace voom {
           for (unsigned int J = 0; J<3; J++) {
             for (unsigned int i = 0; i<3; i++) {
               R.K.sequentialSet(2.0*(_C3 + _C4*(sI4-1.0) + 2.0*_C5*(I1-3.0))*ID(i,k)*ID(J,L) +
-                             ((1.0-1.0/sI4)*(2.0*_C1 + 3.0*_C2*(sI4-1.0)) + _C4*(I1-3.0)/sI4)* ((_fibers[0])[L])*((_fibers[0])[J])*ID(i,k) +
-                             ((2.0*_C4/sI4)*FNN(k,L) + 8.0*_C5*F(k,L))*F(i,J) +
-                             FNN(i,J)*(FNN(k,L)*((2.0*_C1 + 3.0*_C2*(sI4-1.0))*pow(sI4,(-3.0)) + (1.0-1.0/sI4)*(3.0*_C2/sI4) -
-                                       _C4*(I1-3.0)*pow(sI4,(-3.0))) + 2.0*_C4*F(k,L)/sI4) + _C6 * 2 * (ID(i,k) * ID(J,L) + Finv(J,k) * Finv(L,i)) + 
-		  _C7 * (Finv(L,k) * Finv(J,i) - log(detF) * Finv(J,k) * Finv(L,i)));
+				((1.0-1.0/sI4)*(2.0*_C1 + 3.0*_C2*(sI4-1.0)) + _C4*(I1-3.0)/sI4)* ((_fibers[0])[L])*((_fibers[0])[J])*ID(i,k) +
+				((2.0*_C4/sI4)*FNN(k,L) + 8.0*_C5*F(k,L))*F(i,J) +
+				FNN(i,J)*(FNN(k,L)*((2.0*_C1 + 3.0*_C2*(sI4-1.0))*pow(sI4,(-3.0)) + (1.0-1.0/sI4)*(3.0*_C2/sI4) -
+						    _C4*(I1-3.0)*pow(sI4,(-3.0))) + 2.0*_C4*F(k,L)/sI4) + _C6 * 2 * (ID(i,k) * ID(J,L) + Finv(J,k) * Finv(L,i)) + 
+				_C7 * (Finv(L,k) * Finv(J,i) - log(detF) * Finv(J,k) * Finv(L,i)));
 
               R.K.incrementIterator();
             } // L
@@ -51,7 +51,35 @@ namespace voom {
       } // i
 
     } // STIFFNESS
-  } // CompNeoHookean::compute
+
+    if( R.request & DMATPROP ) 
+    {
+      R.Dmat.resize(7, 3, 3);     // Already initialized to zero
+      R.DDmat.resize(7, 7, 3, 3); // Already initialized to zero 
+      
+      Matrix3d Pa = (1.0/sI4) * (sI4-1.0) * 2.0 * FNN;
+      Matrix3d Pb = (1.0/sI4) * (sI4-1.0) * 3.0 * (sI4-1.0) * FNN;
+      Matrix3d Pc = 2.0 * F; 
+      Matrix3d Pd = 2.0 * (sI4-1.0) * F + (1.0/sI4) * (I1-3.0) * FNN;
+      Matrix3d Pe = 4.0 * (I1-3.0) * F;
+      Matrix3d Pf = dI1dF - 2.0 * Finv.transpose();
+      Matrix3d Pg = log(detF) * Finv.transpose();
+
+      for (unsigned int i = 0; i<3; i++) {
+	for (unsigned int J = 0; J<3; J++) {
+	  (R.Dmat).set( 0, i, J, Pa(i,J) );
+	  (R.Dmat).set( 1, i, J, Pb(i,J) );
+	  (R.Dmat).set( 2, i, J, Pc(i,J) );
+	  (R.Dmat).set( 3, i, J, Pd(i,J) );
+	  (R.Dmat).set( 4, i, J, Pe(i,J) );
+	  (R.Dmat).set( 5, i, J, Pf(i,J) );
+	  (R.Dmat).set( 6, i, J, Pg(i,J) );
+	} // i
+      } // J
+     
+    } // DMATPROP
+
+  } // Humphrey_Compressible::compute
 
 
 } // namespace voom
