@@ -39,7 +39,7 @@ namespace voom {
       _b2 = IntPar[1];
       _b3 = IntPar[2];
     }
-    void setRegularizationParameters(const vector<Real > &) {}; // No regularization parameters for Jacobian
+    void setRegularizationParameters(const vector<Real > &) {}; // No regularization parameters for Guccione
 
 
     vector<Real > getMaterialParameters() {
@@ -54,8 +54,7 @@ namespace voom {
       IntPar[2] = _b3;
       return IntPar;
     }
-
-    vector<Real > getRegularizationParameters() { // No regularization parameters for Jacobian
+    vector<Real > getRegularizationParameters() { // No regularization parameters for Guccione
       vector<Real > RegParam;
       return RegParam;
     }

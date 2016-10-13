@@ -17,14 +17,14 @@ using namespace voom;
 int main()
 {
   cout << endl << "Testing mechanics material class ... " << endl;
-  cout << ".................................... " << endl << endl;
   
   {
+    cout << ".................................... " << endl << endl;
     cout << endl << "Testing CompNeoHookean material. " << endl;
     CompNeoHookean MatMech(0, 1.0, 3.0);
     
     MechanicsMaterial::FKresults Rm;
-    Rm.request = 15;
+    Rm.request = (ENERGY | FORCE | STIFFNESS | DMATPROP);
     Matrix3d F;
     F << 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0;
     srand(time(NULL));
@@ -33,7 +33,6 @@ int main()
 	F(i,J) += 0.1*(double(rand())/RAND_MAX);
     cout << "determinant(F) = " << F.determinant() << endl;
     
-
     MatMech.compute(Rm, F);
     
     cout << "Energy     = " << Rm.W << endl;
@@ -63,7 +62,7 @@ int main()
     PassMyoA MatMech(0, 1.0+double(rand())/RAND_MAX, 3.0+double(rand())/RAND_MAX, 1.0+double(rand())/RAND_MAX, 1.0+double(rand())/RAND_MAX, 2.0+double(rand())/RAND_MAX, 2.0+double(rand())/RAND_MAX, Fibers);
     
     MechanicsMaterial::FKresults Rm;
-    Rm.request = 15;
+    Rm.request = (ENERGY | FORCE | STIFFNESS | DMATPROP);
     Matrix3d F;
     F << 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0;
     srand(time(NULL));
@@ -80,11 +79,11 @@ int main()
     cout << "Energy     = " << Rm.W << endl;
     cout << "P(2,2)     = " << Rm.P(2,2) << endl;
     cout << "K[0,0,0,0] = " << Rm.K.get(0,0,0,0) << endl;
-    for (unsigned int i = 0; i<3; i++) {
-      for (unsigned int J = 0; J<3; J++) {
-  	cout << i << " " << J << " " << (Rm.Dmat).get( 0, i, J ) << " " << (Rm.Dmat).get( 1, i, J )  << endl;
-      }
-    }
+    // for (unsigned int i = 0; i<3; i++) {
+    //   for (unsigned int J = 0; J<3; J++) {
+    // 	cout << i << " " << J << " " << (Rm.Dmat).get( 0, i, J ) << " " << (Rm.Dmat).get( 1, i, J )  << endl;
+    //   }
+    // }
 
     cout << endl << "Material ID = " << MatMech.getMatID() << endl << endl;
 
@@ -99,7 +98,7 @@ int main()
     Jacobian MatMech(0);
     
     MechanicsMaterial::FKresults Rm;
-    Rm.request = 7;
+    Rm.request = (ENERGY | FORCE | STIFFNESS);
     Matrix3d F;
     F << 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0;
     srand(time(NULL));
@@ -108,7 +107,6 @@ int main()
 	F(i,J) += 0.1*(double(rand())/RAND_MAX);
     cout << "determinant(F) = " << F.determinant() << endl;
     
-
     MatMech.compute(Rm, F);
     
     cout << "Energy     = " << Rm.W << endl;
@@ -142,7 +140,7 @@ int main()
 		      1.0+double(rand())/RAND_MAX, 1.0+double(rand())/RAND_MAX, 1.0+double(rand())/RAND_MAX, 1.0+double(rand())/RAND_MAX, Fibers);
     
     MechanicsMaterial::FKresults Rm;
-    Rm.request = 11;
+    Rm.request = (ENERGY | FORCE | DMATPROP);
     Matrix3d F;
     F << 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0;
     srand(time(NULL));
@@ -157,11 +155,11 @@ int main()
     cout << "Energy     = " << Rm.W << endl;
     cout << "P(2,2)     = " << Rm.P(2,2) << endl;
     cout << "K[0,0,0,0] = " << Rm.K.get(0,0,0,0) << endl;
-    for (unsigned int i = 0; i<3; i++) {
-      for (unsigned int J = 0; J<3; J++) {
-	cout << i << " " << J << " " << (Rm.Dmat).get( 0, i, J ) << " " << (Rm.Dmat).get( 1, i, J )  << endl;
-      }
-    }
+    // for (unsigned int i = 0; i<3; i++) {
+    //   for (unsigned int J = 0; J<3; J++) {
+    // 	cout << i << " " << J << " " << (Rm.Dmat).get( 0, i, J ) << " " << (Rm.Dmat).get( 1, i, J )  << endl;
+    //   }
+    // }
 
     cout << endl << "Material ID = " << MatMech.getMatID() << endl << endl;
 
@@ -187,7 +185,7 @@ int main()
     Guccione MatMech(0, 1.0+double(rand())/RAND_MAX, 1.0+double(rand())/RAND_MAX, 1.0+double(rand())/RAND_MAX, 1.0+double(rand())/RAND_MAX, Fibers);
     
     MechanicsMaterial::FKresults Rm;
-    Rm.request = 15;
+    Rm.request = (ENERGY | FORCE | STIFFNESS | DMATPROP);
     Matrix3d F;
     F << 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0;
     srand(time(NULL));
@@ -202,11 +200,11 @@ int main()
     cout << "Energy     = " << Rm.W << endl;
     cout << "P(2,2)     = " << Rm.P(2,2) << endl;
     cout << "K[0,0,0,0] = " << Rm.K.get(0,0,0,0) << endl;
-    for (unsigned int i = 0; i<3; i++) {
-      for (unsigned int J = 0; J<3; J++) {
-	cout << i << " " << J << " " << (Rm.Dmat).get( 0, i, J ) << " " << (Rm.Dmat).get( 1, i, J )  << endl;
-      }
-    }
+    // for (unsigned int i = 0; i<3; i++) {
+    //   for (unsigned int J = 0; J<3; J++) {
+    // 	cout << i << " " << J << " " << (Rm.Dmat).get( 0, i, J ) << " " << (Rm.Dmat).get( 1, i, J )  << endl;
+    //   }
+    // }
 
     cout << endl << "Material ID = " << MatMech.getMatID() << endl << endl;
 
@@ -224,7 +222,6 @@ int main()
     MatDiff.compute(Rd);
     cout << "Conductivity = " << k << endl;
     cout << "A = " << Rd.A << endl;
-    
   }
 
   {
@@ -259,7 +256,6 @@ int main()
     DirVecs.push_back(N);
     DirVecs.push_back(N);
     DirVecs.push_back(N);
-
 
     Humphrey MatMech(0, 1.0, 3.0, 5.0, 7.0, 9.0, DirVecs);
     
@@ -301,7 +297,6 @@ int main()
     DirVecs.push_back(N);
     DirVecs.push_back(N);
     DirVecs.push_back(N);
-
 
     LinYinActive MatMech(0, 0.0, -13.03, 36.65, 35.42, 15.52, 1.62, DirVecs);
     
@@ -377,6 +372,7 @@ int main()
 
   {
     cout << endl << ".................................... " << endl << endl;
+    cout << endl << "Testing Humphrey Compressible material. " << endl;
     Vector3d N;
     N << (double(rand())/RAND_MAX), double(rand())/RAND_MAX, double(rand())/RAND_MAX;
     N /= N.norm();
@@ -386,7 +382,6 @@ int main()
     DirVecs.push_back(N);
     DirVecs.push_back(N);
 
-    cout << endl << "Testing Humphrey Compressible material. " << endl;
     Humphrey_Compressible MatMech(0, 1.0, 3.0, 5.0, 7.0, 9.0, 0.1, 4.*0.45*0.1/(1. - 2. * 0.45), DirVecs );
     
     MechanicsMaterial::FKresults Rm;
