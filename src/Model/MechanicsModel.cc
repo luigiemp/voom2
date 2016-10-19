@@ -337,7 +337,7 @@ namespace voom {
     this->setPrevField();
 
     // Recompute normals - no change if _prevField has not changed.
-    this->computeNormals();
+    // this->computeNormals();
 
     // Loop through _spNodes
     for(int n = 0; n < _spNodes.size(); n++)

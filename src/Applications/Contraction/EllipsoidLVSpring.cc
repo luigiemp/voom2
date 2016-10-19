@@ -31,17 +31,25 @@ int main(int argc, char** argv)
   // Activation Sequence? Set True to make activation a function of z
   bool activationSequence = true;
 
+  // Constant Activation?
+  bool constantActivation = false;
+  double activationValue = 0.0;
+
   // Fibers across the wall thickness?
   bool fibersAcrossWall = true;
 
   // Calculate Ejection Fraction?
-  bool calculateEjectionFractionFlag = true;
+  bool calculateEjectionFractionFlag = false;
 
   // Use Conduction Velocity (if false - uses activation Time file)
   bool useConductionVelocity = false;
 
   // Conduction Velocity (cm/ms)
   double cv = 0.06;
+
+  // Pressure File
+  bool pressureFlag = true;
+  string pressureFile = "Pressure_1ms.dat";
   
   // Simulation Time (in ms)
   double simTime = 2000;  
@@ -50,7 +58,7 @@ int main(int argc, char** argv)
   double deltaT = 0.01;
 
   // OutputString
-  string outputString = "/u/project/cardio/adityapo/ScratchResults/EllipsoidSpring/Ellipsoid";
+  string outputString = "/u/project/cardio/adityapo/ScratchResults/EllipsoidSpring2/Ellipsoid";
 
   // Fiber Visualization String
   string fiberPlotString = outputString + "_Fiber.vtk";
@@ -59,19 +67,20 @@ int main(int argc, char** argv)
   string volumeFile = outputString + "_Volume.txt";
 
   // Spring BC:
-  int SpringBCflag = 1;
+  int SpringBCflag = 0;
 
   // Spring Stiffnes
-  Real SpringK = 1.0e-2;
+  Real SpringK = 0.0; // 1.0e4;
 
   // Initialize Mesh
   // Assumptions to use this main as is: strip has a face at z=0; tetrahedral mesh
-  FEMesh Cube("Mesh/EllipsoidMeshFiner/Small_B.node", "Mesh/EllipsoidMeshFiner/Small_B.ele");
-  FEMesh surfMesh("Mesh/EllipsoidMeshFiner/Small_B.node", "Mesh/EllipsoidMeshFiner/Small_B.outerSurfEle");
-  string FiberFile = "Mesh/EllipsoidMeshFiner/Small_B.fiber";
-  string BCfile = "Mesh/EllipsoidMeshFiner/Small_B.Null.bc";
+  FEMesh Cube("Mesh/EllipsoidMesh/Small_A.node", "Mesh/EllipsoidMesh/Small_A.ele");
+  FEMesh surfMesh("Mesh/EllipsoidMesh/Small_A.node", "Mesh/EllipsoidMesh/Small_A.outerSurfEle");
+  FEMesh innerSurfMesh("Mesh/EllipsoidMesh/Small_A.node", "Mesh/EllipsoidMesh/Small_A.innerSurfEle");
+  string FiberFile = "Mesh/EllipsoidMesh/Small_A.fiber";
+  string BCfile = "Mesh/EllipsoidMesh/Small_A.bc";
   string ActivationTimeFile = "Mesh/EllipsoidMeshFiner/Small_B.activationTime";   // This is the Element Activation Time File
-  string ActivationFile = "ActivationFunction_1ms.dat";  // This is the Calcium Transient
+  string ActivationFile = "ActFunc_600ms_1msInterval.dat";  // This is the Calcium Transient
   ifstream FiberInp(FiberFile.c_str());
   ifstream ActTime(ActivationTimeFile.c_str());
 
@@ -84,9 +93,9 @@ int main(int argc, char** argv)
   if (calculateEjectionFractionFlag)
   {
     // Setup mesh for calculating ejection fraction
-    cavityMesh = new FEMesh("Mesh/EllipsoidMeshFiner/Small_B_Cavity.node", 
-      		            "Mesh/EllipsoidMeshFiner/Small_B_Cavity.ele");
-    string outerSurfFile = "Mesh/EllipsoidMeshFiner/Small_B.innerSurfNode";
+    cavityMesh = new FEMesh("Mesh/EllipsoidMesh/Small_A_Cavity.node", 
+      		            "Mesh/EllipsoidMesh/Small_A_Cavity.ele");
+    string outerSurfFile = "Mesh/EllipsoidMesh/Small_A.innerSurfNode";
 
     ifstream cavityNodeFileStream (outerSurfFile.c_str());
 
@@ -145,7 +154,7 @@ int main(int argc, char** argv)
   PLmaterials.reserve(NumMat);
 
 
-  APForceVelPotential TestPotential(4.0, 50.0, 3.0);
+  APForceVelPotential TestPotential(4.0, 0.0, 3.0);	// 50.0 for 2nd parameter, force
   // APForceVelPotential_Test TestPotential(4.0, 500000.0);
 
   BlankViscousPotential ViscPotential;
@@ -166,10 +175,38 @@ int main(int argc, char** argv)
   vector <Vector3d> sheetVectors;
   vector <Vector3d> sheetNormalVectors;
 
+  // Read in Pressure File:
+  double tempTime = 0.0;
+  double tempPressure = 0.0;
+
+  vector <vector <double> > pressureData;
+
+  if (pressureFlag)
+  {
+    ifstream pressureFileStream;
+    pressureFileStream.open(pressureFile.c_str());
+    
+    if (pressureFileStream.is_open())
+    {
+      cout << "** Opened Pressure File Successfuly." << endl;
+      while (pressureFileStream >> tempTime >> tempPressure) {
+	vector <double> tempTimePressure;
+	tempTimePressure.push_back(tempTime);
+	tempTimePressure.push_back(tempPressure);
+	pressureData.push_back(tempTimePressure);
+      }
+    }
+    else {
+      cout << "** Failed to Open Pressure File." << endl;
+      exit(1);
+    }
+    
+  }
+
   // Read in Activation File:
   ifstream myfile;
   myfile.open (ActivationFile.c_str());
-  double tempTime = 0.0;
+  tempTime = 0.0;
   double tempActivationFactor = 0.0;
   
   vector <double> Time;
@@ -178,7 +215,10 @@ int main(int argc, char** argv)
   while(myfile >> tempTime >> tempActivationFactor)
   {
     Time.push_back(tempTime);
-    ActivationFactor.push_back(tempActivationFactor);
+    if (!constantActivation)
+      ActivationFactor.push_back(tempActivationFactor);
+    else
+      ActivationFactor.push_back(activationValue);
   }
   
   double cycleLength = Time[Time.size() - 1];
@@ -272,17 +312,17 @@ int main(int argc, char** argv)
 
   // Initialize Model
   int NodeDoF = 3;
-  int PressureFlag = 0;
+  int PressureFlag = 1;
   Real Pressure = 0.0;
   int NodalForcesFlag = 0;
   vector<int > ForcesID;
   vector<Real > Forces;
-  MechanicsModel myModel(&Cube, PLmaterials, NodeDoF, PressureFlag, &surfMesh,
+  MechanicsModel myModel(&Cube, PLmaterials, NodeDoF, PressureFlag, &innerSurfMesh,
 			 NodalForcesFlag, SpringBCflag);
   myModel.updatePressure(Pressure);
   myModel.updateNodalForces(&ForcesID, &Forces);
 
-  myModel.initSpringBC("Mesh/EllipsoidMeshFiner/Small_B.outerSurf", &surfMesh, SpringK);
+  myModel.initSpringBC("Mesh/EllipsoidMesh/Small_A.outerSurf", &surfMesh, SpringK);
  
   // Initialize Result
   uint myRequest;
@@ -336,9 +376,12 @@ int main(int argc, char** argv)
   }
 
   // Solver
-  Real NRtol = 1.0e-8;
+  Real NRtol = 1.0e-5;
   uint NRmaxIter = 100;
   EigenNRsolver mySolver(&myModel, BCid, BCvalues, CHOL, NRtol, NRmaxIter);
+
+  
+  // SOLVE:
 
   ind = 0;
 
@@ -348,12 +391,11 @@ int main(int argc, char** argv)
   for (int s = 0; s < simTime/deltaT; s++)
   {
     cout << "Step " << s << endl;
-    // cout << "Activation Factor: " << ActivationFactor[s] << endl;
-      
-    if (s == 0)  // Free Contraction = 0, Fixed = 200
-    {
-      // ViscPotential.setViscosity(0.0E-5);
-    }
+    
+    // Update pressure	
+    myModel.updatePressure(-1.0/20 * pressureData[s][1]);
+    // myModel.updatePressure(-1.0 * Real(s)/15);
+
     for (int k = 0; k < NumMat; k++)
     {
       (PLmaterials[k])->setTimestep(deltaT/1000);
@@ -443,7 +485,7 @@ double calculateEjectionFraction(MechanicsModel* cavityModel, const MechanicsMod
   {
     double tempSlope = (cavityMaxPos - cavityMinPos)/(numberOfVerticalNodes-1);
     cavityModel->setField((bottomMostNode + i) * 3 + 2, tempSlope * (i) + cavityMinPos);
-    cout << "Node " << bottomMostNode + i << "\t Position: " << tempSlope * (i) + cavityMinPos << endl;
+    // cout << "Node " << bottomMostNode + i << "\t Position: " << tempSlope * (i) + cavityMinPos << endl;
   }
 
   double EF = (referenceVolume - cavityModel->computeCurrentVolume())/referenceVolume;
