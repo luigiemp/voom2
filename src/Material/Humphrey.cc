@@ -22,7 +22,7 @@ namespace voom {
 
     if(R.request & FORCE)
     {
-      R.P =  2.0*(_C3 + _C4*(sI4-1) + 2.0*_C5*(I1-3)) * F + (1.0/sI4) * ((sI4-1.0) * (2.0*_C1 + 3.0 * _C2 * (sI4-1.0)) + _C4 * (I1-3.0))*FNN;
+      R.P =  2.0*(_C3 + _C4*(sI4-1) + 2.0*_C5*(I1-3.0)) * F + (1.0/sI4) * ((sI4-1.0) * (2.0*_C1 + 3.0 * _C2 * (sI4-1.0)) + _C4 * (I1-3.0))*FNN;
     }
 
     if( R.request & STIFFNESS )
@@ -37,8 +37,6 @@ namespace voom {
                              ((2.0*_C4/sI4)*FNN(k,L) + 8.0*_C5*F(k,L))*F(i,J) +
                              FNN(i,J)*(FNN(k,L)*((2.0*_C1 + 3.0*_C2*(sI4-1.0))*pow(sI4,(-3.0)) + (1.0-1.0/sI4)*(3.0*_C2/sI4) -
                                        _C4*(I1-3.0)*pow(sI4,(-3.0))) + 2.0*_C4*F(k,L)/sI4));
-              // R.K.set(i,J,k,L, -invF(J,k)*invF(L,i)*(_lambda*LogDetF - _mu) + _lambda*invF(J,i)*invF(L,k) + _mu*ID(i,k)*ID(J,L) );
-              // R.K.sequentialSet(-invF(J,k)*invF(L,i)*(_lambda*LogDetF - _mu) + _lambda*invF(J,i)*invF(L,k) + _mu*ID(i,k)*ID(J,L) );
               R.K.incrementIterator();
             } // L
           } // k
@@ -46,7 +44,32 @@ namespace voom {
       } // i
 
     } // STIFFNESS
-  } // CompNeoHookean::compute
+
+    if( R.request & DMATPROP ) 
+    {
+      R.Dmat.resize(5, 3, 3);     // Already initialized to zero
+      R.DDmat.resize(5, 5, 3, 3); // Already initialized to zero 
+      
+      Matrix3d Pa = (1.0/sI4) * (sI4-1.0) * 2.0 * FNN;
+      Matrix3d Pb = (1.0/sI4) * (sI4-1.0) * 3.0 * (sI4-1.0) * FNN;
+      Matrix3d Pc = 2.0 * F; 
+      Matrix3d Pd = 2.0 * (sI4-1.0) * F + (1.0/sI4) * (I1-3.0) * FNN;
+      Matrix3d Pe = 4.0 * (I1-3.0) * F;
+
+      for (unsigned int i = 0; i<3; i++) {
+	for (unsigned int J = 0; J<3; J++) {
+	  (R.Dmat).set( 0, i, J, Pa(i,J) );
+	  (R.Dmat).set( 1, i, J, Pb(i,J) );
+	  (R.Dmat).set( 2, i, J, Pc(i,J) );
+	  (R.Dmat).set( 3, i, J, Pd(i,J) );
+	  (R.Dmat).set( 4, i, J, Pe(i,J) );
+	} // i
+      } // J
+     
+    } // DMATPROP
+
+
+  } // Humphrey::compute
 
 
 } // namespace voom

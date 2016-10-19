@@ -19,7 +19,7 @@ namespace voom {
   Holzapfel(int ID, Real a1, Real a2, Real a3, Real a4, Real b1, Real b2, Real b3, Real b4, vector<Vector3d > Fibers): 
     MechanicsMaterial(ID), _a1(a1), _a2(a2), _a3(a3), _a4(a4), _b1(b1), _b2(b2), _b3(b3), _b4(b4), _fibers(Fibers) {};
   Holzapfel(Holzapfel* BaseMaterial): 
-    MechanicsMaterial(BaseMaterial->_matID), _a1(BaseMaterial->_a1),  _a2(BaseMaterial->_a2), _a3(BaseMaterial->_a3),  _a4(BaseMaterial->_a4),
+    MechanicsMaterial(BaseMaterial->_matID), _a1(BaseMaterial->_a1), _a2(BaseMaterial->_a2), _a3(BaseMaterial->_a3), _a4(BaseMaterial->_a4),
       _b1(BaseMaterial->_b1), _b2(BaseMaterial->_b2), _b3(BaseMaterial->_b3), _b4(BaseMaterial->_b4), _fibers(BaseMaterial->_fibers) {};
 
     // Clone
@@ -43,7 +43,7 @@ namespace voom {
       _b3 = IntPar[2];
       _b4 = IntPar[3];
     }
-    void setRegularizationParameters(const vector<Real > &) {}; // No regularization parameters for Jacobian
+    void setRegularizationParameters(const vector<Real > &) {}; // No regularization parameters for Holzapfel
 
 
     vector<Real > getMaterialParameters() {
@@ -62,8 +62,7 @@ namespace voom {
       IntPar[3] = _b4;
       return IntPar;
     }
-
-    vector<Real > getRegularizationParameters() { // No regularization parameters for Jacobian
+    vector<Real > getRegularizationParameters() { // No regularization parameters for Holzapfel
       vector<Real > RegParam;
       return RegParam;
     }

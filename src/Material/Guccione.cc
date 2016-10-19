@@ -23,12 +23,12 @@ namespace voom {
     Fff  = F*f*(f.transpose());
     Fcc  = F*c*(c.transpose());
     Frr  = F*r*(r.transpose());
-    Fcr  = F*c*(r.transpose());; Frc  = F*r*(c.transpose());;
-    Ffc  = F*f*(c.transpose());; Fcf  = F*c*(f.transpose());;
-    Ffr  = F*f*(r.transpose());; Frf  = F*r*(f.transpose());;
+    Fcr  = F*c*(r.transpose()); Frc  = F*r*(c.transpose());
+    Ffc  = F*f*(c.transpose()); Fcf  = F*c*(f.transpose());
+    Ffr  = F*f*(r.transpose()); Frf  = F*r*(f.transpose());
 
     // ENERGY
-    R.W = _a1*exp( _b1*Eff*Eff + _b2*(Ecc*Ecc + Err*Err + 2*Ecr*Ecr) + 2*_b3*(Efc*Efc + Efr*Efr) );
+    R.W = _a1*exp( _b1*Eff*Eff + _b2*(Ecc*Ecc + Err*Err + 2*Ecr*Ecr) + 2.0*_b3*(Efc*Efc + Efr*Efr) );
 
     if( (R.request & FORCE) || (R.request & DMATPROP) || (R.request & STIFFNESS) ) 
     {
