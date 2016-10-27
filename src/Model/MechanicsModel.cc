@@ -58,6 +58,14 @@ namespace voom {
   }
 
 
+  void MechanicsModel::computeGreenLagrangianStrainTensor(vector<Matrix3d> & Elist, GeomElement* geomEl) {
+    const int sizeofE = Elist.size();
+    vector<Matrix3d> Flist(sizeofE, Matrix3d::Zero());
+    this->computeDeformationGradient(Flist, geomEl);
+
+    for (int i = 0; i < sizeofE; i++)
+      Elist[i] = 0.5 * (Flist[i].transpose() * Flist[i] - Matrix3d::Identity());
+  }
 
 
 

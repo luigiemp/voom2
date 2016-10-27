@@ -1,10 +1,6 @@
 #include <vector>
 #include <iostream>
 
-#include "Potential.h"
-#include "APForceVelPotential.h"
-#include "BlankPotential.h"
-#include "HillForceVelPotential.h"
 #include "ViscousPotential.h"
 #include "BlankViscousPotential.h"
 #include "NewtonianViscousPotential.h"

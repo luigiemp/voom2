@@ -35,3 +35,4 @@
 ./depcomp
 ./config.status
 *Makefile.in
+*.orig

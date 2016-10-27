@@ -186,6 +186,9 @@ namespace voom{
     //! Compute Deformation Gradient
     void computeDeformationGradient(vector<Matrix3d > & Flist, GeomElement* geomEl);
 
+    //! Compute Green Lagrangian Strain Tensor
+    void computeGreenLagrangianStrainTensor(vector<Matrix3d> & Elist, GeomElement* geomEl);
+
     //! List of Material data at each QP in the model
     vector<MechanicsMaterial * > _materials;
 

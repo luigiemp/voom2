@@ -1,6 +1,8 @@
 bin_PROGRAMS 	= TestMaterial
 INCLUDES =		-I./../					\
 			-I./../../				\
+			-I./../MechanicsMaterial		\
+			-I./../ViscousMaterial			\
 	 		-I./../../VoomMath/ 			\
 			-I./../../Potential/			\
 			-I./../../Geometry/			\
@@ -8,7 +10,8 @@ INCLUDES =		-I./../					\
 AM_LDFLAGS 	= 	-L./../	                                \
 			-L./../../Potential/			\
 	         	-L./../../VoomMath/ 			\
-			-L./../../ViscousPotential		\
+			-L./../MechanicsMaterial		\
+			-L./../ViscousMaterial			\
 			-L./../../Geometry
-LDADD   = -lMaterials -lPotentials -lVoomMath -lViscousPotentials -lGeometry  
+LDADD   = -lMaterials -lMechanicsMaterial -lViscousMaterial -lPotentials -lVoomMath -lGeometry  
 TestMaterial_SOURCES = TestMaterial.cc
