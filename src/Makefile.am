@@ -4,9 +4,9 @@ SUBDIRS = 	VoomMath			\
 	  	Geometry			\
      	  	Potential			\
 	  	Material			\
+		Material/ViscousMaterial	\
 		Material/MechanicsMaterial	\
 		Material/Test			\
-		Material/ViscousMaterial	\
 		Material/ViscousMaterial/Test	\
 	  	Quadrature			\
 	  	Quadrature/Test			\
