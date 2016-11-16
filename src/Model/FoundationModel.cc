@@ -8,7 +8,7 @@ namespace voom {
   {
     _field.resize(  (_myMesh->getNumberOfNodes() )*_nodeDoF );
     this->initializeField();
-    this->initSpringBC(spNodes)
+    this->initSpringBC(SpNodes);
   }
 
   // Compute Function - Compute Energy, Force, Stiffness
@@ -77,7 +77,7 @@ namespace voom {
   } // Compute Mechanics Model
 
 
-  void MechanicsModel::computeNormals() {
+  void FoundationModel::computeNormals() {
 
     // First compute normal of any element in _myMesh
     const vector<GeomElement* > elements = _myMesh->getElements();
@@ -125,7 +125,7 @@ namespace voom {
 
 
 
-  void MechanicsModel::initSpringBC(const string SpNodes) {
+  void FoundationModel::initSpringBC(const string SpNodes) {
     // Store node number on the outer surface
     ifstream inp(SpNodes.c_str());
     int nodeNum = 0;
@@ -158,7 +158,7 @@ namespace voom {
 
 
   // Writing output
-  void MechanicsModel::writeOutputVTK(const string OutputFile, int step) {
+  void FoundationModel::writeOutputVTK(const string OutputFile, int step) {
     // Need to fill this in
 
   } // writeOutput

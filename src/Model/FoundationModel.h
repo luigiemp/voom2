@@ -4,6 +4,7 @@
 
 #include "Model.h"
 #include "EigenResult.h"
+#include "MechanicsMaterial.h"
 
 namespace voom{
 
@@ -15,7 +16,7 @@ namespace voom{
     //! Basic Constructor
     /*! Construct from basic data structures defining the mesh, materials, BCs.
     */
-    FoundationModel(Mesh* aMesh, vector<MechanicsMaterial * > Materials, const uint NodeDoF, Real SpringK);
+    FoundationModel(Mesh* aMesh, const uint NodeDoF, const string SpNodes, Real SpringK);
 
     //! Destructor
     ~FoundationModel() {
@@ -121,13 +122,13 @@ namespace voom{
 
     // Functions for applying spring BC
     // Initialize _springNodes (nodes at which spring BC are applied) and _springElements (elements connected to spring nodes)
-    void initSpringBC(const string SpNodes, Mesh* SpMesh, Real SpringK);
+    void initSpringBC(const string SpNodes);
     void computeNormals();
     vector<Triplet<Real > > applySpringBC(Result & R);
 
   protected:
     //! List of Material data at each QP in the model
-    // vector<MechanicsMaterial * > _materials;
+    vector<MechanicsMaterial * > _materials;
 
     //! Solution value at all nodes, local and ghost
     //! Displacement are stored unrolled, [phi_x, phi_y, phi_z]
