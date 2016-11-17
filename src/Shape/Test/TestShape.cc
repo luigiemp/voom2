@@ -23,7 +23,7 @@ int main()
     Point3D(0) = 2.0*(Real(rand())/RAND_MAX - 0.5);
     Point3D(1) = 2.0*(Real(rand())/RAND_MAX - 0.5);
     Point3D(2) = 2.0*(Real(rand())/RAND_MAX - 0.5);
-    
+
     HexShape HexShp(Point3D);
     HexShp.checkConsistency(Point3D);
     HexShp.checkPartitionUnity(Point3D);
@@ -36,7 +36,7 @@ int main()
     Point3D(0) = 2.0*(Real(rand())/RAND_MAX - 0.5);
     Point3D(1) = 2.0*(Real(rand())/RAND_MAX - 0.5);
     Point3D(2) = 2.0*(Real(rand())/RAND_MAX - 0.5);
-    
+
     cout << "Testing LinTetShape" << endl;
     LinTetShape LinTetShp(Point3D);
     LinTetShp.checkConsistency(Point3D);
@@ -54,7 +54,7 @@ int main()
     srand( time(NULL) );
     Point2D(0) = 2.0*(Real(rand())/RAND_MAX - 0.5);
     Point2D(1) = 2.0*(Real(rand())/RAND_MAX - 0.5);
-    
+
     cout << "Testing LinTriShape" << endl;
     LinTriShape LinTriShp(Point2D);
     LinTriShp.checkConsistency(Point2D);
@@ -66,13 +66,26 @@ int main()
     QuadTriShp.checkPartitionUnity(Point2D);
   }
 
+  // QuadShape testing
+  {
+    Vector2d Point2D = Vector2d::Zero();
+    srand( time(NULL) );
+    Point2D(0) = 2.0*(Real(rand())/RAND_MAX - 0.5);
+    Point2D(1) = 2.0*(Real(rand())/RAND_MAX - 0.5);
+
+    cout << "Testing LinTriShape" << endl;
+    LinQuadShape LinQuadShp(Point2D);
+    LinQuadShp.checkConsistency(Point2D);
+    LinQuadShp.checkPartitionUnity(Point2D);
+  }
+
   // BarShape testing
   {
     cout << "Testing BarShape" << endl;
     VectorXd Point1D = VectorXd::Zero(1);
     srand( time(NULL) );
     Point1D(0) = 2.0*(Real(rand())/RAND_MAX - 0.5);
-    
+
     BarShape BarShp(Point1D);
     BarShp.checkConsistency(Point1D);
     BarShp.checkPartitionUnity(Point1D);
@@ -97,7 +110,7 @@ int main()
     uint maxIter = 20;
     LMEShape LMEshp(Nodes, Point, beta, tol, maxIter);
     LMEshp.update(Point);
-  
+
     cout << "Print LME at [0.4, 0.5, 0.6]" << endl;
     for (uint i=0; i<LMEshp.getShapeFunctionNum(); i++)
       {
@@ -107,7 +120,7 @@ int main()
 	};
 	cout << endl;
       };
-    
+
     // Check consistency
     Point(0) = (Real(rand())/RAND_MAX );
     Point(1) = (Real(rand())/RAND_MAX );
@@ -132,7 +145,7 @@ int main()
     uint maxIter = 20;
     LMEShape LMEshp(Nodes, Point, beta, tol, maxIter);
     LMEshp.update(Point);
-    
+
     cout << "Print LME at [0.2, 0.1, 0.3]" << endl;
     for (uint i=0; i<LMEshp.getShapeFunctionNum(); i++)
       {
@@ -161,7 +174,7 @@ int main()
     const Real radius = 0.001, support = 1.414, supportHat = 1.0;
     VectorXd Point2D(2);
     Point2D(0) = Point2D(1) = 0.5;
-    
+
     vector<VectorXd > Nodes2D(4, Vector2d::Zero(2));
     Nodes2D[0] << 0.0, 0.0;
     Nodes2D[1] << 1.0, 0.0;
@@ -203,5 +216,5 @@ int main()
     LpShlShp.checkPartitionUnity(Point2D);
 
   }
-  
+
 }
