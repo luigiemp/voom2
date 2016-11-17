@@ -18,9 +18,9 @@
 #include "QuadTetShape.h"
 
 namespace voom{
-  
+
   class FEMesh: public Mesh {
-  
+
   public:
     //! Constructor from input file
     FEMesh(const string Nodes, const string ConnTable);
@@ -28,7 +28,7 @@ namespace voom{
     //! Constructor from nodes and connectivities
     //! (assume only one type of elements and quadrature in one mesh)
     // FEMesh(const vector<VectorXd > &  Positions,
-    // 	   const vector<vector<int > > & Connectivity, 
+    // 	   const vector<vector<int > > & Connectivity,
     // 	   string ElementType,
     // 	   uint QuadOrder);
 
@@ -43,14 +43,18 @@ namespace voom{
 
       delete _quadrature;
     }
-  
+
   protected:
-    //! List of shape objects 
+    //! List of shape objects
     // One vector of shape functions per each element type
     vector<Shape*> _shapes;
-    
+
     //! One Quadrature rule per each element type
     Quadrature*    _quadrature;
+
+    //! Helper function to determine type of element and fills in
+    //! \param _shapes and \param _quadrature and returns \return NumNodesEl
+    int createElementShapeAndQuadrature(const string ElType);
   };
 }
 
