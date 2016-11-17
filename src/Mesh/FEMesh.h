@@ -25,12 +25,12 @@ namespace voom{
     //! Constructor from input file
     FEMesh(const string Nodes, const string ConnTable);
 
-    //! Constructor from nodes and connectivities
-    //! (assume only one type of elements and quadrature in one mesh)
-    // FEMesh(const vector<VectorXd > &  Positions,
-    // 	   const vector<vector<int > > & Connectivity,
-    // 	   string ElementType,
-    // 	   uint QuadOrder);
+    // ! Constructor from nodes and connectivities
+    // ! (assume only one type of elements and quadrature in one mesh)
+    FEMesh(const vector<VectorXd > &  Positions,
+    	   const vector<vector<int > > & Connectivity,
+    	   string ElementType,
+    	   uint QuadOrder);
 
     // Build a mesh using the same nodes that are already used by another mesh
     // FEMesh(FEMesh*, const string ConnTable);

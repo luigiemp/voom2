@@ -1,5 +1,5 @@
 // -*- C++ -*-
-/*! 
+/*!
   \file Mesh.h
   \brief Class for a mesh object.
 */
@@ -22,7 +22,7 @@ namespace voom
     for derived classes to define, but the basic idea is that some
     number of nodes with positions in 3-dimensional space are
     connected by "elements" which are generalized to mean any set of
-    nodes.  Meshes in 1-D and 2-D, are embedded in 3-D space.  
+    nodes.  Meshes in 1-D and 2-D, are embedded in 3-D space.
 
     In the case of meshfree, the "elements" will correspond to
     material points where fields and their gradients are computed, so
@@ -41,19 +41,19 @@ namespace voom
     //! Input-file based Constructor
     Mesh(const string Nodes, const string ConnTable);
 
-    // //! Position only based constructor
-    // Mesh(const vector<VectorXd > &  X): _X(X) {};
+    //! Position only based constructor
+    Mesh(const vector<VectorXd > &  X): _X(X) {};
 
     //! Destructor
     // Destructor made virtual due to inheritance
     virtual ~Mesh() {
-      for(uint i = 0; i < _elements.size(); i++) 
+      for(uint i = 0; i < _elements.size(); i++)
 	delete _elements[i];
     }
 
     //! Get mesh dimension
     uint getDimension() { return _X[0].size(); }
-    
+
     //! Get position data
     VectorXd getX() {
       uint Xsize = _X.size();
@@ -66,7 +66,7 @@ namespace voom
       }
       return X0;
     }
-      
+
     const VectorXd & getX(const int nodeId) {
       return _X[nodeId];
     }
@@ -81,7 +81,7 @@ namespace voom
 
     //! Get number of elements
     int getNumberOfElements() { return _elements.size(); }
-    
+
     //! Get list of elements
     const vector<GeomElement* > & getElements() {
       return _elements;
@@ -102,7 +102,7 @@ namespace voom
     // 	 const vector<int > & LocalDoF,
     // 	 const vector<int > & GhostDoF):
     //   _positions(Positions), _localDoF(LocalDoF), _ghostDoF(GhostDoF) {};
-    
+
     //! Nodal positions
     vector<VectorXd >     _X;
 
