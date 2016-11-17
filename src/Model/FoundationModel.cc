@@ -159,7 +159,7 @@ namespace voom {
 
 
   // Writing output
-  void FoundationModel::writeOutputVTK() {
+  void FoundationModel::writeOutputVTK(const string OutputFile, int step) {
 
     cout << "Step " << step << " Output:" << endl;
     cout << left << setw(8) << setfill(' ') << "Node";

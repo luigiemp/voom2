@@ -3,6 +3,7 @@
 #include "QuadTetShape.h"
 #include "LinTriShape.h"
 #include "QuadTriShape.h"
+#include "LinQuadShape.h"
 #include "BarShape.h"
 #include "LMEShape.h"
 #include "MRKPMShape.h"
@@ -73,7 +74,7 @@ int main()
     Point2D(0) = 2.0*(Real(rand())/RAND_MAX - 0.5);
     Point2D(1) = 2.0*(Real(rand())/RAND_MAX - 0.5);
 
-    cout << "Testing LinTriShape" << endl;
+    cout << "Testing LinQuadShape" << endl;
     LinQuadShape LinQuadShp(Point2D);
     LinQuadShp.checkConsistency(Point2D);
     LinQuadShp.checkPartitionUnity(Point2D);

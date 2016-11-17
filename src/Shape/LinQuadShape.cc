@@ -4,7 +4,7 @@
 namespace voom {
 
 //! Update recomputes N and DN at a new Point
-  void LinTriShape::update(const VectorXd & Point)
+  void LinQuadShape::update(const VectorXd & Point)
   {
     // Shape Functions
     _N[0] = 0.25 * (1 - Point(0)) * (1 - Point(1));

@@ -16,6 +16,7 @@
 #include "QuadTriShape.h"
 #include "LinTetShape.h"
 #include "QuadTetShape.h"
+#include "LinQuadShape.h"
 
 namespace voom{
 
@@ -29,8 +30,7 @@ namespace voom{
     // ! (assume only one type of elements and quadrature in one mesh)
     FEMesh(const vector<VectorXd > &  Positions,
     	   const vector<vector<int > > & Connectivity,
-    	   string ElementType,
-    	   uint QuadOrder);
+    	   string ElementType);
 
     // Build a mesh using the same nodes that are already used by another mesh
     // FEMesh(FEMesh*, const string ConnTable);

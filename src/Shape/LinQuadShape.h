@@ -16,7 +16,7 @@ namespace voom{
 
   public:
     //! LinTriShape constructor fills in N and DN
-    ShapeQ4(const Vector2d & Point) {
+    LinQuadShape(const Vector2d & Point) {
       _N.resize(4, 0.0);
       _DN.resize(4, Vector2d::Zero());
       update(Point);

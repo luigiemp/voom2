@@ -31,8 +31,7 @@ namespace voom {
   // Constructor from nodes and connectivities
   FEMesh::FEMesh(const vector<VectorXd > &  Positions,
     const vector<vector<int > > & Connectivity,
-    string ElementType,
-    uint QuadOrder):
+    string ElementType):
     Mesh(Positions)
   {
     this->createElementShapeAndQuadrature(ElementType);
@@ -121,6 +120,17 @@ namespace voom {
         _shapes.push_back( new QuadTriShape(QuadPoints[q]) );
       }
       NumNodesEl = 6;
+    }
+    else if (ElType == "Q4") {
+      // Full integration linear quadrilateral element
+      _quadrature = new QuadQuadrature(1);
+      vector<VectorXd> QuadPoints = _quadrature->getQuadPoints();
+
+      // Fill quadrature and shapes
+      for ( uint q = 0; q < QuadPoints.size(); q++ ) {
+        _shapes.push_back( new LinQuadShape(QuadPoints[q]) );
+      }
+      NumNodesEl = 4;
     }
     else {
       cerr << "** ERROR: Unknown finite element type: " << ElType << endl;
