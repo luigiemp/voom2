@@ -44,14 +44,12 @@ namespace voom {
     // Create list of elements
     for(uint i = 0; i < NumEl; i++) {
       // Temporary list of nodal positions
-      vector<VectorXd > positionList(Connectivity[i].size() );
+      vector<VectorXd > Xel(Connectivity[i].size() );
       for(uint m = 0; m < Connectivity[i].size(); m++)
-        positionList[m] = _positions[Connectivity[i][m]];
+        Xel[m] = _X[Connectivity[i][m]];
 
       FEgeomElement *myElement = new FEgeomElement(i, Connectivity[i],
-        positionList,
-        _shapes[0],
-        _quadrature[0]);
+        Xel, _shapes, _quadrature);
         _elements[i] = myElement;
     } // Loop over element list
   } // Constructor from nodes and connectivities
