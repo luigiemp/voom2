@@ -7,6 +7,7 @@ AM_CPPFLAGS=-I ./ 						\
 	    -I./../HalfEdgeMesh
 
 lib_LIBRARIES=libShape.a
-libShape_a_SOURCES=Shape.cc HexShape.cc BarShape.cc MFShape.cc LMEShape.cc  \
-		   MRKPMShape.cc LinTetShape.cc QuadTetShape.cc \
-		   LinTriShape.cc QuadTriShape.cc LoopShellShape.cc
+libShape_a_SOURCES=	Shape.cc HexShape.cc BarShape.cc MFShape.cc LMEShape.cc  	\
+		   	MRKPMShape.cc LinTetShape.cc QuadTetShape.cc 			\
+		   	LinTriShape.cc QuadTriShape.cc LoopShellShape.cc		\
+			ShapeQ4.cc	
