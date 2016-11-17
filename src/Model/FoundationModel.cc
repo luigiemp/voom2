@@ -165,13 +165,19 @@ namespace voom {
     cout << left << setw(8) << setfill(' ') << "Node";
     cout << left << setw(8) << setfill(' ') << "Pos X";
     cout << left << setw(8) << setfill(' ') << "Pos Y";
-    cout << left << setw(8) << setfill(' ') << "Pos Z" << endl;
+    if (_nodeDoF > 2)
+      cout << left << setw(8) << setfill(' ') << "Pos Z" << endl;
+    else
+      cout << endl;
 
     for (int i = 0; i < _myMesh->getNumberOfNodes(); i++) {
       cout << left << setw(8) << setfill(' ') << i;
       cout << left << setw(8) << setfill(' ') << _myMesh->getX(i)(0);
       cout << left << setw(8) << setfill(' ') << _myMesh->getX(i)(1);
-      cout << left << setw(8) << setfill(' ') << _myMesh->getX(i)(2) << endl;
+      if (_nodeDoF > 2)
+        cout << left << setw(8) << setfill(' ') << _myMesh->getX(i)(2) << endl;
+      else
+        cout << endl;
     }
 
   } // writeOutput
