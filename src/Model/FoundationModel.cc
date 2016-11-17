@@ -1,4 +1,5 @@
 #include "FoundationModel.h"
+#include <iomanip>      // Included this to create tables - debugging
 
 namespace voom {
 
@@ -158,128 +159,20 @@ namespace voom {
 
 
   // Writing output
-  void FoundationModel::writeOutputVTK(const string OutputFile, int step) {
+  void FoundationModel::writeOutputVTK() {
 
-    // Create outputFile name
-    stringstream FileNameStream;
-    FileNameStream << OutputFile << step << ".vtk";
-    ofstream out;
-    out.open( (FileNameStream.str()).c_str() );
-    int NumNodes = _myMesh->getNumberOfNodes();
+    cout << "Step " << step << " Output:" << endl;
+    cout << left << setw(8) << setfill(' ') << "Node";
+    cout << left << setw(8) << setfill(' ') << "Pos X";
+    cout << left << setw(8) << setfill(' ') << "Pos Y";
+    cout << left << setw(8) << setfill(' ') << "Pos Z" << endl;
 
-    // Header
-    char spchar = '#';
-    out << spchar << " vtk DataFile Version 3.1" << endl;
-    out << "vtk output" << endl;
-    out << "ASCII" << endl;
-    out << "DATASET UNSTRUCTURED_GRID" << endl;
-    out << "POINTS " << NumNodes << " FLOAT" << endl;
-
-    // For now we assumed dim == 3 !
-    for (int i = 0; i < NumNodes; i++ ) {
-      out << _myMesh->getX(i)(0) << " " << _myMesh->getX(i)(1) << " " << _myMesh->getX(i)(2) << endl;
+    for (int i = 0; i < _myMesh->getNumberOfNodes(); i++) {
+      cout << left << setw(8) << setfill(' ') << i;
+      cout << left << setw(8) << setfill(' ') << _myMesh->getX(i)(0);
+      cout << left << setw(8) << setfill(' ') << _myMesh->getX(i)(1);
+      cout << left << setw(8) << setfill(' ') << _myMesh->getX(i)(2) << endl;
     }
-
-    vector<GeomElement* > elements = _myMesh->getElements();
-    int NumEl = elements.size();
-    int NodePerEl = (elements[0])->getNodesPerElement();
-    // To be adjusted - not general at all!
-    int CellType = 0;
-    switch (NodePerEl) {
-      case 4:
-      CellType = 10;
-      break;
-      case 10:
-      CellType = 24;
-      break;
-      default:
-      cout << "Error cell type not implemented in MechanicsModel writeOutput. " << endl;
-    }
-
-    out << endl << "CELLS " << NumEl << " " << NumEl*(NodePerEl+1) << endl;
-
-    for (int e = 0; e < NumEl; e++) {
-      out << NodePerEl << " ";
-      const vector<int > & NodesID = (elements[e])->getNodesID();
-      for (int n = 0; n < NodePerEl; n++) {
-        out << NodesID[n] << " ";
-      }
-      out << endl;
-    }
-
-    out << endl << "CELL_TYPES " << NumEl << endl;
-    for (int e = 0; e < NumEl; e++) {
-      out << CellType << " " << endl;
-    }  // end of printing conntable
-
-
-
-    // Point data section
-    // Displacements
-    out << endl << "POINT_DATA " << NumNodes << endl << "VECTORS displacements double" << endl;
-
-    int dim = _myMesh->getDimension();
-    for (int i = 0; i < NumNodes; i++ ) {
-      VectorXd x = VectorXd::Zero(dim);
-      for (int j = 0; j < dim; j++) {
-        x(j) = _field[i*dim + j];
-      }
-      x -= _myMesh->getX(i);
-      out << x(0) << " " << x(1) << " " << x(2) << endl;
-    }
-
-    // Residuals
-    out << "VECTORS residual double" << endl;
-
-    // Compute Residual
-    uint PbDoF = ( _myMesh->getNumberOfNodes())*this->getDoFperNode();
-    EigenResult myResults(PbDoF, 2);
-    int myRequest = 2;
-    myResults.setRequest(myRequest);
-    this->compute(&myResults);
-    VectorXd R = *(myResults._residual);
-
-    for (int i = 0; i < NumNodes; i++ ) {
-      for (int j = 0; j < dim; j++) {
-        out << R(i*dim + j) << endl;
-      }
-    }
-
-    // Material stress tensor
-    out << "TENSORS P double" << endl;
-
-    // Loop through elements, also through material points array, which is unrolled
-    // uint index = 0;
-    MechanicsMaterial::FKresults FKres;
-    FKres.request = 2;
-    for(int e = 0; e < NumEl; e++)
-    {
-      GeomElement* geomEl = elements[e];
-      const int numQP = geomEl->getNumberOfQuadPoints();
-
-      // F at each quadrature point are computed at the same time in one element
-      vector<Matrix3d > Flist(numQP, Matrix3d::Zero());
-      // Compute deformation gradients for current element
-      this->computeDeformationGradient(Flist, geomEl);
-
-      // Loop over quadrature points
-      // for(int q = 0; q < numQP; q++) {
-      // _materials[e]->compute(FKres, Flist[q], &Fiber);
-      /*
-      WARNING
-      THIS ONLY WORKS WITH 1QP PER ELEMENT
-      BAD - NEED TO BE CHANGED!!
-      */
-      // }
-      // Only print stress tensor at the first QP !!!
-      _materials[e*numQP]->compute(FKres, Flist[0]);
-      out << FKres.P(0,0) << " " <<  FKres.P(0,1) << " " << FKres.P(0,2) << endl <<
-      FKres.P(1,0) << " " <<  FKres.P(1,1) << " " << FKres.P(1,2) << endl <<
-      FKres.P(2,0) << " " <<  FKres.P(2,1) << " " << FKres.P(2,2) << endl;
-    }
-
-    // Close file
-    out.close();
 
   } // writeOutput
 
