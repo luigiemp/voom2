@@ -14,18 +14,18 @@ namespace voom{
   public:
 
     //! Basic Constructor
-    /*! Construct from basic data structures defining the mesh, materials, BCs. 
+    /*! Construct from basic data structures defining the mesh, materials, BCs.
      */
-    MechanicsModel(Mesh* aMesh, vector<MechanicsMaterial * > Materials, 
+    MechanicsModel(Mesh* aMesh, vector<MechanicsMaterial * > Materials,
 		   const uint NodeDoF,
 		   int PressureFlag = 0, Mesh* SurfaceMesh = NULL,
 		   int NodalForcesFlag = 0,
 		   int _resetFlag = 1,
 		   int _springBCflag = 0);
 
-		   // const vector<string > & ElMatType, 
+		   // const vector<string > & ElMatType,
 		   // const map<string, MechanicsMaterial* > & ElMaterials);
-  
+
     //! Input-file-based Constructor
     // MechanicsModel(Mesh* myMesh, const string inputFile, const uint NodeDoF);
 
@@ -34,9 +34,9 @@ namespace voom{
       set<MechanicsMaterial *> UNIQUEmaterials;
       for (uint i = 0; i < _materials.size(); i++)
 	  UNIQUEmaterials.insert(_materials[i]);
-	
+
       for (set<MechanicsMaterial *>::iterator it = UNIQUEmaterials.begin();
-	   it != UNIQUEmaterials.end(); it++) 
+	   it != UNIQUEmaterials.end(); it++)
 		delete (*it);
     };
 
@@ -48,7 +48,7 @@ namespace voom{
       const uint numNodes = _myMesh->getNumberOfNodes();
       const uint dim = _myMesh->getDimension();
 
-      for (uint i = 0; i < numNodes; i++) 
+      for (uint i = 0; i < numNodes; i++)
 	for (uint j = 0; j < dim; j++)
 	  _field[i*dim+j] = _myMesh->getX(i,j)*value; // value = isotropic expansion/shrinking
     };
@@ -76,7 +76,7 @@ namespace voom{
     void linearizedUpdate(const int dof, const Real value) {
       _field[dof] += value;
     }
-    
+
     void setField(uint dof, Real value) {
       _field[dof] = value;
     }
@@ -110,7 +110,7 @@ namespace voom{
       FileNameStream << OutputFile << step << ".dat";
       ofstream out;
       out.open( (FileNameStream.str()).c_str() );
-  
+
       out << _field.size() << endl;
       for (uint i = 0; i < _field.size(); i++) {
 	out << setprecision(15) << _field[i] << endl;
@@ -120,18 +120,18 @@ namespace voom{
 
     uint getNumMat() {
       set<MechanicsMaterial *> UNIQUEmaterials;
-      for (uint i = 0; i < _materials.size(); i++) 
+      for (uint i = 0; i < _materials.size(); i++)
 	UNIQUEmaterials.insert(_materials[i]);
-	
+
       return UNIQUEmaterials.size();
     }
 
     uint getTotNumMatProp() {
       set<MechanicsMaterial *> UNIQUEmaterials;
-      for (uint i = 0; i < _materials.size(); i++) 
+      for (uint i = 0; i < _materials.size(); i++)
 	UNIQUEmaterials.insert(_materials[i]);
       // Assume all materials are of the same type
-	
+
       return ( UNIQUEmaterials.size() * (_materials[0]->getMaterialParameters()).size() );
     }
 
@@ -150,9 +150,9 @@ namespace voom{
     void setNodalForcesFlag(int NodalForcesFlag) {
       _nodalForcesFlag = NodalForcesFlag;
     }
-    
+
     //! Write output
-    void writeOutputVTK(const string OutputFile, int step); 
+    void writeOutputVTK(const string OutputFile, int step);
 
     //! Solve the system
     void compute(Result * R);
@@ -178,7 +178,14 @@ namespace voom{
     void initSpringBC(const string SpNodes, Mesh* SpMesh, Real SpringK);
     void computeNormals();
     vector<Triplet<Real > > applySpringBC(Result & R);
-    
+
+    // Functions for applying Torsional Spring BC
+    void initTorsionalSpringBC(const string torsionalSpringNodes, Real torsionalSpringK);
+    //! Computes centroid (x,y) of all the nodes but right now assumes long axis is z.
+    void computeCentroid();
+    void computeTangents();
+    vector<Triplet<Real> > applyTorsionalSpringBC(Result & R);
+
     Real computeRefVolume();
     Real computeCurrentVolume();
 
@@ -201,7 +208,7 @@ namespace voom{
     int _nodalForcesFlag;
     vector<int > * _forcesID;
     vector<Real > * _forces;
-    
+
     vector<Real > _prevField;
 
     int _resetFlag;
@@ -213,6 +220,13 @@ namespace voom{
     Real _springK;
     vector<vector<int > > _spNodesToEle;
     vector<Vector3d > _spNormals;
+
+    // Torsional Spring BC
+    int _torsionalSpringBCflag;
+    vector<int> _torsionalSpringNodes;
+    Vector3d _centroidLocation;
+    Real _torsionalSpringK;
+    vector<Vector3d> _spTangents;
   };
 
 } // namespace voom
