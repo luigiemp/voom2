@@ -9,6 +9,7 @@ namespace voom {
   {
     _field.resize(  (_myMesh->getNumberOfNodes() )*_nodeDoF );
     this->initializeField();
+    this->setPrevField();
     this->initSpringBC(SpNodes);
   }
 
@@ -84,7 +85,7 @@ namespace voom {
     const vector<GeomElement* > elements = _myMesh->getElements();
 
     vector<Vector3d > ElNormals(elements.size(), Vector3d::Zero());
-
+    
     // Loop over elements
     for(int e = 0; e < elements.size(); e++)
     {
@@ -148,7 +149,6 @@ namespace voom {
         } // loop over nodes of the element
       } // loop over elements
       _spNodesToEle.push_back(connected);
-
     } // loop over _spNodes
 
     _spNormals.resize(_spNodes.size(), Vector3d::Zero());
@@ -161,23 +161,39 @@ namespace voom {
   // Writing output
   void FoundationModel::writeOutputVTK(const string OutputFile, int step) {
 
+
+    // Residuals
+    uint PbDoF = ( _myMesh->getNumberOfNodes())*this->getDoFperNode();
+    EigenResult myResults(PbDoF, 2);
+    int myRequest = 2;
+    
+    myResults.setRequest(myRequest);
+    this->compute(&myResults);
+    VectorXd R = *(myResults._residual);
+    
     cout << "Step " << step << " Output:" << endl;
-    cout << left << setw(8) << setfill(' ') << "Node";
-    cout << left << setw(8) << setfill(' ') << "Pos X";
-    cout << left << setw(8) << setfill(' ') << "Pos Y";
+    cout << left << setw(15) << setfill(' ') << "Node";
+    cout << left << setw(15) << setfill(' ') << "Pos X";
+    cout << left << setw(15) << setfill(' ') << "Pos Y";
     if (_nodeDoF > 2)
-      cout << left << setw(8) << setfill(' ') << "Pos Z" << endl;
-    else
-      cout << endl;
+      cout << left << setw(15) << setfill(' ') << "Pos Z";
+    cout << left << setw(15) << setfill(' ') << "N_X";
+    cout << left << setw(15) << setfill(' ') << "N_Y";
+    cout << left << setw(15) << setfill(' ') << "N_Z";
+    cout << left << setw(15) << setfill(' ') << "Res_X";
+    cout << left << setw(15) << setfill(' ') << "Res_Y";
+    cout << left << setw(15) << setfill(' ') << "Res_Z";
+    cout << endl;
 
     for (int i = 0; i < _myMesh->getNumberOfNodes(); i++) {
-      cout << left << setw(8) << setfill(' ') << i;
-      cout << left << setw(8) << setfill(' ') << _myMesh->getX(i)(0);
-      cout << left << setw(8) << setfill(' ') << _myMesh->getX(i)(1);
-      if (_nodeDoF > 2)
-        cout << left << setw(8) << setfill(' ') << _myMesh->getX(i)(2) << endl;
-      else
-        cout << endl;
+      cout << left << setw(15) << setfill(' ') << i;
+      for (int j = 0; j < _nodeDoF; j++)
+        cout << left << setw(15) << setfill(' ') << _field[i*3 + j];
+      for (int j = 0; j < 3; j++)
+        cout << left << setw(15) << setfill(' ') << _spNormals[i](j);
+      for (int j = 0; j < 3; j++)
+	cout << left << setw(15) << setfill(' ') << R(i*3 + j);
+      cout << endl;
     }
 
   } // writeOutput
