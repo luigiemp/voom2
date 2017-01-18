@@ -695,22 +695,13 @@ namespace voom {
 
   // Functions for applying Torsional Spring BC
   void MechanicsModel::initTorsionalSpringBC(const string torsionalSpringNodes, Real torsionalSpringK) {
+    _torsionalSpringNodes = torsionalSpringNodes;
+    _torsionalSpringK = torsionalSpringK;
     // Compute Centroid to compute the tangential vector
     computeCentroid();
 
     // Compute the tangential vectors
-    for(int n = 0; n < _torsionalSpringNodes.size(); n++)
-    {
-      int NodeID = _torsionalSpringNodes[n];
-      Vector3d xa_reference(_myMesh->getX(NodeID)(0), _myMesh->getX(NodeID)(1), _myMesh->getX(NodeID)(2));
-
-      Vector2d normal = Vector2d::Zero();
-      Vector3d tempNormal = xa_reference -_centroidLocation;
-      normal(0) = tempNormal(0); normal(1) = tempNormal(1);
-      normal = normal/normal.norm();
-
-      Vector3d tangent = Vector3d::Zero();
-    }
+    computeTangents();
   }
 
   void MechanicsModel::computeCentroid() {
@@ -729,7 +720,18 @@ namespace voom {
   }
 
   void MechanicsModel::computeTangents() {
+    for(int n = 0; n < _torsionalSpringNodes.size(); n++)
+    {
+      int NodeID = _torsionalSpringNodes[n];
+      Vector3d xa_reference(_myMesh->getX(NodeID)(0), _myMesh->getX(NodeID)(1), _myMesh->getX(NodeID)(2));
 
+      Vector2d normal = Vector2d::Zero();
+      Vector3d tempNormal = xa_reference -_centroidLocation;
+      normal(0) = tempNormal(0); normal(1) = tempNormal(1);
+      normal = normal/normal.norm();
+
+      Vector3d tangent(-1.0 * normal(1), normal(0));
+    }
   }
 
   vector<Triplet<Real> > MechanicsModel::applyTorsionalSpringBC(Result & R) {
@@ -763,7 +765,6 @@ namespace voom {
           } // j loop
         } // i loop
       } // Stiffness loop
-
     } // Spring nodes loop
 
     return  KtripletList_FromSpring;
