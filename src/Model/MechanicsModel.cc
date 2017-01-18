@@ -694,7 +694,7 @@ namespace voom {
   }
 
   // Functions for applying Torsional Spring BC
-  void initTorsionalSpringBC(const string torsionalSpringNodes, Real torsionalSpringK) {
+  void MechanicsModel::initTorsionalSpringBC(const string torsionalSpringNodes, Real torsionalSpringK) {
     // Compute Centroid to compute the tangential vector
     computeCentroid();
 
@@ -702,8 +702,7 @@ namespace voom {
     for(int n = 0; n < _torsionalSpringNodes.size(); n++)
     {
       int NodeID = _torsionalSpringNodes[n];
-      Vector3d xa_prev, xa_curr;
-      xa_reference << _myMesh->getX(NodeID)(0) << _myMesh->getX(nodeID)(1) << _myMesh->getX(nodeID)(2);
+      Vector3d xa_reference(_myMesh->getX(NodeID)(0), _myMesh->getX(NodeID)(1), _myMesh->getX(NodeID)(2));
 
       Vector2d normal = Vector2d::Zero();
       Vector3d tempNormal = xa_reference -_centroidLocation;
@@ -714,34 +713,34 @@ namespace voom {
     }
   }
 
-  void computeCentroid() {
+  void MechanicsModel::computeCentroid() {
     double xavg = 0.0;
     double yavg = 0.0;
     double zavg = 0.0;
     for (int n = 0; n < _myMesh->getNumberOfNodes(); n++) {
-      xavg += _myMesh->getX(nodeID)(0);
-      yavg += _myMesh->getX(nodeID)(1);
-      zavg += _myMesh->getX(nodeID)(2);
+      xavg += _myMesh->getX(n)(0);
+      yavg += _myMesh->getX(n)(1);
+      zavg += _myMesh->getX(n)(2);
     }
     xavg = xavg/_myMesh->getNumberOfNodes();
     yavg = yavg/_myMesh->getNumberOfNodes();
     zavg = zavg/_myMesh->getNumberOfNodes();
-    _centroidLocation << xavg << yavg << zavg;
+    _centroidLocation(0) = xavg; _centroidLocation(1) = yavg; _centroidLocation(2) = zavg;
   }
 
-  void computeTangents() {
+  void MechanicsModel::computeTangents() {
 
   }
 
-  vector<Triplet<Real> > applyTorsionalSpringBC(Result & R) {
+  vector<Triplet<Real> > MechanicsModel::applyTorsionalSpringBC(Result & R) {
     vector<Triplet<Real > > KtripletList_FromSpring;
 
     // Loop through _spNodes
     for(int n = 0; n < _torsionalSpringNodes.size(); n++)
     {
       int NodeID = _torsionalSpringNodes[n];
-      Vector3d xa_prev, xa_curr;
-      xa_reference << _myMesh->getX(NodeID)(0) << _myMesh->getX(nodeID)(1) << _myMesh->getX(nodeID)(2);
+      Vector3d xa_reference, xa_curr;
+      xa_reference << _myMesh->getX(NodeID)(0), _myMesh->getX(NodeID)(1), _myMesh->getX(NodeID)(2);
       xa_curr << _field[NodeID*3], _field[NodeID*3+1], _field[NodeID*3+2];
 
       // Compute energy
