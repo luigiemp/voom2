@@ -209,6 +209,11 @@ namespace voom {
       KtripletList.insert( KtripletList.end(), KtripletList_FromSpring.begin(), KtripletList_FromSpring.end() );
     }
 
+    if (_torsionalSpringBCflag == 1) {
+      vector<Triplet<Real> > KtripletList_FromTorsionalSpring = this->applyTorsionalSpringBC(*R);
+      KtripletList.insert(KtripletList.end(), KtripletList_FromTorsionalSpring.begin(), KtripletList_FromTorsionalSpring.end());
+    }
+
     // Sum up all stiffness entries with the same indices
     if ( R->getRequest() & STIFFNESS ) {
       R->setStiffnessFromTriplets(KtripletList);
@@ -442,11 +447,21 @@ namespace voom {
 
     // Store node number on the outer surface
     ifstream inp(SpNodes.c_str());
+    if (!inp.is_open()) {
+        cout << "** Unable to open spring file " << SpNodes << ".\n ** Exiting..." << endl;
+        exit(EXIT_FAILURE);
+    }
+
+    int numSpringNodes = 0;
+    inp >> numSpringNodes;
+
     int nodeNum = 0;
     while (inp >> nodeNum)
-    {
       _spNodes.push_back(nodeNum);
-    }
+
+    // Checking that the number at the top of the file corresponds to the number of nodes
+    assert(numSpringNodes == _spNodes.size());
+    cout << "** Applying the Spring BC to " << numSpringNodes << " nodes." << endl;
 
     // Collect elements that share a node in _spNodes
     const vector<GeomElement* > elements = _spMesh->getElements();
@@ -695,8 +710,28 @@ namespace voom {
 
   // Functions for applying Torsional Spring BC
   void MechanicsModel::initTorsionalSpringBC(const string torsionalSpringNodes, Real torsionalSpringK) {
-    _torsionalSpringNodes = torsionalSpringNodes;
+    // Activate flag
+     _torsionalSpringBCflag = 1;
+
+    // Store node number on the outer surface
+    ifstream inp(torsionalSpringNodes.c_str());
+    if (!inp.is_open()) {
+	cout << "** Unable to open Torsional spring file " << torsionalSpringNodes << ".\n ** Exiting..." << endl;
+	exit(EXIT_FAILURE);
+    }
+    int numTorsionalSpringNodes = 0;
+    inp >> numTorsionalSpringNodes;
+
+    int nodeNum = 0;
+    while (inp >> nodeNum)
+      _torsionalSpringNodes.push_back(nodeNum);
+
+    // Checking that the number at the top of the file corresponds to the number of nodes
+    assert(numTorsionalSpringNodes == _torsionalSpringNodes.size());
+    cout << "** Applying the Torsional Spring BC to " << numTorsionalSpringNodes << " nodes." << endl;
+
     _torsionalSpringK = torsionalSpringK;
+    
     // Compute Centroid to compute the tangential vector
     computeCentroid();
 
@@ -730,7 +765,8 @@ namespace voom {
       normal(0) = tempNormal(0); normal(1) = tempNormal(1);
       normal = normal/normal.norm();
 
-      Vector3d tangent(-1.0 * normal(1), normal(0));
+      Vector3d tangent(-1.0 * normal(1), normal(0), 0.0);
+      _spTangents.push_back(tangent);
     }
   }
 
@@ -775,8 +811,265 @@ namespace voom {
   void MechanicsModel::writeOutputVTK(const string OutputFile, int step)
   {
     /////
-    // NEED TO BE REWRITTEN TAKING INTO ACCOUNT MULTIPLE QUADRATURE POINTS PER ELEMENT !!!
+    // Todo: NEED TO BE REWRITTEN TAKING INTO ACCOUNT MULTIPLE QUADRATURE POINTS PER ELEMENT !!!
     /////
+
+    {
+    // Rewrite it with VTK Libraries
+    // Create outputFile name
+    string outputFileName = OutputFile + boost::lexical_cast<string>(step) + ".vtu";
+    vtkSmartPointer<vtkUnstructuredGrid> newUnstructuredGrid = vtkSmartPointer<vtkUnstructuredGrid>::New();
+
+    // Insert Points:
+    int NumNodes = _myMesh->getNumberOfNodes();
+    vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
+    // points->SetNumberOfPoints(NumNodes);
+    for (int i = 0; i < NumNodes; i++) {
+      float x_point = 0.0; float y_point = 0.0; float z_point = 0.0;
+      x_point = _myMesh->getX(i)(0);
+      if (_myMesh->getDimension() > 1) y_point = _myMesh->getX(i)(1);
+      if (_myMesh->getDimension() > 2) z_point = _myMesh->getX(i)(2);
+      points->InsertNextPoint(x_point, y_point, z_point);
+      // points->InsertPoint(i, x_point, y_point, z_point);
+    }
+    newUnstructuredGrid->SetPoints(points);
+    
+    // Element Connectivity:
+    // To-do: Figure out how to handle mixed meshes
+    // To-do: It would be better to select based on Abaqus element names
+    vector <GeomElement*> elements = _myMesh->getElements();
+    int NumEl = elements.size();
+    int NodePerEl = (elements[0])->getNodesPerElement();
+    int dim = _myMesh->getDimension();
+
+    VTKCellType cellType;
+    // Set Cell Type: http://www.vtk.org/doc/nightly/html/vtkCellType_8h.html
+    switch (dim) {
+      case 3: // 3D
+	switch (NodePerEl) {
+	  case 4: // Linear Tetrahedron
+	    cellType = VTK_TETRA;
+	    break;
+	  case 10: // Quadratic Tetrahedron
+	    cellType = VTK_QUADRATIC_TETRA;
+	  default:
+	    cout << "3D Element type not implemented in MechanicsModel writeOutput." << endl;
+	    exit(EXIT_FAILURE);
+	}
+	break;
+      default:
+        cout << "This element has not been implemented in MechanicsModel writeOutput." << endl;
+	exit(EXIT_FAILURE);
+    }
+
+    for (int el_iter = 0; el_iter < NumEl; el_iter++) {
+      vtkSmartPointer<vtkIdList> elConnectivity = vtkSmartPointer<vtkIdList>::New();
+
+      const vector<int > & NodesID = (elements[el_iter])->getNodesID();
+      for (int n = 0; n < NodePerEl; n++) {
+        elConnectivity->InsertNextId(NodesID[n]);
+      }
+      newUnstructuredGrid->InsertNextCell(cellType, elConnectivity);
+    }
+
+    // ** BEGIN: POINT DATA ** //
+    // ~~ BEGIN: DISPLACEMENTS ~~ //
+    vtkSmartPointer<vtkDoubleArray> displacements = vtkSmartPointer<vtkDoubleArray>::New();
+    displacements->SetNumberOfComponents(dim);
+    displacements->SetName("displacement");
+    displacements->SetComponentName(0, "X");
+    displacements->SetComponentName(1, "Y");
+    if (dim > 2) displacements->SetComponentName(2, "Z");
+
+    for (int i = 0; i < NumNodes; i++ ) {
+      double x[dim];
+      VectorXd X = _myMesh->getX(i);
+      for (int j = 0; j < dim; j++) {
+        x[j] = _field[i*dim + j] - X(j);
+      }
+      displacements->InsertNextTuple(x);
+    }
+    newUnstructuredGrid->GetPointData()->AddArray(displacements);
+    // ~~ END: DISPLACEMENTS ~~ //
+    
+    // ~~ BEGIN: RESIDUALS ~~ //
+    vtkSmartPointer<vtkDoubleArray> residuals = vtkSmartPointer<vtkDoubleArray>::New();
+    residuals->SetNumberOfComponents(dim);
+    residuals->SetName("residual");
+    residuals->SetComponentName(0, "X"); residuals->SetComponentName(1, "Y");
+    if (dim > 2) residuals->SetComponentName(2, "Z");
+
+    // Compute Residual
+    uint PbDoF = ( _myMesh->getNumberOfNodes())*this->getDoFperNode();
+    EigenResult myResults(PbDoF, 2);
+    int myRequest = 2;
+    myResults.setRequest(myRequest);
+    this->compute(&myResults);
+    VectorXd R = *(myResults._residual);
+
+    for (int i = 0; i < NumNodes; i++ ) {
+      double res[dim];
+      for (int j = 0; j < dim; j++) {
+        res[j] = R(i*dim + j);
+      }
+      residuals->InsertNextTuple(res);
+    }
+    newUnstructuredGrid->GetPointData()->AddArray(residuals);
+    // ~~ END: RESIDUALS ~~ //
+    // ** END: POINT DATA ** //
+    
+    // ** BEGIN: CELL DATA ** //
+    // ~~ BEGIN: \alpha MATERIAL PROPERTY (MAT_PARAM_ID) ~~ //
+    vtkSmartPointer<vtkDoubleArray> alpha = vtkSmartPointer<vtkDoubleArray>::New();
+    alpha->SetNumberOfComponents(2);
+    alpha->SetName("alpha");
+    alpha->SetComponentName(0, "Alpha_1"); alpha->SetComponentName(1, "Alpha_2");
+    for (int e = 0; e < NumEl; e++) {
+      GeomElement* geomEl = elements[e];
+      const int numQP = geomEl->getNumberOfQuadPoints();
+      double alpha_arr[2];
+      Real AvgMatProp_alpha1 = 0.0;
+      Real AvgMatProp_alpha2 = 0.0;
+      for (int q = 0; q < numQP; q++) {
+        vector <Real> MatProp = _materials[e*numQP + q]->getMaterialParameters();
+	if (!MatProp.empty()) {
+	  if (MatProp.size() > 0) AvgMatProp_alpha1 += MatProp[0];
+	  if (MatProp.size() > 1) AvgMatProp_alpha2 += MatProp[1];
+        }
+      }
+      AvgMatProp_alpha1 /= double(numQP); AvgMatProp_alpha2 /= double(numQP);
+      alpha_arr[0] = AvgMatProp_alpha1; alpha_arr[1] = AvgMatProp_alpha2;
+      alpha->InsertNextTuple(alpha_arr);
+    }
+    newUnstructuredGrid->GetCellData()->AddArray(alpha);
+    // ~~ END: \alpha MATERIAL PROPERTY (MAT_PARAM_ID) ~~ //
+    
+    // ~~ BEGIN: INTERNAL VARIABLES ~~ //
+    // TODO: This method assumes the same material throughout the entire body
+    int numInternalVariables = (_materials[0]->getInternalParameters()).size();
+    if (numInternalVariables > 0) {
+      vtkSmartPointer <vtkDoubleArray> internalVariables = vtkSmartPointer<vtkDoubleArray>::New();
+      internalVariables->SetName("Material_Internal_Variables");
+      internalVariables->SetNumberOfComponents(numInternalVariables);
+      for (int i = 0; i < numInternalVariables; i++) {
+        string tempName = "Internal_Variable_" +  boost::lexical_cast<string>(i);
+        internalVariables->SetComponentName(i, tempName.c_str());
+      }
+      for (int e = 0; e < NumEl; e++) {
+        GeomElement* geomEl = elements[e];
+        const int numQP = geomEl->getNumberOfQuadPoints();
+        vector<Real> IntProp = _materials[e*numQP]->getInternalParameters();
+        if (!IntProp.size() == numInternalVariables) {
+	  cout << "Internal Variables output for multi-materials not supported yet." << endl;
+          // double* tempIntProp = new double[numInternalVariables]();
+          double tempIntProp[numInternalVariables];
+          for (int p = 0; p < numInternalVariables; p++) tempIntProp[p] = -123.4; // Some error value. NaN is better.
+	  internalVariables->InsertNextTuple(tempIntProp);
+	  // delete tempIntProp;
+	  continue;
+        }
+
+        fill(IntProp.begin(), IntProp.end(), 0.0);
+
+        // Get Internal Properties from each quad point.
+        for (int q = 0; q < numQP; q++) {
+          vector <Real> IntPropQuad = _materials[e*numQP + q]->getInternalParameters();
+          for (int p = 0; p < numInternalVariables; p++) IntProp[p] = IntProp[p] + IntPropQuad[p];
+        }
+        // Average over quad points for cell data.
+        // double* intPropArr = new double(numInternalVariables);
+        double intPropArr[numInternalVariables];
+        for (int i = 0; i < numInternalVariables; i++) 
+  	  intPropArr[i] = IntProp[i]/numQP;
+        internalVariables->InsertNextTuple(intPropArr);
+	// delete [] intPropArr;
+      }
+      newUnstructuredGrid->GetCellData()->AddArray(internalVariables);
+    }
+    // ~~ END: INTERNAL VARIABLES ~~ //
+  
+    // ~~ BEGIN: 1ST PIOLA-KIRCHHOFF STRESS ~~ //
+    // Loop through elements, also through material points array, which is unrolled
+    // uint index = 0;
+    
+    vtkSmartPointer <vtkDoubleArray> FirstPKStress = vtkSmartPointer<vtkDoubleArray>::New();
+    FirstPKStress->SetName("First_PK_Stress");
+    FirstPKStress->SetNumberOfComponents(dim*dim);
+    for (int i = 0; i < dim; i++) { // row
+      for (int j = 0; j < dim; j++) {
+        string tempCompName = "P" + boost::lexical_cast<string>(i+1) + boost::lexical_cast<string>(j+1);
+        FirstPKStress->SetComponentName(i*3 + j, tempCompName.c_str());
+      }
+    }
+
+    MechanicsMaterial::FKresults FKres;
+    FKres.request = 2;
+    for(int e = 0; e < NumEl; e++)
+    {
+      // The dynamic allocation results in a memory leak + Seg fault. Not great.
+      // double* eleFirstPKStress = new (nothrow) double(dim*dim);
+      double eleFirstPKStress[dim * dim];
+      for (int i = 0; i < dim; i++)
+        for (int j = 0; j < dim; j++)
+          eleFirstPKStress[i*dim + j] = 0.0;
+
+      // double eleFirstPKStress[9] = {0.0};;
+      GeomElement* geomEl = elements[e];
+      const int numQP = geomEl->getNumberOfQuadPoints();
+      
+      // F at each quadrature point are computed at the same time in one element
+      vector<Matrix3d > Flist(numQP, Matrix3d::Zero());
+      // Compute deformation gradients for current element
+      this->computeDeformationGradient(Flist, geomEl);
+
+      // Loop over quadrature Points
+      // for (int q = 0; q < numQP; q++) {
+      //   _materials[e]->compute(FKres, Flist[q], &Fiber);
+      /*
+      WARNING
+      THIS ONLY WORKS WITH 1QP PER ELEMENT - BAD - NEEDS TO BE CHANGED!!
+      */
+      // }
+      // Read through this on how to visualize data at integration points:
+      // http://www.vtk.org/Wiki/VTK/VTK_integration_point_support
+
+      _materials[e*numQP + 0]->compute(FKres, Flist[0]);
+      
+      for (int i = 0; i < dim; i++)
+	for (int j = 0; j < dim; j++) 
+	  eleFirstPKStress[i*3 + j] = FKres.P(i,j);
+      
+      FirstPKStress->InsertNextTuple(eleFirstPKStress);
+      // delete eleFirstPKStress;
+    }
+    newUnstructuredGrid->GetCellData()->AddArray(FirstPKStress);
+    // ~~ END: 1ST PIOLA-KIRCHHOFF STRESS ~~ //
+    // ** END: CELL DATA ** //
+    
+    // ** BEGIN: SUPPORT FOR INTEGRATION POINTS ** //
+
+    // ** END: SUPPORT FOR INTEGRATION POINTS ** //
+   
+    // ** BEGIN: EXTRAS ** //
+    // ~~ BEGIN: PLOT PRESSURE NORMALS ~~ //
+    if (_pressureFlag) {
+
+    }
+    // ~~ END: PLOT PRESSURE NORMALS ~~ //
+    // ** END: EXTRAS ** //
+
+
+    // Write file
+    vtkSmartPointer<vtkXMLUnstructuredGridWriter> writer = vtkSmartPointer<vtkXMLUnstructuredGridWriter>::New();
+    writer->SetFileName(outputFileName.c_str());
+    writer->SetInput(newUnstructuredGrid);
+    writer->Write();
+ 
+  }
+    return;   
+
+    
+
     // Create outputFile name
     stringstream FileNameStream;
     FileNameStream << OutputFile << step << ".vtk";

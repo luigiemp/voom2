@@ -6,6 +6,22 @@
 #include "MechanicsMaterial.h"
 #include "EigenResult.h"
 
+// Include files for Writing Output:
+#include <boost/lexical_cast.hpp>
+#include <vtkVersion.h>
+#include <vtkIdList.h>
+#include <vtkPoints.h>
+#include <vtkPointData.h>
+#include <vtkCellData.h>
+#include <vtkTensor.h>
+#include <vtkSmartPointer.h>
+#include <vtkUnstructuredGrid.h>
+#include <vtkUnstructuredGridWriter.h>
+#include <vtkXMLUnstructuredGridWriter.h>
+#include <vtkCellType.h>
+#include <vtkCellArray.h>
+#include <vtkDoubleArray.h>
+
 namespace voom{
 
   // Model Results
