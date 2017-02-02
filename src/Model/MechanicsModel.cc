@@ -1045,25 +1045,90 @@ namespace voom {
     newUnstructuredGrid->GetCellData()->AddArray(FirstPKStress);
     // ~~ END: 1ST PIOLA-KIRCHHOFF STRESS ~~ //
     // ** END: CELL DATA ** //
-    
-    // ** BEGIN: SUPPORT FOR INTEGRATION POINTS ** //
-
-    // ** END: SUPPORT FOR INTEGRATION POINTS ** //
-   
-    // ** BEGIN: EXTRAS ** //
-    // ~~ BEGIN: PLOT PRESSURE NORMALS ~~ //
-    if (_pressureFlag) {
-
-    }
-    // ~~ END: PLOT PRESSURE NORMALS ~~ //
-    // ** END: EXTRAS ** //
-
 
     // Write file
     vtkSmartPointer<vtkXMLUnstructuredGridWriter> writer = vtkSmartPointer<vtkXMLUnstructuredGridWriter>::New();
     writer->SetFileName(outputFileName.c_str());
     writer->SetInput(newUnstructuredGrid);
     writer->Write();
+    
+    // ** BEGIN: SUPPORT FOR INTEGRATION POINTS ** //
+    
+    // ~~ BEGIN: PLOT PRESSURE NORMALS ~~ //
+    if (_pressureFlag) {
+      string outputIntegrationPointDataFileName = OutputFile + "_IntPointData" + boost::lexical_cast<string>(step) + ".vtp";
+      vtkSmartPointer<vtkPolyData> IntegrationPointGrid = vtkSmartPointer<vtkPolyData>::New();
+      vtkSmartPointer<vtkPoints> IntegrationPoints = vtkSmartPointer<vtkPoints>::New();
+      vtkSmartPointer<vtkDoubleArray> IntegrationPointsDisplacements = vtkSmartPointer<vtkDoubleArray>::New();
+      IntegrationPointsDisplacements->SetNumberOfComponents(3);
+      IntegrationPointsDisplacements->SetName("Displacements");
+
+      vector <GeomElement*> elements2D = _surfaceMesh->getElements();
+      for (int e = 0; e < elements2D.size(); e++) {
+	GeomElement* geomEl = elements2D[e];
+	const int numQP = geomEl->getNumberOfQuadPoints();
+	const vector<int>& NodesID = geomEl->getNodesID();
+	const uint numNodesOfEl = NodesID.size();
+
+	for (int q = 0; q < numQP; q++) {
+	  float tempDisplacement[3] = {0.0}; float tempPoint[3] = {0.0};
+	  for (int d = 0; d < dim; d++) {
+	    for (int n = 0; n < numNodesOfEl; n++) {
+	      tempPoint[d] += _surfaceMesh->getX(n)(d) * geomEl->getN(q,n);
+	      tempDisplacement[d] += (_field[NodesID[n]*dim + d] - _surfaceMesh->getX(n)(d)) * geomEl->getN(q, n);
+	    }
+	  }
+	  IntegrationPoints->InsertNextPoint(tempPoint);
+	  IntegrationPointsDisplacements->InsertNextTuple(tempDisplacement);
+	}
+      }
+      IntegrationPointGrid->SetPoints(IntegrationPoints);
+      IntegrationPointGrid->GetPointData()->AddArray(IntegrationPointsDisplacements);
+
+
+      // Compute Normals:
+      vtkSmartPointer<vtkDoubleArray> pressureNormal = vtkSmartPointer<vtkDoubleArray>::New();
+      pressureNormal->SetNumberOfComponents(3);
+      pressureNormal->SetName("Pressure_Normals");
+      for(int e = 0; e < elements2D.size(); e++) {
+	GeomElement* geomEl = elements2D[e];
+	const vector<int  >& NodesID = geomEl->getNodesID();
+	const int numQP    = geomEl->getNumberOfQuadPoints();
+	const int numNodes = NodesID.size();
+	
+	// Loop over quadrature points
+	for(int q = 0; q < numQP; q++) {
+	  // Compute normal based on _prevField and displacement
+	  Vector3d a1 = Vector3d::Zero(), a2 = Vector3d::Zero(), a3 = Vector3d::Zero();
+	  for (int a = 0; a < NodesID.size(); a++) {
+	    int nodeID = NodesID[a];
+	    Vector3d xa_prev, xa_curr;
+	    xa_prev << _prevField[nodeID*3], _prevField[nodeID*3+1], _prevField[nodeID*3+2];
+	    xa_curr << _field[nodeID*3], _field[nodeID*3+1], _field[nodeID*3+2];
+	    a1 += xa_prev*geomEl->getDN(q, a, 0);
+	    a2 += xa_prev*geomEl->getDN(q, a, 1);
+ 	  }
+	  a3 = a1.cross(a2);
+	  
+	  // Surface associated with QP q
+	  Real Area = a3.norm();
+	  a3 /= Area;
+	  double tempNormal[3] = {a3[0], a3[1], a3[2]};
+	  pressureNormal->InsertNextTuple(tempNormal);
+	}
+      }
+      IntegrationPointGrid->GetPointData()->AddArray(pressureNormal);
+
+      // Write File
+      vtkSmartPointer<vtkXMLPolyDataWriter> IntegrationPointWriter = vtkSmartPointer<vtkXMLPolyDataWriter>::New();
+      IntegrationPointWriter->SetFileName(outputIntegrationPointDataFileName.c_str());
+      IntegrationPointWriter->SetInput(IntegrationPointGrid);
+      IntegrationPointWriter->Write();
+      // ** END: SUPPORT FOR INTEGRATION POINTS ** //
+    }
+    // ~~ END: PLOT PRESSURE NORMALS ~~ //
+
+    
  
   }
     return;   
