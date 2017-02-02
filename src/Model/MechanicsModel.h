@@ -16,7 +16,10 @@
 #include <vtkTensor.h>
 #include <vtkSmartPointer.h>
 #include <vtkUnstructuredGrid.h>
+#include <vtkPolyData.h>
+#include <vtkPolyDataWriter.h>
 #include <vtkUnstructuredGridWriter.h>
+#include <vtkXMLPolyDataWriter.h>
 #include <vtkXMLUnstructuredGridWriter.h>
 #include <vtkCellType.h>
 #include <vtkCellArray.h>
@@ -169,6 +172,9 @@ namespace voom{
 
     //! Write output
     void writeOutputVTK(const string OutputFile, int step);
+
+    //! Write VTK output for normals of pressure
+    void writePressurePolyData(string OutputFile, int step);
 
     //! Solve the system
     void compute(Result * R);

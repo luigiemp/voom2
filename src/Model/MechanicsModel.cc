@@ -814,7 +814,6 @@ namespace voom {
     // Todo: NEED TO BE REWRITTEN TAKING INTO ACCOUNT MULTIPLE QUADRATURE POINTS PER ELEMENT !!!
     /////
 
-    {
     // Rewrite it with VTK Libraries
     // Create outputFile name
     string outputFileName = OutputFile + boost::lexical_cast<string>(step) + ".vtu";
@@ -1053,261 +1052,86 @@ namespace voom {
     writer->Write();
     
     // ** BEGIN: SUPPORT FOR INTEGRATION POINTS ** //
-    
     // ~~ BEGIN: PLOT PRESSURE NORMALS ~~ //
     if (_pressureFlag) {
-      string outputIntegrationPointDataFileName = OutputFile + "_IntPointData" + boost::lexical_cast<string>(step) + ".vtp";
-      vtkSmartPointer<vtkPolyData> IntegrationPointGrid = vtkSmartPointer<vtkPolyData>::New();
-      vtkSmartPointer<vtkPoints> IntegrationPoints = vtkSmartPointer<vtkPoints>::New();
-      vtkSmartPointer<vtkDoubleArray> IntegrationPointsDisplacements = vtkSmartPointer<vtkDoubleArray>::New();
-      IntegrationPointsDisplacements->SetNumberOfComponents(3);
-      IntegrationPointsDisplacements->SetName("Displacements");
-
-      vector <GeomElement*> elements2D = _surfaceMesh->getElements();
-      for (int e = 0; e < elements2D.size(); e++) {
-	GeomElement* geomEl = elements2D[e];
-	const int numQP = geomEl->getNumberOfQuadPoints();
-	const vector<int>& NodesID = geomEl->getNodesID();
-	const uint numNodesOfEl = NodesID.size();
-
-	for (int q = 0; q < numQP; q++) {
-	  float tempDisplacement[3] = {0.0}; float tempPoint[3] = {0.0};
-	  for (int d = 0; d < dim; d++) {
-	    for (int n = 0; n < numNodesOfEl; n++) {
-	      tempPoint[d] += _surfaceMesh->getX(n)(d) * geomEl->getN(q,n);
-	      tempDisplacement[d] += (_field[NodesID[n]*dim + d] - _surfaceMesh->getX(n)(d)) * geomEl->getN(q, n);
-	    }
-	  }
-	  IntegrationPoints->InsertNextPoint(tempPoint);
-	  IntegrationPointsDisplacements->InsertNextTuple(tempDisplacement);
-	}
-      }
-      IntegrationPointGrid->SetPoints(IntegrationPoints);
-      IntegrationPointGrid->GetPointData()->AddArray(IntegrationPointsDisplacements);
-
-
-      // Compute Normals:
-      vtkSmartPointer<vtkDoubleArray> pressureNormal = vtkSmartPointer<vtkDoubleArray>::New();
-      pressureNormal->SetNumberOfComponents(3);
-      pressureNormal->SetName("Pressure_Normals");
-      for(int e = 0; e < elements2D.size(); e++) {
-	GeomElement* geomEl = elements2D[e];
-	const vector<int  >& NodesID = geomEl->getNodesID();
-	const int numQP    = geomEl->getNumberOfQuadPoints();
-	const int numNodes = NodesID.size();
-	
-	// Loop over quadrature points
-	for(int q = 0; q < numQP; q++) {
-	  // Compute normal based on _prevField and displacement
-	  Vector3d a1 = Vector3d::Zero(), a2 = Vector3d::Zero(), a3 = Vector3d::Zero();
-	  for (int a = 0; a < NodesID.size(); a++) {
-	    int nodeID = NodesID[a];
-	    Vector3d xa_prev, xa_curr;
-	    xa_prev << _prevField[nodeID*3], _prevField[nodeID*3+1], _prevField[nodeID*3+2];
-	    xa_curr << _field[nodeID*3], _field[nodeID*3+1], _field[nodeID*3+2];
-	    a1 += xa_prev*geomEl->getDN(q, a, 0);
-	    a2 += xa_prev*geomEl->getDN(q, a, 1);
- 	  }
-	  a3 = a1.cross(a2);
-	  
-	  // Surface associated with QP q
-	  Real Area = a3.norm();
-	  a3 /= Area;
-	  double tempNormal[3] = {a3[0], a3[1], a3[2]};
-	  pressureNormal->InsertNextTuple(tempNormal);
-	}
-      }
-      IntegrationPointGrid->GetPointData()->AddArray(pressureNormal);
-
-      // Write File
-      vtkSmartPointer<vtkXMLPolyDataWriter> IntegrationPointWriter = vtkSmartPointer<vtkXMLPolyDataWriter>::New();
-      IntegrationPointWriter->SetFileName(outputIntegrationPointDataFileName.c_str());
-      IntegrationPointWriter->SetInput(IntegrationPointGrid);
-      IntegrationPointWriter->Write();
-      // ** END: SUPPORT FOR INTEGRATION POINTS ** //
+      writePressurePolyData(OutputFile, step);
     }
     // ~~ END: PLOT PRESSURE NORMALS ~~ //
+  } // writeOutput
 
-    
- 
-  }
-    return;   
-
-    
-
-    // Create outputFile name
-    stringstream FileNameStream;
-    FileNameStream << OutputFile << step << ".vtk";
-    ofstream out;
-    out.open( (FileNameStream.str()).c_str() );
-    int NumNodes = _myMesh->getNumberOfNodes();
-
-    // Header
-    char spchar = '#';
-    out << spchar << " vtk DataFile Version 3.1" << endl;
-    out << "vtk output" << endl;
-    out << "ASCII" << endl;
-    out << "DATASET UNSTRUCTURED_GRID" << endl;
-    out << "POINTS " << NumNodes << " FLOAT" << endl;
-
-    // For now we assumed dim == 3 !
-    for (int i = 0; i < NumNodes; i++ ) {
-      out << _myMesh->getX(i)(0) << " " << _myMesh->getX(i)(1) << " " << _myMesh->getX(i)(2) << endl;
-    }
-
-    vector<GeomElement* > elements = _myMesh->getElements();
-    int NumEl = elements.size();
-    int NodePerEl = (elements[0])->getNodesPerElement();
-    // To be adjusted - not general at all!
-    int CellType = 0;
-    switch (NodePerEl) {
-      case 4:
-      CellType = 10;
-      break;
-      case 10:
-      CellType = 24;
-      break;
-      default:
-      cout << "Error cell type not implemented in MechanicsModel writeOutput. " << endl;
-    }
-
-    out << endl << "CELLS " << NumEl << " " << NumEl*(NodePerEl+1) << endl;
-
-    for (int e = 0; e < NumEl; e++) {
-      out << NodePerEl << " ";
-      const vector<int > & NodesID = (elements[e])->getNodesID();
-      for (int n = 0; n < NodePerEl; n++) {
-        out << NodesID[n] << " ";
-      }
-      out << endl;
-    }
-
-    out << endl << "CELL_TYPES " << NumEl << endl;
-    for (int e = 0; e < NumEl; e++) {
-      out << CellType << " " << endl;
-    }  // end of printing conntable
-
-
-
-    // Point data section
-    // Displacements
-    out << endl << "POINT_DATA " << NumNodes << endl
-    << "VECTORS displacements double" << endl;
+  void MechanicsModel::writePressurePolyData(string OutputFile, int step) {
 
     int dim = _myMesh->getDimension();
-    for (int i = 0; i < NumNodes; i++ ) {
-      VectorXd x = VectorXd::Zero(dim);
-      for (int j = 0; j < dim; j++) {
-        x(j) = _field[i*dim + j];
-      }
-      x -= _myMesh->getX(i);
-      out << x(0) << " " << x(1) << " " << x(2) << endl;
-    }
 
-    // Residuals
-    out << "VECTORS residual double" << endl;
+    string outputIntegrationPointDataFileName = OutputFile + "_IntPointData" + boost::lexical_cast<string>(step) + ".vtp";
+    vtkSmartPointer<vtkPolyData> IntegrationPointGrid = vtkSmartPointer<vtkPolyData>::New();
+    vtkSmartPointer<vtkPoints> IntegrationPoints = vtkSmartPointer<vtkPoints>::New();
+    vtkSmartPointer<vtkDoubleArray> IntegrationPointsDisplacements = vtkSmartPointer<vtkDoubleArray>::New();
+    IntegrationPointsDisplacements->SetNumberOfComponents(3);
+    IntegrationPointsDisplacements->SetName("Displacements");
 
-    // Compute Residual
-    uint PbDoF = ( _myMesh->getNumberOfNodes())*this->getDoFperNode();
-    EigenResult myResults(PbDoF, 2);
-    int myRequest = 2;
-    myResults.setRequest(myRequest);
-    this->compute(&myResults);
-    VectorXd R = *(myResults._residual);
-
-    for (int i = 0; i < NumNodes; i++ ) {
-      for (int j = 0; j < dim; j++) {
-        out << R(i*dim + j) << endl;
-      }
-    }
-
-
-    // Cell data section
-    // Alpha_1 material property
-    out << endl << "CELL_DATA " << NumEl << endl
-    << "SCALARS Alpha1 double" << endl
-    << "LOOKUP_TABLE default" << endl;
-    for ( int e = 0; e < NumEl; e++ ) {
-      GeomElement* geomEl = elements[e];
+    vector <GeomElement*> elements2D = _surfaceMesh->getElements();
+    for (int e = 0; e < elements2D.size(); e++) {
+      GeomElement* geomEl = elements2D[e];
       const int numQP = geomEl->getNumberOfQuadPoints();
-      Real AvgMatProp = 0.0;
-      for ( int q = 0; q < numQP; q++ ) {
-        vector<Real > MatProp = _materials[e*numQP + q]->getMaterialParameters();
-        if (!MatProp.empty())
-        AvgMatProp += MatProp[0];
-      }
-      out << AvgMatProp/double(numQP) << endl;
-    }
+      const vector<int>& NodesID = geomEl->getNodesID();
+      const uint numNodesOfEl = NodesID.size();
 
-    // Alpha_2 material property
-    out << "SCALARS Alpha2 double" << endl
-    << "LOOKUP_TABLE default" << endl;
-    for ( int e = 0; e < NumEl; e++ ) {
-      GeomElement* geomEl = elements[e];
-      const int numQP = geomEl->getNumberOfQuadPoints();
-      Real AvgMatProp = 0.0;
-      for ( int q = 0; q < numQP; q++ ) {
-        vector<Real > MatProp = _materials[e*numQP + q]->getMaterialParameters();
-        if (!MatProp.empty())
-        AvgMatProp += MatProp[1];
-      }
-      out << AvgMatProp/double(numQP) << endl;
-
-    }
-
-    // Material internal variable
-    out << "SCALARS InternalVariable double" << endl
-    << "LOOKUP_TABLE default" << endl;
-    for ( int e = 0; e < NumEl; e++ ) {
-      vector<Real > IntProp = _materials[e]->getInternalParameters();
-      // for ( int i = 0; i < IntProp.size(); i++ ) {
-      /*
-      WARNING
-      THIS ONLY PRINTS THE FIRST INTERNAL VARIABLE
-      BAD - NEED TO BE CHANGED!!
-      */
-      if ( IntProp.size() > 0 ) {
-        out << IntProp[0] << endl;
-      } else {
-        out << 0.0 << endl;
+      for (int q = 0; q < numQP; q++) {
+	float tempDisplacement[3] = {0.0}; float tempPoint[3] = {0.0};
+	for (int d = 0; d < dim; d++) {
+	  for (int n = 0; n < numNodesOfEl; n++) {
+	    tempPoint[d] += _surfaceMesh->getX(n)(d) * geomEl->getN(q,n);
+	    tempDisplacement[d] += (_field[NodesID[n]*dim + d] - _surfaceMesh->getX(n)(d)) * geomEl->getN(q, n);
+	  }
+	}
+	IntegrationPoints->InsertNextPoint(tempPoint);
+	IntegrationPointsDisplacements->InsertNextTuple(tempDisplacement);
       }
     }
+    IntegrationPointGrid->SetPoints(IntegrationPoints);
+    IntegrationPointGrid->GetPointData()->AddArray(IntegrationPointsDisplacements);
 
-    // Material stress tensor
-    out << "TENSORS P double" << endl;
 
-    // Loop through elements, also through material points array, which is unrolled
-    // uint index = 0;
-    MechanicsMaterial::FKresults FKres;
-    FKres.request = 2;
-    for(int e = 0; e < NumEl; e++)
-    {
-      GeomElement* geomEl = elements[e];
-      const int numQP = geomEl->getNumberOfQuadPoints();
-
-      // F at each quadrature point are computed at the same time in one element
-      vector<Matrix3d > Flist(numQP, Matrix3d::Zero());
-      // Compute deformation gradients for current element
-      this->computeDeformationGradient(Flist, geomEl);
-
+    // Compute Normals:
+    vtkSmartPointer<vtkDoubleArray> pressureNormal = vtkSmartPointer<vtkDoubleArray>::New();
+    pressureNormal->SetNumberOfComponents(3);
+    pressureNormal->SetName("Pressure_Normals");
+    for(int e = 0; e < elements2D.size(); e++) {
+      GeomElement* geomEl = elements2D[e];
+      const vector<int  >& NodesID = geomEl->getNodesID();
+      const int numQP    = geomEl->getNumberOfQuadPoints();
+      const int numNodes = NodesID.size();
+	
       // Loop over quadrature points
-      // for(int q = 0; q < numQP; q++) {
-      // _materials[e]->compute(FKres, Flist[q], &Fiber);
-      /*
-      WARNING
-      THIS ONLY WORKS WITH 1QP PER ELEMENT
-      BAD - NEED TO BE CHANGED!!
-      */
-      // }
-      // Only print stress tensor at the first QP !!!
-      _materials[e*numQP]->compute(FKres, Flist[0]);
-      out << FKres.P(0,0) << " " <<  FKres.P(0,1) << " " << FKres.P(0,2) << endl <<
-      FKres.P(1,0) << " " <<  FKres.P(1,1) << " " << FKres.P(1,2) << endl <<
-      FKres.P(2,0) << " " <<  FKres.P(2,1) << " " << FKres.P(2,2) << endl;
+      for(int q = 0; q < numQP; q++) {
+	// Compute normal based on _prevField and displacement
+	Vector3d a1 = Vector3d::Zero(), a2 = Vector3d::Zero(), a3 = Vector3d::Zero();
+	for (int a = 0; a < NodesID.size(); a++) {
+	  int nodeID = NodesID[a];
+	  Vector3d xa_prev, xa_curr;
+	  xa_prev << _prevField[nodeID*3], _prevField[nodeID*3+1], _prevField[nodeID*3+2];
+	  xa_curr << _field[nodeID*3], _field[nodeID*3+1], _field[nodeID*3+2];
+	  a1 += xa_prev*geomEl->getDN(q, a, 0);
+	  a2 += xa_prev*geomEl->getDN(q, a, 1);
+	}
+	a3 = a1.cross(a2);
+	  
+	// Surface associated with QP q
+	Real Area = a3.norm();
+	a3 /= Area;
+	double tempNormal[3] = {a3[0], a3[1], a3[2]};
+	pressureNormal->InsertNextTuple(tempNormal);
+      }
     }
+    IntegrationPointGrid->GetPointData()->AddArray(pressureNormal);
 
-    // Close file
-    out.close();
-  } // writeOutput
+    // Write File
+    vtkSmartPointer<vtkXMLPolyDataWriter> IntegrationPointWriter = vtkSmartPointer<vtkXMLPolyDataWriter>::New();
+    IntegrationPointWriter->SetFileName(outputIntegrationPointDataFileName.c_str());
+    IntegrationPointWriter->SetInput(IntegrationPointGrid);
+    IntegrationPointWriter->Write();
+    // ** END: SUPPORT FOR INTEGRATION POINTS ** //
+  }
 
 } // namespace voom
