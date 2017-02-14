@@ -1,0 +1,40 @@
+*begin("version 12.0.0.85  5-22-2016  14:52:01")
+*menufilterset("*")
+*menufilterdisable()
+*readfile("/u/home/a/adityapo/Research/voom2/src/Applications/Contraction/Mesh/StripMesh_0_05cm.hm")
+*setgeomrefinelevel(1)
+*viewset(0.673827285,0.144073426,-0.724706588,0,0.119171499,0.946774351,0.299025889,0,0.729215293,-0.287856173,0.620792944,0,-0.0449866807,0.166827257,0.573420213,1,-0.05,-0.05,1.05,1.05)
+*window(2,2,0,0,0)
+*createmark(elements,1) 340 342 346 348 352 354 358 360 532 534 538 540 544
+  546 550 552 868 870 874 876 880 882 886 888 1732 1734 1738 1740 1744 1746
+  1750 1752
+*findmark(elements,1,0,1,elements,0,2)
+*createmark(elements,2) 340 342 346 348 352 354 358 360 532 534 538 540 544
+  546 550 552 868 870 874 876 880 882 886 888 1732 1734 1738 1740 1744 1746
+  1750 1752
+*marktousermark(elements,2)
+*createmark(elements,1)
+*findmark(elements,1,0,1,elements,1,2)
+*createmark(elements,1) 340 342 346 348 352 354 358 360 532 534 538 540 544
+  546 550 552 868 870 874 876 880 882 886 888 1732 1734 1738 1740 1744 1746
+  1750 1752
+*findmark(elements,1,0,1,elements,1,2)
+*setdisplayattributes(0,0)
+*setelementinternaledgesmode(0)
+*setdisplayattributes(0,0)
+*setelementinternaledgesmode(0)
+*setdisplayattributes(2,0)
+*createmark(elements,1) 340 342 346 348 352 354 358 360 532 534 538 540 544
+  546 550 552 868 870 874 876 880 882 886 888 1732 1734 1738 1740 1744 1746
+  1750 1752
+*entitysetcreate("SpringBCElem",elements,1)
+*entitysuppressactive(sets,1,1)
+*entitysuppressactive(sets,1,0)
+*entitysuppressactive(components,1,1)
+*entitysuppressoutput(components,1,1)
+*retainmarkselections(0)
+*entityhighlighting(1)
+*feoutputwithdata("/u/local/apps/hyperworks/12.0/altair/templates/feoutput/abaqus/standard.3d","/u/home/a/adityapo/Research/voom2/src/Applications/Contraction/Mesh/StripMesh/StripMesh2.inp",0,0,2,1,0)
+*entitysuppressactive(components,1,0)
+*entitysuppressoutput(components,1,0)
+*entityhighlighting(1)
