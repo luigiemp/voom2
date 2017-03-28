@@ -108,6 +108,10 @@ namespace voom{
       x = _field;
     }
 
+    void setPrevField(vector<Real> & prevField) {
+      _prevField = prevField;
+    }
+
     void setPrevField() {
       _prevField = _field;
     };
@@ -176,8 +180,17 @@ namespace voom{
     //! Write VTK output for normals of pressure
     void writePressurePolyData(string OutputFile, int step);
 
+    //! Write VTK output for linear spring
+    void writeLinearSpringPolyData(string OutputFile, int step);
+
+    //! Write VTK output for torsional spring
+    void writeTorsionalSpringPolyData(string OutputFile, int step);
+
     //! Solve the system
     void compute(Result * R);
+
+    //! Finalize Compute (Optional method which includes computations done at the end of a solve step)
+    void finalizeCompute();
 
     // Apply pressure
     void applyPressure(Result * R);

@@ -12,7 +12,6 @@
 #include "SCElastic.h"
 #include "LoopShellModel.h"
 #include "Jacobian.h"
-#include "EigenEllipticResult.h"
 
 
 using namespace voom;

@@ -1,4 +1,4 @@
-bin_PROGRAMS = TestFoundationModel # TestSpringModel # TestModel
+bin_PROGRAMS = TestFoundationModel TestMechanicsModel # TestModel # TestSpringModel
 INCLUDES = -I./							\
 	   -I./../ 						\
 	   -I./../../  						\
@@ -29,5 +29,6 @@ AM_LDFLAGS = 	-L./ 								\
 LDADD   = 	-lModel -lMesh -lElement -lQuadrature -lShape -lMaterials -lVoomMath  \
 		-lGeometry -lHEMesh -lSolver -lMechanicsMaterial
 TestFoundationModel_SOURCES = TestFoundationModel.cc
+TestMechanicsModel_SOURCES = TestMechanicsModel.cc
 # TestModel_SOURCES = TestModel.cc
 # TestSpringModel_SOURCES = TestSpringModel.cc

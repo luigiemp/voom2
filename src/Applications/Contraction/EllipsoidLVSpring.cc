@@ -49,7 +49,7 @@ int main(int argc, char** argv)
 
   // Pressure File
   bool pressureFlag = true;
-  string pressureFile = "Pressure_1ms.dat";
+  string pressureFile = "InputFiles/Pressure_1ms.dat";
   
   // Simulation Time (in ms)
   double simTime = 2000;  
@@ -58,7 +58,7 @@ int main(int argc, char** argv)
   double deltaT = 0.01;
 
   // OutputString
-  string outputString = "/u/project/cardio/adityapo/ScratchResults/EllipsoidSpring2/Ellipsoid";
+  string outputString = "/u/project/cardio/adityapo/ScratchResults/EllipsoidSpring/Ellipsoid";
 
   // Fiber Visualization String
   string fiberPlotString = outputString + "_Fiber.vtk";
@@ -67,10 +67,16 @@ int main(int argc, char** argv)
   string volumeFile = outputString + "_Volume.txt";
 
   // Spring BC:
-  int SpringBCflag = 0;
+  int SpringBCflag = 1;
 
   // Spring Stiffnes
-  Real SpringK = 0.0; // 1.0e4;
+  Real SpringK = 1.0e4; // 1.0e4;
+  
+  // Torsional Spring BC:
+  int torsionalSpringBCflag = 1;
+
+  // Torsional Spring Stiffness:
+  int TorsionalSpringK = 1.0e4;
 
   // Initialize Mesh
   // Assumptions to use this main as is: strip has a face at z=0; tetrahedral mesh
@@ -78,9 +84,10 @@ int main(int argc, char** argv)
   FEMesh surfMesh("Mesh/EllipsoidMesh/Small_A.node", "Mesh/EllipsoidMesh/Small_A.outerSurfEle");
   FEMesh innerSurfMesh("Mesh/EllipsoidMesh/Small_A.node", "Mesh/EllipsoidMesh/Small_A.innerSurfEle");
   string FiberFile = "Mesh/EllipsoidMesh/Small_A.fiber";
-  string BCfile = "Mesh/EllipsoidMesh/Small_A.bc";
+  string BCfile = "Mesh/EllipsoidMesh/Small_A.Null.bc";
+  string torsionalSpringBC = "Mesh/EllipsoidMesh/Small_A.torsionalSpringNodes";
   string ActivationTimeFile = "Mesh/EllipsoidMeshFiner/Small_B.activationTime";   // This is the Element Activation Time File
-  string ActivationFile = "ActFunc_600ms_1msInterval.dat";  // This is the Calcium Transient
+  string ActivationFile = "InputFiles/ActFunc_600ms_1msInterval.dat";  // This is the Calcium Transient
   ifstream FiberInp(FiberFile.c_str());
   ifstream ActTime(ActivationTimeFile.c_str());
 
@@ -154,8 +161,7 @@ int main(int argc, char** argv)
   PLmaterials.reserve(NumMat);
 
 
-  APForceVelPotential TestPotential(4.0, 0.0, 3.0);	// 50.0 for 2nd parameter, force
-  // APForceVelPotential_Test TestPotential(4.0, 500000.0);
+  APForceVelPotential TestPotential(4.0, 100.0, 3.0);	// 50.0 for 2nd parameter, force
 
   BlankViscousPotential ViscPotential;
   // NewtonianViscousPotential ViscPotential(0.005, 0.5);
@@ -287,8 +293,10 @@ int main(int argc, char** argv)
     sheetVectors.push_back(el_vectors[1]);
     sheetNormalVectors.push_back(el_vectors[2]);
 
-    Humphrey_Compressible* PassiveMat = new Humphrey_Compressible(0, 15.98, 55.85, 0.0, -33.27, 30.21, 3.590, 64.62, el_vectors);
-    LinYinActive_Compressible* ActiveMat = new LinYinActive_Compressible(0, -38.70, 40.83, 25.12, 9.51, 171.18, el_vectors);
+    Humphrey_Compressible* PassiveMat = new Humphrey_Compressible(0, 15.98, 55.85, 0.0, -33.27, 30.21, 30.590, 640.62, el_vectors);
+    LinYinActive_Compressible* ActiveMat = new LinYinActive_Compressible(0, -38.70, 40.83, 25.12, 90.51, 171.18, el_vectors);
+
+    // CompNeoHookean* PassiveMat = new CompNeoHookean(0, 1.0, 1.0);
 
     PlasticMaterial* PlMat = new PlasticMaterial(el_iter, ActiveMat, PassiveMat, &TestPotential, &ViscPotential);
     PlMat->setDirectionVectors(el_vectors);
@@ -322,8 +330,12 @@ int main(int argc, char** argv)
   myModel.updatePressure(Pressure);
   myModel.updateNodalForces(&ForcesID, &Forces);
 
-  myModel.initSpringBC("Mesh/EllipsoidMesh/Small_A.outerSurf", &surfMesh, SpringK);
- 
+  if (SpringBCflag)
+    myModel.initSpringBC("Mesh/EllipsoidMesh/Small_A.outerSurf", &surfMesh, SpringK);
+
+  if (torsionalSpringBCflag)
+    myModel.initTorsionalSpringBC(torsionalSpringBC, TorsionalSpringK);
+
   // Initialize Result
   uint myRequest;
   uint PbDoF = (Cube.getNumberOfNodes())*myModel.getDoFperNode();
@@ -376,7 +388,7 @@ int main(int argc, char** argv)
   }
 
   // Solver
-  Real NRtol = 1.0e-5;
+  Real NRtol = 1.0e-7;
   uint NRmaxIter = 100;
   EigenNRsolver mySolver(&myModel, BCid, BCvalues, CHOL, NRtol, NRmaxIter);
 
@@ -391,9 +403,11 @@ int main(int argc, char** argv)
   for (int s = 0; s < simTime/deltaT; s++)
   {
     cout << "Step " << s << endl;
-    
+    if (SpringBCflag) myModel.computeNormals();
+
     // Update pressure	
-    myModel.updatePressure(-1.0/20 * pressureData[s][1]);
+    if (pressureFlag)
+      myModel.updatePressure(-1.0 * pressureData[s][1]);
     // myModel.updatePressure(-1.0 * Real(s)/15);
 
     for (int k = 0; k < NumMat; k++)

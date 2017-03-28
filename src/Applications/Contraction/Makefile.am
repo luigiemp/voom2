@@ -1,4 +1,5 @@
-bin_PROGRAMS = TestStrip EllipsoidLV CheckingConsistency MaterialPoint EllipsoidLVSpring StripSpringBC MaterialPoint_PurelyUniaxial RabbitLV Contraction CylindricalStrip
+bin_PROGRAMS = TestStrip EllipsoidLV CheckingConsistency MaterialPoint EllipsoidLVSpring StripSpringBC MaterialPoint_PurelyUniaxial RabbitLV Contraction CylindricalStrip \
+	       TestingCompressibility
 
 INCLUDES =		-I./							\
 			-I./../							\
@@ -58,3 +59,4 @@ MaterialPoint_PurelyUniaxial_SOURCES = MaterialPoint_PurelyUniaxial.cc
 RabbitLV_SOURCES = RabbitLV.cc
 Contraction_SOURCES = Contraction.cc
 CylindricalStrip_SOURCES = CylindricalStrip.cc
+TestingCompressibility_SOURCES = TestingCompressibility.cc

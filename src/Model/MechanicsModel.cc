@@ -275,7 +275,39 @@ namespace voom {
 
 
 
+  void MechanicsModel::finalizeCompute() {
+    // The following code keeps track of \bar{x} which is used as the anchor point
+    // for the linear springs
+    if (_springBCflag) {
+      // Compute new normals
+      computeNormals();
 
+      // Compute \bar{u}_{k+1} = x_{k+1} - \bar{x}_k
+      vector <Real> ubar = _field;
+      vector <Real> xbar;
+      xbar = _field;
+      for (int i = 0; i < _field.size(); i++)
+        ubar[i] = _field[i] - _prevField[i];
+
+      // Compute the tangent vector at every node      
+      for(int n = 0; n < _spNodes.size(); n++) {
+        Vector3d nodeTangent;
+	Vector3d ubarNode;
+	Vector3d xbarkNode;
+	Vector3d xNode;
+	ubarNode << ubar[_spNodes[n] * 3 + 0], ubar[_spNodes[n] * 3 + 1], ubar[_spNodes[n] * 3 + 2];
+	xbarkNode << _prevField[_spNodes[n] * 3 + 0], _prevField[_spNodes[n] * 3 + 1], _prevField[_spNodes[n] * 3 + 2];
+     	xNode << _field[_spNodes[n] * 3 + 0], _field[_spNodes[n] * 3 + 1], _field[_spNodes[n] * 3 + 2];
+	nodeTangent = ubarNode - (ubarNode.dot(_spNormals[n])) * _spNormals[n];
+
+	Vector3d xbarkp1Node = xbarkNode + (nodeTangent.dot(xNode - xbarkNode)) * nodeTangent;
+        xbar[_spNodes[n] * 3 + 0] = xbarkp1Node[0];
+	xbar[_spNodes[n] * 3 + 1] = xbarkp1Node[1];
+	xbar[_spNodes[n] * 3 + 2] = xbarkp1Node[2];
+      }
+      setPrevField(xbar);
+    }
+  } // finalizeCompute Mechanics Model
 
 
 
@@ -342,7 +374,7 @@ namespace voom {
     vector<Triplet<Real > > KtripletList_FromSpring;
 
     // Set previous field for every solution step
-    this->setPrevField();
+    // this->setPrevField();
 
     // Recompute normals - no change if _prevField has not changed.
     // this->computeNormals();
@@ -365,6 +397,8 @@ namespace voom {
         for(uint i = 0; i < 3; i++) {
           R.addResidual(NodeID*3+i,  _springK*_spNormals[n](i)*(xa_curr - xa_prev).dot(_spNormals[n]) );
         } // i loop
+	// cout << "Spring Force:\t" << _springK*_spNormals[n](0)*(xa_curr - xa_prev).dot(_spNormals[n]) << "\t" << _springK*_spNormals[n](1)*(xa_curr - xa_prev).dot(_spNormals[n]) << "\t" << _springK*_spNormals[n](2)*(xa_curr - xa_prev).dot(_spNormals[n]) << endl;
+	// cout << "Disp:\t" << xa_curr(0) - xa_prev(0) << "\t" << xa_curr(1) - xa_prev(1) << "\t" << xa_curr(2) - xa_prev(2) << endl;
       } // Internal force loop
 
       // Compute stiffness matrix
@@ -851,6 +885,7 @@ namespace voom {
 	    break;
 	  case 10: // Quadratic Tetrahedron
 	    cellType = VTK_QUADRATIC_TETRA;
+	    break;
 	  default:
 	    cout << "3D Element type not implemented in MechanicsModel writeOutput." << endl;
 	    exit(EXIT_FAILURE);
@@ -1053,10 +1088,14 @@ namespace voom {
     
     // ** BEGIN: SUPPORT FOR INTEGRATION POINTS ** //
     // ~~ BEGIN: PLOT PRESSURE NORMALS ~~ //
-    if (_pressureFlag) {
+    if (_pressureFlag) 
       writePressurePolyData(OutputFile, step);
-    }
     // ~~ END: PLOT PRESSURE NORMALS ~~ //
+
+    if (_springBCflag)
+      writeLinearSpringPolyData(OutputFile, step);
+    if (_torsionalSpringBCflag)
+      writeTorsionalSpringPolyData(OutputFile, step);
   } // writeOutput
 
   void MechanicsModel::writePressurePolyData(string OutputFile, int step) {
@@ -1132,6 +1171,115 @@ namespace voom {
     IntegrationPointWriter->SetInput(IntegrationPointGrid);
     IntegrationPointWriter->Write();
     // ** END: SUPPORT FOR INTEGRATION POINTS ** //
+  }
+
+  void MechanicsModel::writeLinearSpringPolyData(string OutputFile, int step) {
+    int dim = _myMesh->getDimension();
+
+    string outputIntegrationPointDataFileName = OutputFile + "_LinearSpring" + boost::lexical_cast<string>(step) + ".vtp";
+    vtkSmartPointer<vtkPolyData> IntegrationPointGrid = vtkSmartPointer<vtkPolyData>::New();
+    vtkSmartPointer<vtkPoints> IntegrationPoints = vtkSmartPointer<vtkPoints>::New();
+    vtkSmartPointer<vtkDoubleArray> IntegrationPointsDisplacements = vtkSmartPointer<vtkDoubleArray>::New();
+    IntegrationPointsDisplacements->SetNumberOfComponents(3);
+    IntegrationPointsDisplacements->SetName("Displacements");
+
+    vtkSmartPointer<vtkDoubleArray> LinearSpringForces = vtkSmartPointer<vtkDoubleArray>::New();
+    LinearSpringForces->SetNumberOfComponents(3);
+    LinearSpringForces->SetName("LinearSpring_Force");
+
+    uint PbDoF = ( _myMesh->getNumberOfNodes())*this->getDoFperNode();
+    EigenResult myResults(PbDoF, 0);
+    myResults.resetResidualToZero();
+    ComputeRequest myRequest = FORCE;
+
+    myResults.setRequest(myRequest);
+    this->applySpringBC(myResults);
+    VectorXd R = *(myResults._residual);
+
+    vector <GeomElement*> elements2D = _spMesh->getElements();
+    for (int n = 0; n < _spNodes.size(); n++) {
+      float tempDisplacement[3] = {0.0}; float tempPoint[3] = {0.0};
+
+      // Compute Spring Force also
+      float tempSpringForce[3] = {0.0};
+      Vector3d xa_prev, xa_curr;
+      xa_prev << _prevField[_spNodes[n]*3], _prevField[_spNodes[n]*3+1], _prevField[_spNodes[n]*3+2];
+      xa_curr << _field[_spNodes[n]*3], _field[_spNodes[n]*3+1], _field[_spNodes[n]*3+2];
+
+      for (int d = 0; d < dim; d++) {
+        tempPoint[d] = _spMesh->getX(n)(d);
+	tempDisplacement[d] = (_field[_spNodes[n]*dim + d] - _spMesh->getX(n)(d));
+        tempSpringForce[d] =  _springK*_spNormals[n](d)*(xa_curr - xa_prev).dot(_spNormals[n]); 
+      }
+      // cout << "Spring Force:\t" << tempSpringForce[0] << "\t" << tempSpringForce[1] << "\t" << tempSpringForce[2] << endl;
+      IntegrationPoints->InsertNextPoint(tempPoint);
+      IntegrationPointsDisplacements->InsertNextTuple(tempDisplacement);
+      LinearSpringForces->InsertNextTuple(tempSpringForce);
+    }
+    
+    IntegrationPointGrid->SetPoints(IntegrationPoints);
+    IntegrationPointGrid->GetPointData()->AddArray(IntegrationPointsDisplacements);
+    IntegrationPointGrid->GetPointData()->AddArray(LinearSpringForces);
+
+    // Compute Normals:
+    vtkSmartPointer<vtkDoubleArray> spNormal = vtkSmartPointer<vtkDoubleArray>::New();
+    spNormal->SetNumberOfComponents(3);
+    spNormal->SetName("LinearSpring_Normals");
+
+    for (int n = 0; n < _spNormals.size(); n++) {
+      double tempSpNormal[3] = {_spNormals[n](0), _spNormals[n](1), _spNormals[n](2)};
+      spNormal->InsertNextTuple(tempSpNormal);
+    }
+
+    IntegrationPointGrid->GetPointData()->AddArray(spNormal);
+
+    // Write File
+    vtkSmartPointer<vtkXMLPolyDataWriter> IntegrationPointWriter = vtkSmartPointer<vtkXMLPolyDataWriter>::New();
+    IntegrationPointWriter->SetFileName(outputIntegrationPointDataFileName.c_str());
+    IntegrationPointWriter->SetInput(IntegrationPointGrid);
+    IntegrationPointWriter->Write();
+  }
+
+  void MechanicsModel::writeTorsionalSpringPolyData(string OutputFile, int step) {
+    int dim = _myMesh->getDimension();
+
+    string outputIntegrationPointDataFileName = OutputFile + "_TorsionalSpring" + boost::lexical_cast<string>(step) + ".vtp";
+    vtkSmartPointer<vtkPolyData> IntegrationPointGrid = vtkSmartPointer<vtkPolyData>::New();
+    vtkSmartPointer<vtkPoints> IntegrationPoints = vtkSmartPointer<vtkPoints>::New();
+    vtkSmartPointer<vtkDoubleArray> IntegrationPointsDisplacements = vtkSmartPointer<vtkDoubleArray>::New();
+    IntegrationPointsDisplacements->SetNumberOfComponents(3);
+    IntegrationPointsDisplacements->SetName("Displacements");
+
+    for (int n = 0; n < _torsionalSpringNodes.size(); n++) {
+      float tempDisplacement[3] = {0.0}; float tempPoint[3] = {0.0};
+      for (int d = 0; d < dim; d++) {
+        tempPoint[d] = _myMesh->getX(_torsionalSpringNodes[n])(d);
+        tempDisplacement[d] = (_field[_torsionalSpringNodes[n]*dim + d] - _myMesh->getX(_torsionalSpringNodes[n])(d));
+      }
+      IntegrationPoints->InsertNextPoint(tempPoint);
+      IntegrationPointsDisplacements->InsertNextTuple(tempDisplacement);
+    }
+
+    IntegrationPointGrid->SetPoints(IntegrationPoints);
+    IntegrationPointGrid->GetPointData()->AddArray(IntegrationPointsDisplacements);
+
+    // Compute Normals:
+    vtkSmartPointer<vtkDoubleArray> spNormal = vtkSmartPointer<vtkDoubleArray>::New();
+    spNormal->SetNumberOfComponents(3);
+    spNormal->SetName("TorsionalSpring_Normals");
+
+    for (int n = 0; n < _spTangents.size(); n++) {
+      double tempSpNormal[3] = {_spTangents[n](0), _spTangents[n](1), _spTangents[n](2)};
+      spNormal->InsertNextTuple(tempSpNormal);
+    }
+
+    IntegrationPointGrid->GetPointData()->AddArray(spNormal);
+
+    // Write File
+    vtkSmartPointer<vtkXMLPolyDataWriter> IntegrationPointWriter = vtkSmartPointer<vtkXMLPolyDataWriter>::New();
+    IntegrationPointWriter->SetFileName(outputIntegrationPointDataFileName.c_str());
+    IntegrationPointWriter->SetInput(IntegrationPointGrid);
+    IntegrationPointWriter->Write();
   }
 
 } // namespace voom

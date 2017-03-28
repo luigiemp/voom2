@@ -92,13 +92,34 @@ namespace voom
 	  // Update field in the body
 	  _myModel->linearizedUpdate(Deltax.data(),-1.0);
 	  
+          /* // Compute Ax - b
+	  vector <Real> tempField(Deltax.size());
+	  VectorXd tempFieldXd(Deltax.size());
+	  _myModel->getField(tempField);
+          for (int nodeIter = 0; nodeIter < tempField.size(); nodeIter++)
+	    tempFieldXd(nodeIter) = tempField[nodeIter];
+	  VectorXd AxminusB = *(myResults._stiffness) * Deltax - *(myResults._residual);
+	  Real AxminusBNorm = AxminusB.norm();
+	  */	  
+
 	  // Update iter and error
 	  iter++;
 	  error = Deltax.norm();
 	  myResults.setRequest(ENERGY | FORCE);
 	  _myModel->compute(&myResults);
+
+
 	  cout << "Energy = " << myResults.getEnergy() << "   - NR iter = " << iter << "   -  NR error = " << error;
+	  // cout << " Residual = " << AxminusBNorm << endl;
 	  cout << " Residual = " << (myResults._residual)->norm() << endl;
+
+          /* // Computing the Maximum and Minimum eigenvalues:
+          MatrixXd DenseStiffness;
+	  DenseStiffness = MatrixXd(*(myResults._stiffness));
+	  VectorXcd evals = DenseStiffness.eigenvalues();
+	  cout << "Max Eigenvalue = " << evals.real().maxCoeff() << "\t Min Eigenvalue = " << evals.real().minCoeff() << endl;
+	  */
+	  // _myModel->writeOutputVTK("IntermediateResult", iter);
 	} // while loop
 	// After finding current field, update prev field
 	// _myModel->setPrevField();
