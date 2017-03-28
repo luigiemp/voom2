@@ -234,10 +234,6 @@ namespace voom{
     //! List of Material data at each QP in the model
     vector<MechanicsMaterial * > _materials;
 
-    //! Solution value at all nodes, local and ghost
-    //! Displacement are stored unrolled, [phi_x, phi_y, phi_z]
-    vector<Real > _field;
-
     // It should not be done here - maye we should have bodies and forms models from bodies
     int _pressureFlag;
     Real _pressure;

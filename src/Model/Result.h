@@ -51,6 +51,10 @@ namespace voom {
     int  _request;
     Real _energy;
 
+    //! Solution value at all nodes, local and ghost
+    //! Displacement are stored unrolled, [phi_x, phi_y, phi_z]
+    vector<Real > _field;
+
   }; // End of declaration of Result base class
 
 } // namespace voom

@@ -3,13 +3,13 @@
 namespace voom {
 
   // Constructor
-  MechanicsModel::MechanicsModel(Mesh* aMesh, vector<MechanicsMaterial * > Materials,
+  MechanicsModel::MechanicsModel(Mesh* myMesh, vector<MechanicsMaterial * > Materials, Result * myResults, vector<int > 
     const uint NodeDoF,
     int PressureFlag, Mesh* SurfaceMesh,
     int NodalForcesFlag,
     int ResetFlag,
     int SpringBCflag):
-    Model(aMesh, NodeDoF), _materials(Materials),
+    Model(myMesh, NodeDoF), _materials(Materials),
     _pressureFlag(PressureFlag), _pressure(0.0), _surfaceMesh(SurfaceMesh),
     _nodalForcesFlag(NodalForcesFlag), _forcesID(NULL), _forces(NULL), _resetFlag(ResetFlag), _springBCflag(SpringBCflag)
     {
