@@ -56,7 +56,7 @@ int main(int argc, char** argv)
   double simTime = 2000;  
 
   // Pressure Substepping
-  double numSubSteps = 5;
+  double numSubSteps = 1;
   
   // Time Step (in ms)
   double deltaT = 0.01;
@@ -270,8 +270,8 @@ int main(int argc, char** argv)
 	quadPointX += meshElements[el_iter]->getN(quadPt_iter, el_node_iter) * Cube.getX(el_nodeIds[el_node_iter], 0);
 	quadPointY += meshElements[el_iter]->getN(quadPt_iter, el_node_iter) * Cube.getX(el_nodeIds[el_node_iter], 1);
 	quadPointZ += meshElements[el_iter]->getN(quadPt_iter, el_node_iter) * Cube.getX(el_nodeIds[el_node_iter], 2);
-    }
-      
+      }
+
       // Activation Time Calculations:
       if(activationSequence) {
 	if (useConductionVelocity)
@@ -287,35 +287,35 @@ int main(int argc, char** argv)
       vector <Vector3d> el_vectors(3, Vector3d::Zero(3,1));
       
       if (fibersAcrossWall)
-	{
-	  // Load Fiber Data:
-	  FiberInp >> el_vectors[0][0]; FiberInp >> el_vectors[0][1]; FiberInp >> el_vectors[0][2];
-	  FiberInp >> el_vectors[1][0]; FiberInp >> el_vectors[1][1]; FiberInp >> el_vectors[1][2];
-	  FiberInp >> el_vectors[2][0]; FiberInp >> el_vectors[2][1]; FiberInp >> el_vectors[2][2];
-	}
+      {
+        // Load Fiber Data:
+        FiberInp >> el_vectors[0][0]; FiberInp >> el_vectors[0][1]; FiberInp >> el_vectors[0][2];
+	FiberInp >> el_vectors[1][0]; FiberInp >> el_vectors[1][1]; FiberInp >> el_vectors[1][2];
+	FiberInp >> el_vectors[2][0]; FiberInp >> el_vectors[2][1]; FiberInp >> el_vectors[2][2];
+      }
       else
-	{
-	  el_vectors[0] << 1., 0., 0.;
-	  el_vectors[1] << 0., 1., 0.;
-	  el_vectors[2] << 0., 0., 1.;
-	}
+      {
+	el_vectors[0] << 1., 0., 0.;
+	el_vectors[1] << 0., 1., 0.;
+	el_vectors[2] << 0., 0., 1.;
+      }
       fiberVectors.push_back(el_vectors[0]);
       sheetVectors.push_back(el_vectors[1]);
       sheetNormalVectors.push_back(el_vectors[2]);
       
-      Humphrey_Compressible* PassiveMat = new Humphrey_Compressible(0, 15.98, 55.85, 0.0, -33.27, 30.21, 30.590, 640.62, el_vectors);
-      LinYinActive_Compressible* ActiveMat = new LinYinActive_Compressible(0, -38.70, 40.83, 25.12, 90.51, 171.18, el_vectors);
+      CompNeoHookean* PlMat = new CompNeoHookean(0, 100.0, 100.0);
+
+      // Humphrey_Compressible* PassiveMat = new Humphrey_Compressible(0, 15.98, 55.85, 0.0, -33.27, 30.21, 30.590, 640.62, el_vectors);
+      // LinYinActive_Compressible* ActiveMat = new LinYinActive_Compressible(0, -38.70, 40.83, 25.12, 90.51, 171.18, el_vectors);
       
-      // CompNeoHookean* PassiveMat = new CompNeoHookean(0, 1.0, 1.0);
+      // PlasticMaterial* PlMat = new PlasticMaterial(el_iter, ActiveMat, PassiveMat, &TestPotential, &ViscPotential);
+      // PlMat->setDirectionVectors(el_vectors);
+      // PlMat->setHardeningParameters(HardParam);
+      // PlMat->setActiveDeformationGradient(Matrix3d::Identity(3,3));
+      // PlMat->setTotalDeformationGradient(Matrix3d::Identity(3,3));
       
-      PlasticMaterial* PlMat = new PlasticMaterial(el_iter, ActiveMat, PassiveMat, &TestPotential, &ViscPotential);
-      PlMat->setDirectionVectors(el_vectors);
-      PlMat->setHardeningParameters(HardParam);
-      PlMat->setActiveDeformationGradient(Matrix3d::Identity(3,3));
-      PlMat->setTotalDeformationGradient(Matrix3d::Identity(3,3));
-      
-      PlMat->setTimestep(deltaT);
-      PlMat->setActivationMultiplier(0.0);
+      // PlMat->setTimestep(deltaT);
+      // PlMat->setActivationMultiplier(0.0);
 
       PLmaterials.push_back(PlMat);
     }
@@ -328,6 +328,7 @@ int main(int argc, char** argv)
     for (int quadPt_iter = 0; quadPt_iter < numQuadPoints; quadPt_iter++)
     out << fiberVectors[el_iter * numQuadPoints + quadPt_iter][0] << " " << fiberVectors[el_iter * numQuadPoints + quadPt_iter][1] << " " << fiberVectors[el_iter * numQuadPoints + quadPt_iter][2] << endl;
   out.close();
+  FiberInp.close();
   ActTime.close();
 
   // Initialize Model
