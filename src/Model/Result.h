@@ -48,6 +48,12 @@ namespace voom {
     virtual Real getGradg(int ind) = 0;
     virtual Real getHg(int indRow, int indCol) = 0;
 
+    // Functions relating to field
+    virtual void fieldResize(int size) {_field.resize(size);};
+    virtual void initializeField(const vector<Real> field){_field = field;};
+    virtual int getFieldSize() {return _field.size();};
+
+
     int  _request;
     Real _energy;
 
