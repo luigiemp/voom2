@@ -27,7 +27,7 @@
 
 namespace voom{
 
-  // Model Results
+  // Model
   class MechanicsModel: public Model {
 
   public:
@@ -35,8 +35,8 @@ namespace voom{
     //! Basic Constructor
     /*! Construct from basic data structures defining the mesh, materials, BCs.
      */
-    MechanicsModel(Mesh* aMesh, vector<MechanicsMaterial * > Materials, Result* myResults,
-		   const uint NodeDoF,
+    MechanicsModel(Mesh* aMesh, const uint NodeDoF,  Result* myResult,
+		   vector<MechanicsMaterial * > Materials,
 		   int PressureFlag = 0, Mesh* SurfaceMesh = NULL,
 		   int NodalForcesFlag = 0,
 		   int _resetFlag = 1,
@@ -72,45 +72,45 @@ namespace voom{
       for (uint i = 0; i < numNodes; i++)
 	for (uint j = 0; j < dim; j++)
 	  field[i*dim+j] = _myMesh->getX(i,j)*value; // value = isotropic expansion/shrinking
-      _myResults->initializeField(field);
+      _myResult->initializeField(field);
     };
 
     //! From array
     void initializeField(const Real* value) {
       vector<Real> field;
       field.assign(value, value+field.size());
-      _myResults->initializeField(field);
+      _myResult->initializeField(field);
     };
 
     //! Linearized update
     void linearizedUpdate(const Real* localValues, Real fact) {
       const int nLocalDof = (_myMesh->getNumberOfNodes())*_nodeDoF;
       for(uint i = 0; i < nLocalDof; i++)
-	_myResults->_field[i] += fact*localValues[i];
+	_myResult->_field[i] += fact*localValues[i];
     };
 
     // One value at the time (Node ID, dof index, value)
     void linearizedUpdate(const int id, const int dof, const Real value) {
       // const uint dim = _myMesh->getDimension();
       // assert( id < _field.size() && dof < dim );
-      _myResults->_field[id*_nodeDoF + dof] += value;
+      _myResult->_field[id*_nodeDoF + dof] += value;
     }
 
     // One value at the time (Node ID, dof index, value)
     void linearizedUpdate(const int dof, const Real value) {
-      _myResults->_field[dof] += value;
+      _myResult->_field[dof] += value;
     }
 
     void setField(uint dof, Real value) {
-      _myResults->_field[dof] = value;
+      _myResult->_field[dof] = value;
     }
     void setField(const Real* value) {
-      _myResults->_field.assign(value, value+myResults->_field.size());
+      _myResult->_field.assign(value, value + _myResult->_field.size());
     };
 
     void getField(vector<Real > & x) {
-      assert(x.size() == _myResults->_field.size());
-      x = _myResults->_field;
+      assert(x.size() == _myResult->_field.size());
+      x = _myResult->_field;
     }
 
     void setPrevField(vector<Real> & prevField) {
@@ -118,14 +118,14 @@ namespace voom{
     }
 
     void setPrevField() {
-      _prevField = _myResults->_field;
+      _prevField = _myResult->_field;
     };
 
     void printField() {
       int i = 0;
-      while (i < _myResults->_field.size()) {
+      while (i < _myResult->_field.size()) {
 	for (uint j = 0; j < _nodeDoF; j++) {
-	  cout << _myResults->_field[i] << " ";
+	  cout << _myResult->_field[i] << " ";
 	  i++;
 	}
 	cout << endl;
@@ -139,9 +139,9 @@ namespace voom{
       ofstream out;
       out.open( (FileNameStream.str()).c_str() );
 
-      out << _myResults->_field.size() << endl;
-      for (uint i = 0; i < _myResults->_field.size(); i++) {
-	out << setprecision(15) << _myResults->_field[i] << endl;
+      out << _myResult->_field.size() << endl;
+      for (uint i = 0; i < _myResult->_field.size(); i++) {
+	out << setprecision(15) << _myResult->_field[i] << endl;
       }
       out.close();
     }
@@ -192,13 +192,13 @@ namespace voom{
     void writeTorsionalSpringPolyData(string OutputFile, int step);
 
     //! Solve the system
-    void compute(Result * R);
+    void compute();
 
     //! Finalize Compute (Optional method which includes computations done at the end of a solve step)
     void finalizeCompute();
 
     // Apply pressure
-    void applyPressure(Result * R);
+    void applyPressure();
 
     // Update pressure
     void updatePressure(Real Pressure) {
@@ -217,22 +217,19 @@ namespace voom{
     // Initialize _springNodes (nodes at which spring BC are applied) and _springElements (elements connected to spring nodes)
     void initSpringBC(const string SpNodes, Mesh* SpMesh, Real SpringK);
     void computeNormals();
-    vector<Triplet<Real > > applySpringBC(Result & R);
+    vector<Triplet<Real > > applySpringBC();
 
     // Functions for applying Torsional Spring BC
     void initTorsionalSpringBC(const string torsionalSpringNodes, Real torsionalSpringK);
     //! Computes centroid (x,y) of all the nodes but right now assumes long axis is z.
     void computeCentroid();
     void computeTangents();
-    vector<Triplet<Real> > applyTorsionalSpringBC(Result & R);
+    vector<Triplet<Real> > applyTorsionalSpringBC();
 
     Real computeRefVolume();
     Real computeCurrentVolume();
 
   protected:
-    //! Results Struct - should this be here or in Model.h
-    Result* myResults;
-
     //! Compute Deformation Gradient
     void computeDeformationGradient(vector<Matrix3d > & Flist, GeomElement* geomEl);
 
@@ -241,9 +238,6 @@ namespace voom{
 
     //! List of Material data at each QP in the model
     vector<MechanicsMaterial * > _materials;
-
-    //! Results struct which includes field
-    Result * _myResults;
 
     // It should not be done here - maye we should have bodies and forms models from bodies
     int _pressureFlag;

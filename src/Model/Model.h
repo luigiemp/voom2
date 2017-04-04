@@ -21,8 +21,8 @@ namespace voom {
     // Model(Mesh* myMesh, const string inputFile, const uint NodeDoF);
 
     //! Constructor to be used
-    Model(Mesh* aMesh, const uint NodeDoF)
-      : _myMesh(aMesh), _nodeDoF(NodeDoF) {
+    Model(Mesh* myMesh, const uint NodeDoF, Result* myResult)
+      : _myMesh(myMesh), _nodeDoF(NodeDoF), _myResult(myResult) {
       // WSK: evetually we want to copy the mesh object that is
       // pointed to.  To do this we need to implement a virtual copy
       // method to be used like this:
@@ -33,7 +33,7 @@ namespace voom {
     virtual ~Model() {};
 
     //! Model compute function
-    virtual void compute(voom::Result * R) = 0;
+    virtual void compute(Result* R) = 0;
 
     //! Check consistency - common to all models
     void checkConsistency(Result* R, Real perturbationFactor, int request = 6,
@@ -91,6 +91,7 @@ namespace voom {
 
   protected:
     Mesh*        _myMesh;
+    Result*      _myResult;
 
     //! DoF per node
     uint         _nodeDoF;

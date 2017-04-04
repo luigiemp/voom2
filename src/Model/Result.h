@@ -12,7 +12,7 @@ namespace voom {
   public:
 
     // Default constructor
-    Result(): _request(0), _energy(0.0) {};
+    Result(): _request(0), _energy(0.0) {}; // Notice: it does not initialize the field vector
 
     // Return NumMat and PbDoF
     virtual int getNumMatProp() = 0;
@@ -56,7 +56,7 @@ namespace voom {
 
     int  _request;
     Real _energy;
-
+ 
     //! Solution value at all nodes, local and ghost
     //! Displacement are stored unrolled, [phi_x, phi_y, phi_z]
     vector<Real > _field;
