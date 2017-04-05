@@ -68,8 +68,8 @@ namespace voom{
       const uint numNodes = _myMesh->getNumberOfNodes();
       const uint dim = _myMesh->getDimension();
       field.resize(numNodes*_nodeDoF);
-
-      for (uint i = 0; i < numNodes; i++)
+      
+      for (uint i = 0; i < numNodes; i++) // i -> node number
 	for (uint j = 0; j < dim; j++)
 	  field[i*dim+j] = _myMesh->getX(i,j)*value; // value = isotropic expansion/shrinking
       _myResult->initializeField(field);
@@ -180,32 +180,32 @@ namespace voom{
     }
 
     //! Write output
-    void writeOutputVTK(const string OutputFile, int step);
+    // void writeOutputVTK(const string OutputFile, int step);
 
     //! Write VTK output for normals of pressure
-    void writePressurePolyData(string OutputFile, int step);
+    // void writePressurePolyData(string OutputFile, int step);
 
     //! Write VTK output for linear spring
-    void writeLinearSpringPolyData(string OutputFile, int step);
+    // void writeLinearSpringPolyData(string OutputFile, int step);
 
     //! Write VTK output for torsional spring
-    void writeTorsionalSpringPolyData(string OutputFile, int step);
+    // void writeTorsionalSpringPolyData(string OutputFile, int step);
 
     //! Solve the system
-    void compute();
+    void compute(Result* R = this->_myResult);
 
     //! Finalize Compute (Optional method which includes computations done at the end of a solve step)
-    void finalizeCompute();
+    // void finalizeCompute(); // Goes to spring body
 
     // Apply pressure
-    void applyPressure();
+    // void applyPressure();
 
     // Update pressure
-    void updatePressure(Real Pressure) {
-      _pressure = Pressure;
-    }
+    // void updatePressure(Real Pressure) {
+    //  _pressure = Pressure;
+    // }
 
-    // Update nodal forces
+    // Update nodal forces // ????????
     void updateNodalForces(vector<int > * ForcesID, vector<Real > * Forces) {
       _forcesID = ForcesID; _forces = Forces;
     }
@@ -215,16 +215,16 @@ namespace voom{
 
     // Functions for applying spring BC
     // Initialize _springNodes (nodes at which spring BC are applied) and _springElements (elements connected to spring nodes)
-    void initSpringBC(const string SpNodes, Mesh* SpMesh, Real SpringK);
-    void computeNormals();
-    vector<Triplet<Real > > applySpringBC();
+    // void initSpringBC(const string SpNodes, Mesh* SpMesh, Real SpringK);
+    // void computeNormals();
+    // vector<Triplet<Real > > applySpringBC();
 
     // Functions for applying Torsional Spring BC
-    void initTorsionalSpringBC(const string torsionalSpringNodes, Real torsionalSpringK);
+    // void initTorsionalSpringBC(const string torsionalSpringNodes, Real torsionalSpringK);
     //! Computes centroid (x,y) of all the nodes but right now assumes long axis is z.
-    void computeCentroid();
-    void computeTangents();
-    vector<Triplet<Real> > applyTorsionalSpringBC();
+    // void computeCentroid();
+    // void computeTangents();
+    // vector<Triplet<Real> > applyTorsionalSpringBC();
 
     Real computeRefVolume();
     Real computeCurrentVolume();
@@ -240,32 +240,32 @@ namespace voom{
     vector<MechanicsMaterial * > _materials;
 
     // It should not be done here - maye we should have bodies and forms models from bodies
-    int _pressureFlag;
-    Real _pressure;
-    Mesh* _surfaceMesh;
+    // int _pressureFlag;
+    // Real _pressure;
+    // Mesh* _surfaceMesh;
 
-    int _nodalForcesFlag;
-    vector<int > * _forcesID;
-    vector<Real > * _forces;
+    int _nodalForcesFlag;      // ?????
+    vector<int > * _forcesID;  // ?????
+    vector<Real > * _forces;   // ?????
 
     vector<Real > _prevField;
 
-    int _resetFlag;
+    // int _resetFlag; // ?????
 
     // Spring BC
-    int _springBCflag;
-    vector<int > _spNodes;
-    Mesh* _spMesh;
-    Real _springK;
-    vector<vector<int > > _spNodesToEle;
-    vector<Vector3d > _spNormals;
+    // int _springBCflag;
+    // vector<int > _spNodes;
+    // Mesh* _spMesh;
+    // Real _springK;
+    // vector<vector<int > > _spNodesToEle;
+    // vector<Vector3d > _spNormals;
 
     // Torsional Spring BC
-    int _torsionalSpringBCflag;
-    vector<int> _torsionalSpringNodes;
-    Vector3d _centroidLocation;
-    Real _torsionalSpringK;
-    vector<Vector3d> _spTangents;
+    // int _torsionalSpringBCflag;
+    // vector<int> _torsionalSpringNodes;
+    // Vector3d _centroidLocation;
+    // Real _torsionalSpringK;
+    // vector<Vector3d> _spTangents;
   };
 
 } // namespace voom

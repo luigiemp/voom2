@@ -3,24 +3,24 @@
 namespace voom {
 
   // Constructor
-  MechanicsModel::MechanicsModel(Mesh* myMesh, vector<MechanicsMaterial * > Materials, Result * myResults,
-    const uint NodeDoF,
+  MechanicsModel::MechanicsModel(Mesh* myMesh, const uint NodeDoF, Result * myResult,
+     vector<MechanicsMaterial * > Materials,
     int PressureFlag, Mesh* SurfaceMesh,
     int NodalForcesFlag,
     int ResetFlag,
     int SpringBCflag):
-    Model(myMesh, NodeDoF), _materials(Materials),
-    _myResults(myResults),
+    Model(myMesh, NodeDoF, myResult), 
+    _materials(Materials),
     _pressureFlag(PressureFlag), _pressure(0.0), _surfaceMesh(SurfaceMesh),
     _nodalForcesFlag(NodalForcesFlag), _forcesID(NULL), _forces(NULL), _resetFlag(ResetFlag), _springBCflag(SpringBCflag)
     {
       // THERE IS ONE MATERIAL PER ELEMENT - CAN BE CHANGED - DIFFERENT THAN BEFORE
       // Resize and initialize (default function) _field vector
-      _myResults->fieldResize((_myMesh->getNumberOfNodes() )*_nodeDoF );
+      _myResult->fieldResize((_myMesh->getNumberOfNodes() )*_nodeDoF );
       this->initializeField();
 
       // if (_pressureFlag == 1) {
-      _prevField.resize( _myResults->getFieldSize() );
+      _prevField.resize( _myResult->getFieldSize() );
       this->setPrevField();
       // }
     }
@@ -49,7 +49,7 @@ namespace voom {
       for(uint J = 0; J < dim; J++)
       for(uint a = 0; a < nodeNum; a++)
       Flist[q](i,J) +=
-      _myResults->_field[NodesID[a]*dim + i] * geomEl->getDN(q, a, J);
+      _myResult->_field[NodesID[a]*dim + i] * geomEl->getDN(q, a, J);
     } // loop over quadrature points
   }
 
@@ -68,7 +68,7 @@ namespace voom {
 
 
   // Compute Function - Compute Energy, Force, Stiffness
-  void MechanicsModel::compute(Result * R)
+  void MechanicsModel::compute()
   {
     const vector<GeomElement* > elements = _myMesh->getElements();
     const int AvgNodePerEl = ((elements[0])->getNodesID()).size();
@@ -76,29 +76,29 @@ namespace voom {
     const int dim = _myMesh->getDimension();
     vector<Triplet<Real > > KtripletList, HgtripletList;
 
-    int PbDoF = R->getPbDoF();
-    int TotNumMatProp = R->getNumMatProp();
+    int PbDoF = _myResult->getPbDoF();
+    int TotNumMatProp = _myResult->getNumMatProp();
     vector<VectorXd > dRdalpha;
     int NumPropPerMat = (_materials[0]->getMaterialParameters()).size(); // Assume all materials have the same number of material properties
 
 
     // Reset values in result struct
-    if ( R->getRequest() & ENERGY ) {
-      R->setEnergy(0.0);
+    if ( _myResult->getRequest() & ENERGY ) {
+      _myResult->setEnergy(0.0);
     }
-    if ( R->getRequest() & FORCE || R->getRequest() & DMATPROP )  {
-      R->resetResidualToZero();
+    if ( _myResult->getRequest() & FORCE || _myResult->getRequest() & DMATPROP )  {
+      _myResult->resetResidualToZero();
     }
-    if ( R->getRequest() & STIFFNESS ) {
-      R->resetStiffnessToZero();
+    if ( _myResult->getRequest() & STIFFNESS ) {
+      _myResult->resetStiffnessToZero();
       KtripletList.reserve(dim*dim*NumEl*AvgNodePerEl*AvgNodePerEl);
     }
 
-    if ( R->getRequest() & DMATPROP ) {
+    if ( _myResult->getRequest() & DMATPROP ) {
       dRdalpha.assign( TotNumMatProp, VectorXd::Zero(PbDoF) );
       if ( _resetFlag == 1 ) {
-        R->resetGradgToZero();
-        R->resetHgToZero();
+        _myResult->resetGradgToZero();
+        _myResult->resetHgToZero();
         HgtripletList.reserve(TotNumMatProp*TotNumMatProp);
       }
     }
@@ -108,7 +108,7 @@ namespace voom {
     // Loop through elements, also through material points array, which is unrolled
     // uint index = 0;
     MechanicsMaterial::FKresults FKres;
-    FKres.request = R->getRequest();
+    FKres.request = _myResult->getRequest();
     for(int e = 0; e < NumEl; e++)
     {
       GeomElement* geomEl = elements[e];
@@ -130,12 +130,12 @@ namespace voom {
         Real Vol = geomEl->getQPweights(q);
 
         // Compute energy
-        if (R->getRequest() & ENERGY) {
-          R->addEnergy(FKres.W*Vol);
+        if (_myResult->getRequest() & ENERGY) {
+          _myResult->addEnergy(FKres.W*Vol);
         }
 
         // Compute Residual
-        if ( (R->getRequest() & FORCE) || (R->getRequest() & DMATPROP) ) {
+        if ( (_myResult->getRequest() & FORCE) || (_myResult->getRequest() & DMATPROP) ) {
           for(uint a = 0; a < numNodes; a++) {
             for(uint i = 0; i < dim; i++) {
               Real tempResidual = 0.0;
@@ -143,13 +143,13 @@ namespace voom {
                 tempResidual += FKres.P(i,J) * geomEl->getDN(q, a, J);
               } // J loop
               tempResidual *= Vol;
-              R->addResidual(NodesID[a]*dim+i, tempResidual);
+              _myResult->addResidual(NodesID[a]*dim+i, tempResidual);
             } // i loop
           } // a loop
         } // Internal force loop
 
         // Compute Stiffness
-        if (R->getRequest() & STIFFNESS) {
+        if (_myResult->getRequest() & STIFFNESS) {
           for(uint a = 0; a < numNodes; a++) {
             for(uint i = 0; i < dim; i++) {
               for(uint b = 0; b < numNodes; b++) {
@@ -170,7 +170,7 @@ namespace voom {
           } // a loop
         } // Compute stiffness matrix
 
-        if ( R->getRequest() & DMATPROP ) {
+        if ( _myResult->getRequest() & DMATPROP ) {
           // Assemble dRdalpha
           for (uint alpha = 0; alpha < NumPropPerMat; alpha++) {
             for(uint a = 0; a < numNodes; a++) {
@@ -189,7 +189,7 @@ namespace voom {
 
       } // QP loop
 
-      if ( R->getRequest() & STIFFNESS ) {
+      if ( _myResult->getRequest() & STIFFNESS ) {
         // Transform in triplets Kele
         for(uint a = 0; a < numNodes; a++) {
           for(uint i = 0; i < dim; i++) {
@@ -206,46 +206,46 @@ namespace voom {
 
     // Insert BC terms from spring
     if (_springBCflag == 1) {
-      vector<Triplet<Real > >  KtripletList_FromSpring = this->applySpringBC(*R);
+      vector<Triplet<Real > >  KtripletList_FromSpring = this->applySpringBC();
       KtripletList.insert( KtripletList.end(), KtripletList_FromSpring.begin(), KtripletList_FromSpring.end() );
     }
 
     if (_torsionalSpringBCflag == 1) {
-      vector<Triplet<Real> > KtripletList_FromTorsionalSpring = this->applyTorsionalSpringBC(*R);
+      vector<Triplet<Real> > KtripletList_FromTorsionalSpring = this->applyTorsionalSpringBC();
       KtripletList.insert(KtripletList.end(), KtripletList_FromTorsionalSpring.begin(), KtripletList_FromTorsionalSpring.end());
     }
 
     // Sum up all stiffness entries with the same indices
-    if ( R->getRequest() & STIFFNESS ) {
-      R->setStiffnessFromTriplets(KtripletList);
-      R->FinalizeGlobalStiffnessAssembly();
+    if ( _myResult->getRequest() & STIFFNESS ) {
+      _myResult->setStiffnessFromTriplets(KtripletList);
+      _myResult->FinalizeGlobalStiffnessAssembly();
       // cout << "Stiffness assembled" << endl;
     }
 
     // Add pressure/external load if any
     if (_pressureFlag == 1) {
-      this->applyPressure(R);
+      this->applyPressure(_myResult);
     }
 
     // Add external load if any
-    if (_nodalForcesFlag == 1 && (R->getRequest() & FORCE || R->getRequest() & DMATPROP) ) {
+    if (_nodalForcesFlag == 1 && (_myResult->getRequest() & FORCE || _myResult->getRequest() & DMATPROP) ) {
       for (int i = 0; i < _forcesID->size(); i++) {
-        R->addResidual( (*_forcesID)[i], (*_forces)[i] );
+        _myResult->addResidual( (*_forcesID)[i], (*_forces)[i] );
       }
     }
 
     // Compute Gradg and Hg
-    if ( R->getRequest() & DMATPROP ) {
+    if ( _myResult->getRequest() & DMATPROP ) {
 
       // First extract residual
       VectorXd Residual = VectorXd::Zero(PbDoF);
       for (int i = 0; i < PbDoF; i++) {
-        Residual(i) = R->getResidual(i); // local copy
+        Residual(i) = _myResult->getResidual(i); // local copy
       }
 
       if (_resetFlag == 1) {
         for (uint alpha = 0; alpha < TotNumMatProp; alpha++) {
-          R->addGradg(alpha, 2.0*dRdalpha[alpha].dot(Residual) );
+          _myResult->addGradg(alpha, 2.0*dRdalpha[alpha].dot(Residual) );
           for (uint beta = 0; beta < TotNumMatProp; beta++) {
             // !!!
             // WARNING : assume W is linear in alpha!!!!!
@@ -253,16 +253,16 @@ namespace voom {
             HgtripletList.push_back( Triplet<Real >( alpha, beta,  2.0*dRdalpha[alpha].dot(dRdalpha[beta]) ) );
           } // alpha loop
         } // beta loop
-        R->setHgFromTriplets(HgtripletList);
+        _myResult->setHgFromTriplets(HgtripletList);
       }
       else {
         for (uint alpha = 0; alpha < TotNumMatProp; alpha++) {
-          R->addGradg(alpha, 2.0*dRdalpha[alpha].dot(Residual) );
+          _myResult->addGradg(alpha, 2.0*dRdalpha[alpha].dot(Residual) );
           for (uint beta = 0; beta < TotNumMatProp; beta++) {
             // !!!
             // WARNING : assume W is linear in alpha!!!!!
             // !!!
-            R->addHg(alpha, beta,  2.0*dRdalpha[alpha].dot(dRdalpha[beta]) );
+            _myResult->addHg(alpha, beta,  2.0*dRdalpha[alpha].dot(dRdalpha[beta]) );
           } // alpha loop
         } // beta loop
       }
@@ -284,11 +284,11 @@ namespace voom {
       computeNormals();
 
       // Compute \bar{u}_{k+1} = x_{k+1} - \bar{x}_k
-      vector <Real> ubar = _myResults->_field;
+      vector <Real> ubar = _myResult->_field;
       vector <Real> xbar;
-      xbar = _myResults->_field;
-      for (int i = 0; i < _myResults->_field.size(); i++)
-        ubar[i] = _myResults->_field[i] - _prevField[i];
+      xbar = _myResult->_field;
+      for (int i = 0; i < _myResult->_field.size(); i++)
+        ubar[i] = _myResult->_field[i] - _prevField[i];
 
       // Compute the tangent vector at every node      
       for(int n = 0; n < _spNodes.size(); n++) {
@@ -298,7 +298,7 @@ namespace voom {
 	Vector3d xNode;
 	ubarNode << ubar[_spNodes[n] * 3 + 0], ubar[_spNodes[n] * 3 + 1], ubar[_spNodes[n] * 3 + 2];
 	xbarkNode << _prevField[_spNodes[n] * 3 + 0], _prevField[_spNodes[n] * 3 + 1], _prevField[_spNodes[n] * 3 + 2];
-     	xNode << _myResults->_field[_spNodes[n] * 3 + 0], myResults->_field[_spNodes[n] * 3 + 1], myResults->_field[_spNodes[n] * 3 + 2];
+     	xNode << _myResult->_field[_spNodes[n] * 3 + 0], _myResult->_field[_spNodes[n] * 3 + 1], _myResult->_field[_spNodes[n] * 3 + 2];
 	nodeTangent = ubarNode - (ubarNode.dot(_spNormals[n])) * _spNormals[n];
 
 	Vector3d xbarkp1Node = xbarkNode + (nodeTangent.dot(xNode - xbarkNode)) * nodeTangent;
@@ -312,7 +312,7 @@ namespace voom {
 
 
 
-  void MechanicsModel::applyPressure(Result * R) {
+  void MechanicsModel::applyPressure() {
 
     const vector<GeomElement* > elements = _surfaceMesh->getElements();
 
@@ -333,7 +333,7 @@ namespace voom {
           int nodeID = NodesID[a];
           Vector3d xa_prev, xa_curr;
           xa_prev << _prevField[nodeID*3], _prevField[nodeID*3+1], _prevField[nodeID*3+2];
-          xa_curr << _myResults->_field[nodeID*3], myResults->_field[nodeID*3+1], myResults->_field[nodeID*3+2];
+          xa_curr << _myResult->_field[nodeID*3], _myResult->_field[nodeID*3+1], _myResult->_field[nodeID*3+2];
           a1 += xa_prev*geomEl->getDN(q, a, 0);
           a2 += xa_prev*geomEl->getDN(q, a, 1);
 
@@ -348,15 +348,15 @@ namespace voom {
         // cout << "Area = " << Area << endl;
 
         // Compute energy
-        if (R->getRequest() & ENERGY) {
-          R->addEnergy( _pressure*Area*a3.dot(u) );
+        if (_myResult->getRequest() & ENERGY) {
+          _myResult->addEnergy( _pressure*Area*a3.dot(u) );
         }
 
         // Compute Residual
-        if ( (R->getRequest() & FORCE) || (R->getRequest() & DMATPROP) ) {
+        if ( (_myResult->getRequest() & FORCE) || (_myResult->getRequest() & DMATPROP) ) {
           for(uint a = 0; a < NodesID.size(); a++) {
             for(uint i = 0; i < 3; i++) {
-              R->addResidual(NodesID[a]*3+i, _pressure * Area * a3(i) * geomEl->getN(q, a));
+              _myResult->addResidual(NodesID[a]*3+i, _pressure * Area * a3(i) * geomEl->getN(q, a));
               // cout << NodesID[a] << " " << geomEl->getN(q, a) << endl;
             } // i loop
           } // a loop
@@ -370,7 +370,7 @@ namespace voom {
 
 
 
-  vector<Triplet<Real > > MechanicsModel::applySpringBC(Result & R) {
+  vector<Triplet<Real > > MechanicsModel::applySpringBC() {
 
     vector<Triplet<Real > > KtripletList_FromSpring;
 
@@ -386,7 +386,7 @@ namespace voom {
       int NodeID = _spNodes[n];
       Vector3d xa_prev, xa_curr;
       xa_prev << _prevField[NodeID*3], _prevField[NodeID*3+1], _prevField[NodeID*3+2];
-      xa_curr << _myResults->_field[NodeID*3], myResults->_field[NodeID*3+1], myResults->_field[NodeID*3+2];
+      xa_curr << _myResult->_field[NodeID*3], _myResult->_field[NodeID*3+1], _myResult->_field[NodeID*3+2];
 
       // Compute energy
       if (R.getRequest() & ENERGY) {
@@ -560,7 +560,7 @@ namespace voom {
 
     cout << "Number of unique materials = " <<  UNIQUEmaterials.size() << endl;
     R->setRequest(8); // First compute gradg and Hg numerically
-    this->compute(R);
+    this->compute();
 
     // Test gradg //
     R->setRequest(2); // Reset result request so that only forces are computed
@@ -614,7 +614,7 @@ namespace voom {
     // Test Hg //
     error = 0.0; norm = 0.0;
     R->setRequest(8);
-    this->compute(R);
+    this->compute();
     SparseMatrix<Real > HgAn = *R->_Hg;
     for ( set<MechanicsMaterial *>::iterator itMatA =  UNIQUEmaterials.begin(); itMatA != UNIQUEmaterials.end(); itMatA++ )
     {
@@ -805,7 +805,7 @@ namespace voom {
     }
   }
 
-  vector<Triplet<Real> > MechanicsModel::applyTorsionalSpringBC(Result & R) {
+  vector<Triplet<Real> > MechanicsModel::applyTorsionalSpringBC() {
     vector<Triplet<Real > > KtripletList_FromSpring;
 
     // Loop through _spNodes
@@ -814,7 +814,7 @@ namespace voom {
       int NodeID = _torsionalSpringNodes[n];
       Vector3d xa_reference, xa_curr;
       xa_reference << _myMesh->getX(NodeID)(0), _myMesh->getX(NodeID)(1), _myMesh->getX(NodeID)(2);
-      xa_curr << _myResults->_field[NodeID*3], myResults->_field[NodeID*3+1], myResults->_field[NodeID*3+2];
+      xa_curr << _myResult->_field[NodeID*3], myResult->_field[NodeID*3+1], myResult->_field[NodeID*3+2];
 
       // Compute energy
       if (R.getRequest() & ENERGY) {
@@ -920,7 +920,7 @@ namespace voom {
       double x[dim];
       VectorXd X = _myMesh->getX(i);
       for (int j = 0; j < dim; j++) {
-        x[j] = _myResults->_field[i*dim + j] - X(j);
+        x[j] = _myResult->_field[i*dim + j] - X(j);
       }
       displacements->InsertNextTuple(x);
     }
@@ -936,11 +936,11 @@ namespace voom {
 
     // Compute Residual
     uint PbDoF = ( _myMesh->getNumberOfNodes())*this->getDoFperNode();
-    EigenResult myResults(PbDoF, 2);
+    EigenResult myVTKResults(PbDoF, 2);
     int myRequest = 2;
-    myResults.setRequest(myRequest);
-    this->compute(&myResults);
-    VectorXd R = *(myResults._residual);
+    myVTKResults.setRequest(myRequest);
+    this->compute(&myVTKResults);
+    VectorXd R = *(myVTKResults._residual);
 
     for (int i = 0; i < NumNodes; i++ ) {
       double res[dim];
@@ -1122,7 +1122,7 @@ namespace voom {
 	for (int d = 0; d < dim; d++) {
 	  for (int n = 0; n < numNodesOfEl; n++) {
 	    tempPoint[d] += _surfaceMesh->getX(n)(d) * geomEl->getN(q,n);
-	    tempDisplacement[d] += (_myResults->_field[NodesID[n]*dim + d] - _surfaceMesh->getX(n)(d)) * geomEl->getN(q, n);
+	    tempDisplacement[d] += (_myVTKResults->_field[NodesID[n]*dim + d] - _surfaceMesh->getX(n)(d)) * geomEl->getN(q, n);
 	  }
 	}
 	IntegrationPoints->InsertNextPoint(tempPoint);
@@ -1151,7 +1151,7 @@ namespace voom {
 	  int nodeID = NodesID[a];
 	  Vector3d xa_prev, xa_curr;
 	  xa_prev << _prevField[nodeID*3], _prevField[nodeID*3+1], _prevField[nodeID*3+2];
-	  xa_curr << _myResults->_field[nodeID*3], _myResults->_field[nodeID*3+1], _myResults->_field[nodeID*3+2];
+	  xa_curr << _myVTKResults->_field[nodeID*3], _myVTKResults->_field[nodeID*3+1], _myVTKResults->_field[nodeID*3+2];
 	  a1 += xa_prev*geomEl->getDN(q, a, 0);
 	  a2 += xa_prev*geomEl->getDN(q, a, 1);
 	}
@@ -1189,13 +1189,13 @@ namespace voom {
     LinearSpringForces->SetName("LinearSpring_Force");
 
     uint PbDoF = ( _myMesh->getNumberOfNodes())*this->getDoFperNode();
-    EigenResult myResults(PbDoF, 0);
-    myResults.resetResidualToZero();
+    EigenResult myVTKResults(PbDoF, 0);
+    myVTKResults.resetResidualToZero();
     ComputeRequest myRequest = FORCE;
 
-    myResults.setRequest(myRequest);
-    this->applySpringBC(myResults);
-    VectorXd R = *(myResults._residual);
+    myVTKResults.setRequest(myRequest);
+    this->applySpringBC(myVTKResults);
+    VectorXd R = *(myVTKResults._residual);
 
     vector <GeomElement*> elements2D = _spMesh->getElements();
     for (int n = 0; n < _spNodes.size(); n++) {
@@ -1205,11 +1205,11 @@ namespace voom {
       float tempSpringForce[3] = {0.0};
       Vector3d xa_prev, xa_curr;
       xa_prev << _prevField[_spNodes[n]*3], _prevField[_spNodes[n]*3+1], _prevField[_spNodes[n]*3+2];
-      xa_curr << _myResults->_field[_spNodes[n]*3], _myResults->_field[_spNodes[n]*3+1], _myResults->_field[_spNodes[n]*3+2];
+      xa_curr << _myVTKResults->_field[_spNodes[n]*3], _myVTKResults->_field[_spNodes[n]*3+1], _myVTKResults->_field[_spNodes[n]*3+2];
 
       for (int d = 0; d < dim; d++) {
         tempPoint[d] = _spMesh->getX(n)(d);
-	tempDisplacement[d] = (_myResults->_field[_spNodes[n]*dim + d] - _spMesh->getX(n)(d));
+	tempDisplacement[d] = (_myVTKResults->_field[_spNodes[n]*dim + d] - _spMesh->getX(n)(d));
         tempSpringForce[d] =  _springK*_spNormals[n](d)*(xa_curr - xa_prev).dot(_spNormals[n]); 
       }
       // cout << "Spring Force:\t" << tempSpringForce[0] << "\t" << tempSpringForce[1] << "\t" << tempSpringForce[2] << endl;
@@ -1255,7 +1255,7 @@ namespace voom {
       float tempDisplacement[3] = {0.0}; float tempPoint[3] = {0.0};
       for (int d = 0; d < dim; d++) {
         tempPoint[d] = _myMesh->getX(_torsionalSpringNodes[n])(d);
-        tempDisplacement[d] = (_myResults->_field[_torsionalSpringNodes[n]*dim + d] - _myMesh->getX(_torsionalSpringNodes[n])(d));
+        tempDisplacement[d] = (_myVTKResults->_field[_torsionalSpringNodes[n]*dim + d] - _myMesh->getX(_torsionalSpringNodes[n])(d));
       }
       IntegrationPoints->InsertNextPoint(tempPoint);
       IntegrationPointsDisplacements->InsertNextTuple(tempDisplacement);
