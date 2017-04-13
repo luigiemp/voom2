@@ -56,7 +56,7 @@ int main(int argc, char** argv)
   double simTime = 2000;  
 
   // Pressure Substepping
-  double numSubSteps = 5;
+  double numSubSteps = 1;
   
   // Time Step (in ms)
   double deltaT = 0.01;
@@ -72,7 +72,7 @@ int main(int argc, char** argv)
   string volumeFile = outputString + "_Volume.txt";
 
   // Spring BC:
-  int SpringBCflag = 1;
+  int SpringBCflag = 0;
 
   // Spring Stiffnes
   Real SpringK = 1.0e4; // 1.0e4;
@@ -82,6 +82,11 @@ int main(int argc, char** argv)
 
   // Torsional Spring Stiffness:
   int TorsionalSpringK = 1.0e6;
+
+  
+  // LJ Type Boundary Condition
+  bool LJBoundaryConditionFlag = true;
+  FEMesh LJBoundaryConditionMesh("Mesh/EllipsoidMeshCoarse_Quadratic/EllipsoidCoarseQuadratic_LJBoundaryCondition.node", "Mesh/EllipsoidMeshCoarse_Quadratic/EllipsoidCoarseQuadratic_LJBoundaryCondition.ele");
 
   // Initialize Mesh
   // Assumptions to use this main as is: strip has a face at z=0; tetrahedral mesh
@@ -347,6 +352,9 @@ int main(int argc, char** argv)
 
   if (torsionalSpringBCflag)
     myModel.initTorsionalSpringBC(torsionalSpringBC, TorsionalSpringK);
+  
+  if (LJBoundaryConditionFlag)
+    myModel.initializeLennardJonesBC("Mesh/EllipsoidMeshCoarse_Quadratic/EllipsoidCoarseQuadratic.EpicardiumNodeset", &LJBoundaryConditionMesh, &surfMesh, 0.05, 10, 0.1);
 
   // Initialize Result
   uint myRequest;

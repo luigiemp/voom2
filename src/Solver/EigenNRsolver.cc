@@ -119,7 +119,7 @@ namespace voom
 	  VectorXcd evals = DenseStiffness.eigenvalues();
 	  cout << "Max Eigenvalue = " << evals.real().maxCoeff() << "\t Min Eigenvalue = " << evals.real().minCoeff() << endl;
 	  */
-	  // _myModel->writeOutputVTK("IntermediateResult", iter);
+	  _myModel->writeOutputVTK("IntermediateResult", iter);
 	} // while loop
 	// After finding current field, update prev field
 	// _myModel->setPrevField();

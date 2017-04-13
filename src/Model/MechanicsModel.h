@@ -224,6 +224,12 @@ namespace voom{
     Real computeRefVolume();
     Real computeCurrentVolume();
 
+    // Functions for a Lennard-Jones type boundary condition
+    void initializeLennardJonesBC(const string bodyPotentialBoundaryNodesFile, Mesh* rigidPotentialBoundaryMesh, Mesh* bodyPotentialBoundaryMesh, Real searchRadius, Real depthPotentialWell, Real minDistance);
+    vector<Triplet<Real> > imposeLennardJones(Result& R);
+    void computeLJNormals();
+    void findNearestNeighbors();
+
   protected:
     //! Compute Deformation Gradient
     void computeDeformationGradient(vector<Matrix3d > & Flist, GeomElement* geomEl);
@@ -265,6 +271,17 @@ namespace voom{
     Vector3d _centroidLocation;
     Real _torsionalSpringK;
     vector<Vector3d> _spTangents;
+
+    // Members for imposing Lennard-Jones type boundary condition
+    int _lennardJonesBCFlag;
+    Mesh* _rigidPotentialBoundaryMesh;
+    vector<int> _bodyPotentialBoundaryNodes;
+    Mesh* _bodyPotentialBoundaryMesh;
+    Real _searchRadius;
+    Real _depthPotentialWell;
+    Real _minDistance;
+    vector<vector<int> > _LJNodesToEle; // Stores the elements which are connected to a specific node
+    vector<Vector3d> _rigidSurfaceNormals;
   };
 
 } // namespace voom

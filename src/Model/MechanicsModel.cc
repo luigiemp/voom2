@@ -18,6 +18,10 @@ namespace voom {
       _field.resize(  (_myMesh->getNumberOfNodes() )*_nodeDoF );
       this->initializeField();
 
+      // Initializing Flags, SpringBCflag should also be done here.
+      _torsionalSpringBCflag = 0;
+      _lennardJonesBCFlag = 0;
+
       // if (_pressureFlag == 1) {
       _prevField.resize( _field.size() );
       this->setPrevField();
@@ -212,6 +216,11 @@ namespace voom {
     if (_torsionalSpringBCflag == 1) {
       vector<Triplet<Real> > KtripletList_FromTorsionalSpring = this->applyTorsionalSpringBC(*R);
       KtripletList.insert(KtripletList.end(), KtripletList_FromTorsionalSpring.begin(), KtripletList_FromTorsionalSpring.end());
+    }
+
+    if (_lennardJonesBCFlag) {
+      vector<Triplet<Real> > KtripletList_FromLJ = this->imposeLennardJones(*R);
+      KtripletList.insert(KtripletList.end(), KtripletList_FromLJ.begin(), KtripletList_FromLJ.end());
     }
 
     // Sum up all stiffness entries with the same indices
@@ -838,6 +847,160 @@ namespace voom {
     } // Spring nodes loop
 
     return  KtripletList_FromSpring;
+  }
+
+  void MechanicsModel::initializeLennardJonesBC(const string bodyPotentialBoundaryNodesFile, Mesh* rigidPotentialBoundaryMesh, Mesh* bodyPotentialBoundaryMesh, Real searchRadius, Real depthPotentialWell, Real minDistance) {
+    _lennardJonesBCFlag = 1;
+    _rigidPotentialBoundaryMesh = rigidPotentialBoundaryMesh;
+    _bodyPotentialBoundaryMesh = bodyPotentialBoundaryMesh;
+    _searchRadius = searchRadius;
+    _depthPotentialWell = depthPotentialWell;
+    _minDistance = minDistance;
+
+    // Read in the surface Nodes
+    ifstream inp(bodyPotentialBoundaryNodesFile.c_str());
+    if (!inp.is_open()) {
+        cout << "** Unable to open LJ Potential Boundary Nodes file " << bodyPotentialBoundaryNodesFile << ".\n ** Exiting..." << endl;
+        exit(EXIT_FAILURE);
+    }
+
+    int numLJNodes = 0;
+    inp >> numLJNodes;
+
+    int nodeNum = 0;
+    while (inp >> nodeNum)
+      _bodyPotentialBoundaryNodes.push_back(nodeNum);
+
+    // Checking that the number at the top of the file corresponds to the number of nodes
+    assert(numLJNodes == _bodyPotentialBoundaryNodes.size());
+    cout << "** Applying the Lennard-Jones Potential BC to " << numLJNodes << " nodes." << endl;
+
+    // Compute normals - For now we can use the computeNormals function from the linear spring methods
+    const vector<GeomElement* > elements = _rigidPotentialBoundaryMesh->getElements();
+
+    for (int n = 0; n < _rigidPotentialBoundaryMesh->getNumberOfNodes(); n++) {
+      vector<int > connected;
+      for(int e = 0; e < elements.size(); e++) {
+        const vector<int >& NodesID = elements[e]->getNodesID();
+        for (int m = 0; m < NodesID.size(); m++) {
+          if (NodesID[m] == n) {
+            connected.push_back(e);
+            break;
+          } //  check if node belong to element
+        } // loop over nodes of the element
+      } // loop over elements
+      _LJNodesToEle.push_back(connected);
+    }
+    _rigidSurfaceNormals.resize(_rigidPotentialBoundaryMesh->getNumberOfNodes(), Vector3d::Zero());
+    // Compute initial node normals
+    this->computeLJNormals();
+
+  }
+  
+
+  vector<Triplet<Real> > MechanicsModel::imposeLennardJones(Result& R) {
+    // 1. Loop through every surface node
+    // 2. Find neighbors within search radius
+    // 3. Compute the force associated with that neighbor
+    // 4. Fill in Results
+    
+    vector<Triplet<Real > > KtripletList_FromLJ;
+
+    // Loop through every surface node
+    int numSurfaceNodes = _bodyPotentialBoundaryNodes.size();
+    for(int n = 0; n < numSurfaceNodes; n++)
+    {
+      int NodeID = _bodyPotentialBoundaryNodes[n];
+      Vector3d xa_body, xa_rigid;
+      xa_body << _myMesh->getX(NodeID)(0), _myMesh->getX(NodeID)(1), _myMesh->getX(NodeID)(2);
+      for (int node_rigid = 0; node_rigid < _rigidPotentialBoundaryMesh->getNumberOfNodes(); node_rigid++) {
+        xa_rigid << _rigidPotentialBoundaryMesh->getX(node_rigid)(0), _rigidPotentialBoundaryMesh->getX(node_rigid)(1), _rigidPotentialBoundaryMesh->getX(node_rigid)(2);
+        
+        // Check if within search radius
+        Vector3d gapVector = xa_body - xa_rigid;
+        double gapDistance = gapVector.norm();
+        Real r_e = gapVector.dot(_rigidSurfaceNormals[node_rigid]);
+
+	if (gapDistance <= _searchRadius) {
+          // Compute energy
+          if (R.getRequest() & ENERGY) {
+            // Real r_e = gapVectorNormal.norm();
+ 	    // minDistance is the distance where the energy is a minimum
+ 	    // r_e is the current distance between rigid and body surfaces
+            double tempW = _depthPotentialWell * (pow(_minDistance/r_e, 12.0) - 2.0 * pow(_minDistance/r_e, 2.0));
+	    // Multiplying by -1 because this is really acting like an external energy
+            R.addEnergy(-1.0 * tempW);
+          }
+  
+          // Compute Residual
+          if (R.getRequest() & FORCE) {
+            for(uint i = 0; i < 3; i++) {
+              double tempFactor = -12 * _depthPotentialWell/r_e * (pow(_minDistance/r_e, 12.0) - pow(_minDistance/r_e, 2.0));
+	      // Multiplying by -1 because this is an external force
+              R.addResidual(NodeID*3+i, -1.0 * tempFactor * _rigidSurfaceNormals[node_rigid](i));
+            } // i loop
+          } // Internal force loop
+
+          // Compute stiffness matrix
+          if ( R.getRequest() & STIFFNESS ) {
+            for(uint i = 0; i < 3; i++) {
+              for(uint j = 0; j < 3; j++) {
+                double tempFactor = 12 * _depthPotentialWell/pow(r_e, 2.0) * (13.0 * pow(_minDistance/r_e, 12.0) - 7.0 * pow(_minDistance/r_e, 2.0));
+	        KtripletList_FromLJ.push_back(Triplet<Real >( NodeID*3+i, NodeID*3+j,-1.0 * tempFactor * _rigidSurfaceNormals[node_rigid](i) * _rigidSurfaceNormals[node_rigid](j)));
+              } // j loop
+            } // i loop
+          } // Stiffness loop
+        } // within search radius loop
+      } // Loop over rigid nodes
+    } // Spring nodes loop
+
+    return  KtripletList_FromLJ;
+    
+  }
+
+  void MechanicsModel::computeLJNormals() {
+    const vector<GeomElement* > elements = _rigidPotentialBoundaryMesh->getElements();
+    vector<Vector3d > ElNormals(elements.size(), Vector3d::Zero()); 
+    
+    // Loop over elements
+    for(int e = 0; e < elements.size(); e++)
+    {
+      GeomElement* geomEl = elements[e];
+      const vector<int  >& NodesID = geomEl->getNodesID();
+      const int numQP    = geomEl->getNumberOfQuadPoints();
+      const int numNodes = NodesID.size();
+
+      // Loop over quadrature points
+      for(int q = 0; q < numQP; q++) {
+
+        // Compute normal based on _prevField
+        Vector3d a1 = Vector3d::Zero(), a2 = Vector3d::Zero(), a3 = Vector3d::Zero();
+        for (int a = 0; a < NodesID.size(); a++) {
+          int nodeID = NodesID[a];
+          Vector3d nodalPos;
+          nodalPos << _rigidPotentialBoundaryMesh->getX(nodeID)(0), _rigidPotentialBoundaryMesh->getX(nodeID)(1), _rigidPotentialBoundaryMesh->getX(nodeID)(2);
+          a1 += nodalPos*geomEl->getDN(q, a, 0);
+          a2 += nodalPos*geomEl->getDN(q, a, 1);
+        }
+        ElNormals[e] += a1.cross(a2); // Not normalized with respect to area (elements with larger area count more)
+      } // loop over QP
+
+    } // loop over elements
+
+    // Loop over rigidBoundary nodes
+    for (int n = 0; n < _rigidPotentialBoundaryMesh->getNumberOfNodes(); n++) {
+      // Reset normal to zero
+      _rigidSurfaceNormals[n] = Vector3d::Zero();
+      // Loop over all elements sharing that node
+      for (int m = 0; m < _LJNodesToEle[n].size(); m++) {
+        _rigidSurfaceNormals[n] += ElNormals[_LJNodesToEle[n][m]];
+      }
+      Real normFactor = 1.0/_rigidSurfaceNormals[n].norm();
+      _rigidSurfaceNormals[n] *= normFactor;
+
+      // For testing only - to be commented out
+      // cout << _spNormals[n](0) << " " << _spNormals[n](1) << " " << _spNormals[n](2) << endl;
+    }
   }
 
 
