@@ -3,7 +3,7 @@
 namespace voom {
       	
   //! recursive funtion to compute factorial
-  unsigned int factorial(unsigned int n)
+  uint factorial(uint n)
   {
     unsigned int temp;
     if(n <= 1) return 1;
@@ -13,7 +13,7 @@ namespace voom {
 
 
 
-  Real det(const MatrixXd& A)
+  Real det(const MatrixXd & A)
   {
     if (A.size() == 4)
       return ( A(0,0)*A(1,1) - A(0,1)*A(1,0) );
@@ -59,7 +59,7 @@ namespace voom {
 
 
 
-  void inv(const  MatrixXd & A, MatrixXd & B)
+  void inv(const MatrixXd & A, MatrixXd & B)
   {
     const double detA = det(A);
     if ( A.size() == 4) {
@@ -138,7 +138,7 @@ namespace voom {
 
 
 
-  Matrix3d VoomExpSymmMatrix(const Matrix3d &A) {
+  Matrix3d VoomExpSymmMatrix(const Matrix3d & A) {
     SelfAdjointEigenSolver<Matrix3d> SAES;
     SAES.compute(A);
     Vector3d v0 = SAES.eigenvectors().col(0);

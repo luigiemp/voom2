@@ -16,8 +16,8 @@
 
 namespace voom
 {
-  inline Real square(Real a) {return (a*a);};
-  unsigned int factorial(unsigned int n);
+  inline Real square(Real a) {return (a*a); };
+  uint factorial(uint n);
 
   Real det(const MatrixXd & A);
 
