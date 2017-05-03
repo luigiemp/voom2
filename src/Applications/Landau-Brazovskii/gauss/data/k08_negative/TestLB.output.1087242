@@ -1,0 +1,652 @@
+File name of mesh nodes: gauss_nodes.dat
+File name of conn nodes: gauss_conn.dat
+IC: None
+running...../createbump.py -0.03
+eps = -0.030000
+Number of nodes = 4380
+Building elements...
+Building HalfEdgeMesh...
+Linked 25920 half-edges, 8640 faces, and 4380 vertices. 
+Determining half-edge opposites.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25208.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25214.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25220.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25224.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25231.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25237.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25242.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25249.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25256.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25262.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25268.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25272.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25279.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25285.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25290.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25297.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25304.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25310.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25316.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25320.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25327.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25333.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25338.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25345.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25352.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25358.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25364.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25368.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25375.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25381.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25386.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25393.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25400.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25406.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25412.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25416.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25423.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25429.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25434.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25441.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25448.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25454.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25460.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25464.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25471.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25477.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25482.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25489.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25496.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25502.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25508.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25512.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25519.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25525.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25530.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25537.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25544.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25550.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25556.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25559.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25562.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25565.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25571.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25576.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25581.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25587.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25594.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25599.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25607.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25613.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25619.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25624.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25629.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25635.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25642.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25647.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25655.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25661.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25667.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25672.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25677.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25683.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25690.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25695.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25703.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25709.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25715.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25720.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25725.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25731.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25738.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25743.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25751.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25757.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25763.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25768.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25773.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25779.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25786.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25791.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25799.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25805.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25811.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25816.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25821.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25827.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25834.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25839.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25847.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25853.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25859.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25864.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25869.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25875.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25882.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25887.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25895.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25901.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25907.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25913.  This HalfEdge is on the boundary.
+HalfEdgeMesh built.
+Identified 60 boundary edges.
+Done building elements.  Elapsed time: 0.04
+
+Number of elements 8640
+Shapes' size: 1
+6,6,6
+Boundary nodes=60
+Ghost nodes=120
+PBDOF=180
+================================================================================
+
+Starting BFGS iterations.
+
+      |proj g|           |g|             f    iterations   evaluations
+--------------------------------------------------------------------------------
+  5.434772e-01  5.434772e-01 -9.934813e-01            98           102
+  8.245853e-01  8.245853e-01 -2.016194e+02           196           204
+  1.184678e+00  1.184678e+00 -3.645218e+02           294           303
+  2.583279e-01  2.583279e-01 -4.104332e+02           392           402
+  2.767669e-02  2.767669e-02 -4.119610e+02           490           505
+  4.151901e-03  4.151901e-03 -4.119747e+02           588           603
+  1.696610e-04  1.696610e-04 -4.119748e+02           686           707
+  2.002245e-04  2.002245e-04 -4.119748e+02           784           807
+  1.065270e-04  1.065270e-04 -4.119748e+02           882           906
+  1.654567e-05  1.654567e-05 -4.119748e+02           980          1010
+  3.194672e-05  3.194672e-05 -4.119748e+02          1078          1115
+  8.287012e-04  8.287012e-04 -4.119748e+02          1176          1217
+  1.519831e-04  1.519831e-04 -4.119748e+02          1274          1317
+  7.660107e-05  7.660107e-05 -4.119748e+02          1372          1416
+  1.169834e-04  1.169834e-04 -4.119748e+02          1470          1516
+  7.883229e-04  7.883229e-04 -4.119748e+02          1568          1615
+  3.330006e-04  3.330006e-04 -4.119748e+02          1666          1713
+  8.020641e-04  8.020641e-04 -4.119748e+02          1764          1816
+  9.057073e-04  9.057073e-04 -4.119748e+02          1862          1918
+  2.280606e-04  2.280606e-04 -4.119748e+02          1960          2019
+  2.045042e-04  2.045042e-04 -4.119748e+02          2058          2119
+  5.558762e-04  5.558762e-04 -4.119748e+02          2156          2220
+  2.426442e-05  2.426442e-05 -4.119748e+02          2254          2320
+  3.252356e-04  3.252356e-04 -4.119748e+02          2352          2420
+  4.200718e-05  4.200718e-05 -4.119748e+02          2450          2522
+  4.951863e-05  4.951863e-05 -4.119748e+02          2548          2625
+  5.826520e-04  5.826520e-04 -4.119748e+02          2646          2727
+  4.919611e-04  4.919611e-04 -4.119749e+02          2744          2829
+  5.886533e-04  5.886533e-04 -4.119750e+02          2842          2931
+  2.222414e-04  2.222414e-04 -4.119750e+02          2940          3034
+  2.031631e-04  2.031631e-04 -4.119750e+02          3038          3134
+  2.538348e-04  2.538348e-04 -4.119750e+02          3136          3234
+  1.178767e-05  1.178767e-05 -4.119750e+02          3234          3337
+  3.731280e-04  3.731280e-04 -4.119750e+02          3332          3437
+  9.023410e-04  9.023410e-04 -4.119750e+02          3430          3538
+  4.476288e-04  4.476288e-04 -4.119750e+02          3528          3639
+  4.298380e-03  4.298380e-03 -4.119750e+02          3626          3737
+  4.541035e-03  4.541035e-03 -4.119752e+02          3724          3839
+  3.101656e-03  3.101656e-03 -4.119753e+02          3822          3939
+  9.082829e-04  9.082829e-04 -4.119754e+02          3920          4039
+  1.485542e-04  1.485542e-04 -4.119754e+02          4018          4139
+  6.957547e-04  6.957547e-04 -4.119754e+02          4116          4238
+  3.534815e-04  3.534815e-04 -4.119754e+02          4214          4340
+  2.100389e-04  2.100389e-04 -4.119754e+02          4312          4442
+  1.988855e-04  1.988855e-04 -4.119754e+02          4410          4543
+  7.050471e-05  7.050471e-05 -4.119754e+02          4508          4642
+  8.382973e-05  8.382973e-05 -4.119754e+02          4606          4742
+  4.537597e-05  4.537597e-05 -4.119754e+02          4704          4840
+  1.015981e-04  1.015981e-04 -4.119754e+02          4802          4939
+  2.940060e-04  2.940060e-04 -4.119754e+02          4900          5041
+  4.606164e-05  4.606164e-05 -4.119754e+02          4998          5141
+  3.539186e-04  3.539186e-04 -4.119754e+02          5096          5244
+  3.062071e-04  3.062071e-04 -4.119754e+02          5194          5344
+  8.262688e-05  8.262688e-05 -4.119754e+02          5292          5444
+  2.942638e-04  2.942638e-04 -4.119754e+02          5390          5544
+  1.286052e-04  1.286052e-04 -4.119754e+02          5488          5646
+  9.548855e-05  9.548855e-05 -4.119754e+02          5586          5750
+  1.576717e-04  1.576717e-04 -4.119754e+02          5684          5851
+  6.197025e-05  6.197025e-05 -4.119754e+02          5782          5954
+  3.649454e-04  3.649454e-04 -4.119754e+02          5880          6055
+  1.070771e-03  1.070771e-03 -4.119754e+02          5978          6156
+  7.256073e-05  7.256073e-05 -4.119754e+02          6076          6257
+  5.884137e-04  5.884137e-04 -4.119754e+02          6174          6355
+  3.414930e-04  3.414930e-04 -4.119754e+02          6272          6457
+  1.780841e-04  1.780841e-04 -4.119754e+02          6370          6561
+  1.037532e-04  1.037532e-04 -4.119754e+02          6468          6662
+  1.731789e-04  1.731789e-04 -4.119755e+02          6566          6765
+  2.531652e-05  2.531652e-05 -4.119755e+02          6664          6866
+  4.991891e-04  4.991891e-04 -4.119755e+02          6762          6965
+  3.134095e-05  3.134095e-05 -4.119755e+02          6860          7066
+  2.793716e-04  2.793716e-04 -4.119755e+02          6958          7166
+  1.001171e-03  1.001171e-03 -4.119755e+02          7056          7267
+  3.586969e-04  3.586969e-04 -4.119755e+02          7154          7369
+  1.759534e-04  1.759534e-04 -4.119755e+02          7252          7474
+  6.135855e-04  6.135855e-04 -4.119755e+02          7350          7573
+  9.561248e-05  9.561248e-05 -4.119755e+02          7448          7677
+  2.315886e-05  2.315886e-05 -4.119755e+02          7546          7776
+  1.851088e-04  1.851088e-04 -4.119755e+02          7644          7877
+  1.274233e-04  1.274233e-04 -4.119755e+02          7742          7978
+  1.049444e-04  1.049444e-04 -4.119755e+02          7840          8080
+  2.459869e-04  2.459869e-04 -4.119755e+02          7938          8181
+  7.917299e-05  7.917299e-05 -4.119755e+02          8036          8286
+  4.867231e-05  4.867231e-05 -4.119755e+02          8134          8388
+  6.060590e-04  6.060590e-04 -4.119755e+02          8232          8490
+  6.345655e-05  6.345655e-05 -4.119755e+02          8330          8591
+  1.010521e-04  1.010521e-04 -4.119755e+02          8428          8693
+  8.391265e-04  8.391265e-04 -4.119755e+02          8526          8795
+  4.867015e-05  4.867015e-05 -4.119755e+02          8624          8898
+  1.209232e-04  1.209232e-04 -4.119755e+02          8722          9000
+  2.320793e-04  2.320793e-04 -4.119755e+02          8820          9102
+  9.844492e-05  9.844492e-05 -4.119755e+02          8918          9202
+  5.981569e-04  5.981569e-04 -4.119755e+02          9016          9303
+  1.547996e-03  1.547996e-03 -4.119755e+02          9114          9403
+  1.549774e-04  1.549774e-04 -4.119755e+02          9212          9506
+  1.607966e-04  1.607966e-04 -4.119756e+02          9310          9605
+  2.094853e-03  2.094853e-03 -4.119756e+02          9408          9707
+  8.853249e-04  8.853249e-04 -4.119757e+02          9506          9807
+  1.627294e-03  1.627294e-03 -4.119757e+02          9604          9909
+  6.334704e-04  6.334704e-04 -4.119757e+02          9702         10009
+  1.326066e-04  1.326066e-04 -4.119757e+02          9800         10110
+  1.490254e-04  1.490254e-04 -4.119757e+02          9898         10213
+  2.564973e-04  2.564973e-04 -4.119757e+02          9996         10315
+  4.876596e-05  4.876596e-05 -4.119757e+02         10094         10417
+  6.403136e-04  6.403136e-04 -4.119757e+02         10192         10518
+  1.480437e-04  1.480437e-04 -4.119757e+02         10290         10618
+  6.336868e-05  6.336868e-05 -4.119757e+02         10388         10718
+  1.408827e-03  1.408827e-03 -4.119757e+02         10486         10820
+  3.986671e-04  3.986671e-04 -4.119757e+02         10584         10920
+  1.279742e-04  1.279742e-04 -4.119757e+02         10682         11020
+  5.753789e-04  5.753789e-04 -4.119757e+02         10780         11120
+  1.200346e-04  1.200346e-04 -4.119757e+02         10878         11223
+  6.271421e-05  6.271421e-05 -4.119757e+02         10976         11325
+  9.729268e-04  9.729268e-04 -4.119757e+02         11074         11426
+  6.703627e-05  6.703627e-05 -4.119757e+02         11172         11525
+  1.402857e-04  1.402857e-04 -4.119757e+02         11270         11627
+  1.277989e-03  1.277989e-03 -4.119757e+02         11368         11731
+  5.798747e-04  5.798747e-04 -4.119757e+02         11466         11833
+  3.472204e-04  3.472204e-04 -4.119757e+02         11564         11935
+  8.110687e-04  8.110687e-04 -4.119758e+02         11662         12037
+  3.841395e-04  3.841395e-04 -4.119758e+02         11760         12140
+  2.264064e-04  2.264064e-04 -4.119758e+02         11858         12240
+  5.479910e-04  5.479910e-04 -4.119758e+02         11956         12339
+  2.150512e-05  2.150512e-05 -4.119758e+02         12054         12440
+  8.679530e-05  8.679530e-05 -4.119758e+02         12152         12541
+  3.888419e-04  3.888419e-04 -4.119758e+02         12250         12642
+  1.219261e-04  1.219261e-04 -4.119758e+02         12348         12746
+  1.047130e-04  1.047130e-04 -4.119758e+02         12446         12845
+RUNNING THE L-BFGS-B CODE
+
+           * * *
+
+Machine precision = 2.220D-16
+ N =         4200     M =            5
+ This problem is unconstrained.
+
+At X0         0 variables are exactly at the bounds
+
+At iterate    0    f=  6.73594D+04    |proj g|=  3.63268D+02
+
+At iterate   98    f= -9.93481D-01    |proj g|=  5.43477D-01
+
+At iterate  196    f= -2.01619D+02    |proj g|=  8.24585D-01
+
+At iterate  294    f= -3.64522D+02    |proj g|=  1.18468D+00
+
+At iterate  392    f= -4.10433D+02    |proj g|=  2.58328D-01
+
+At iterate  490    f= -4.11961D+02    |proj g|=  2.76767D-02
+
+At iterate  588    f= -4.11975D+02    |proj g|=  4.15190D-03
+
+At iterate  686    f= -4.11975D+02    |proj g|=  1.69661D-04
+
+At iterate  784    f= -4.11975D+02    |proj g|=  2.00225D-04
+
+At iterate  882    f= -4.11975D+02    |proj g|=  1.06527D-04
+
+At iterate  980    f= -4.11975D+02    |proj g|=  1.65457D-05
+
+At iterate 1078    f= -4.11975D+02    |proj g|=  3.19467D-05
+
+At iterate 1176    f= -4.11975D+02    |proj g|=  8.28701D-04
+
+At iterate 1274    f= -4.11975D+02    |proj g|=  1.51983D-04
+
+At iterate 1372    f= -4.11975D+02    |proj g|=  7.66011D-05
+
+At iterate 1470    f= -4.11975D+02    |proj g|=  1.16983D-04
+
+At iterate 1568    f= -4.11975D+02    |proj g|=  7.88323D-04
+
+At iterate 1666    f= -4.11975D+02    |proj g|=  3.33001D-04
+
+At iterate 1764    f= -4.11975D+02    |proj g|=  8.02064D-04
+
+At iterate 1862    f= -4.11975D+02    |proj g|=  9.05707D-04
+
+At iterate 1960    f= -4.11975D+02    |proj g|=  2.28061D-04
+
+At iterate 2058    f= -4.11975D+02    |proj g|=  2.04504D-04
+
+At iterate 2156    f= -4.11975D+02    |proj g|=  5.55876D-04
+
+At iterate 2254    f= -4.11975D+02    |proj g|=  2.42644D-05
+
+At iterate 2352    f= -4.11975D+02    |proj g|=  3.25236D-04
+
+At iterate 2450    f= -4.11975D+02    |proj g|=  4.20072D-05
+
+At iterate 2548    f= -4.11975D+02    |proj g|=  4.95186D-05
+
+At iterate 2646    f= -4.11975D+02    |proj g|=  5.82652D-04
+
+At iterate 2744    f= -4.11975D+02    |proj g|=  4.91961D-04
+
+At iterate 2842    f= -4.11975D+02    |proj g|=  5.88653D-04
+
+At iterate 2940    f= -4.11975D+02    |proj g|=  2.22241D-04
+
+At iterate 3038    f= -4.11975D+02    |proj g|=  2.03163D-04
+
+At iterate 3136    f= -4.11975D+02    |proj g|=  2.53835D-04
+
+At iterate 3234    f= -4.11975D+02    |proj g|=  1.17877D-05
+
+At iterate 3332    f= -4.11975D+02    |proj g|=  3.73128D-04
+
+At iterate 3430    f= -4.11975D+02    |proj g|=  9.02341D-04
+
+At iterate 3528    f= -4.11975D+02    |proj g|=  4.47629D-04
+
+At iterate 3626    f= -4.11975D+02    |proj g|=  4.29838D-03
+
+At iterate 3724    f= -4.11975D+02    |proj g|=  4.54104D-03
+
+At iterate 3822    f= -4.11975D+02    |proj g|=  3.10166D-03
+
+At iterate 3920    f= -4.11975D+02    |proj g|=  9.08283D-04
+
+At iterate 4018    f= -4.11975D+02    |proj g|=  1.48554D-04
+
+At iterate 4116    f= -4.11975D+02    |proj g|=  6.95755D-04
+
+At iterate 4214    f= -4.11975D+02    |proj g|=  3.53481D-04
+
+At iterate 4312    f= -4.11975D+02    |proj g|=  2.10039D-04
+
+At iterate 4410    f= -4.11975D+02    |proj g|=  1.98885D-04
+
+At iterate 4508    f= -4.11975D+02    |proj g|=  7.05047D-05
+
+At iterate 4606    f= -4.11975D+02    |proj g|=  8.38297D-05
+
+At iterate 4704    f= -4.11975D+02    |proj g|=  4.53760D-05
+
+At iterate 4802    f= -4.11975D+02    |proj g|=  1.01598D-04
+
+At iterate 4900    f= -4.11975D+02    |proj g|=  2.94006D-04
+
+At iterate 4998    f= -4.11975D+02    |proj g|=  4.60616D-05
+
+At iterate 5096    f= -4.11975D+02    |proj g|=  3.53919D-04
+
+At iterate 5194    f= -4.11975D+02    |proj g|=  3.06207D-04
+
+At iterate 5292    f= -4.11975D+02    |proj g|=  8.26269D-05
+
+At iterate 5390    f= -4.11975D+02    |proj g|=  2.94264D-04
+
+At iterate 5488    f= -4.11975D+02    |proj g|=  1.28605D-04
+
+At iterate 5586    f= -4.11975D+02    |proj g|=  9.54885D-05
+
+At iterate 5684    f= -4.11975D+02    |proj g|=  1.57672D-04
+
+At iterate 5782    f= -4.11975D+02    |proj g|=  6.19702D-05
+
+At iterate 5880    f= -4.11975D+02    |proj g|=  3.64945D-04
+
+At iterate 5978    f= -4.11975D+02    |proj g|=  1.07077D-03
+
+At iterate 6076    f= -4.11975D+02    |proj g|=  7.25607D-05
+
+At iterate 6174    f= -4.11975D+02    |proj g|=  5.88414D-04
+
+At iterate 6272    f= -4.11975D+02    |proj g|=  3.41493D-04
+
+At iterate 6370    f= -4.11975D+02    |proj g|=  1.78084D-04
+
+At iterate 6468    f= -4.11975D+02    |proj g|=  1.03753D-04
+
+At iterate 6566    f= -4.11975D+02    |proj g|=  1.73179D-04
+
+At iterate 6664    f= -4.11975D+02    |proj g|=  2.53165D-05
+
+At iterate 6762    f= -4.11975D+02    |proj g|=  4.99189D-04
+
+At iterate 6860    f= -4.11975D+02    |proj g|=  3.13410D-05
+
+At iterate 6958    f= -4.11975D+02    |proj g|=  2.79372D-04
+
+At iterate 7056    f= -4.11975D+02    |proj g|=  1.00117D-03
+
+At iterate 7154    f= -4.11975D+02    |proj g|=  3.58697D-04
+
+At iterate 7252    f= -4.11975D+02    |proj g|=  1.75953D-04
+
+At iterate 7350    f= -4.11975D+02    |proj g|=  6.13585D-04
+
+At iterate 7448    f= -4.11976D+02    |proj g|=  9.56125D-05
+
+At iterate 7546    f= -4.11976D+02    |proj g|=  2.31589D-05
+
+At iterate 7644    f= -4.11976D+02    |proj g|=  1.85109D-04
+
+At iterate 7742    f= -4.11976D+02    |proj g|=  1.27423D-04
+
+At iterate 7840    f= -4.11976D+02    |proj g|=  1.04944D-04
+
+At iterate 7938    f= -4.11976D+02    |proj g|=  2.45987D-04
+
+At iterate 8036    f= -4.11976D+02    |proj g|=  7.91730D-05
+
+At iterate 8134    f= -4.11976D+02    |proj g|=  4.86723D-05
+
+At iterate 8232    f= -4.11976D+02    |proj g|=  6.06059D-04
+
+At iterate 8330    f= -4.11976D+02    |proj g|=  6.34565D-05
+
+At iterate 8428    f= -4.11976D+02    |proj g|=  1.01052D-04
+
+At iterate 8526    f= -4.11976D+02    |proj g|=  8.39127D-04
+
+At iterate 8624    f= -4.11976D+02    |proj g|=  4.86701D-05
+
+At iterate 8722    f= -4.11976D+02    |proj g|=  1.20923D-04
+
+At iterate 8820    f= -4.11976D+02    |proj g|=  2.32079D-04
+
+At iterate 8918    f= -4.11976D+02    |proj g|=  9.84449D-05
+
+At iterate 9016    f= -4.11976D+02    |proj g|=  5.98157D-04
+
+At iterate 9114    f= -4.11976D+02    |proj g|=  1.54800D-03
+
+At iterate 9212    f= -4.11976D+02    |proj g|=  1.54977D-04
+
+At iterate 9310    f= -4.11976D+02    |proj g|=  1.60797D-04
+
+At iterate 9408    f= -4.11976D+02    |proj g|=  2.09485D-03
+
+At iterate 9506    f= -4.11976D+02    |proj g|=  8.85325D-04
+
+At iterate 9604    f= -4.11976D+02    |proj g|=  1.62729D-03
+
+At iterate 9702    f= -4.11976D+02    |proj g|=  6.33470D-04
+
+At iterate 9800    f= -4.11976D+02    |proj g|=  1.32607D-04
+
+At iterate 9898    f= -4.11976D+02    |proj g|=  1.49025D-04
+
+At iterate 9996    f= -4.11976D+02    |proj g|=  2.56497D-04
+
+At iterate10094    f= -4.11976D+02    |proj g|=  4.87660D-05
+
+At iterate10192    f= -4.11976D+02    |proj g|=  6.40314D-04
+
+At iterate10290    f= -4.11976D+02    |proj g|=  1.48044D-04
+
+At iterate10388    f= -4.11976D+02    |proj g|=  6.33687D-05
+
+At iterate10486    f= -4.11976D+02    |proj g|=  1.40883D-03
+
+At iterate10584    f= -4.11976D+02    |proj g|=  3.98667D-04
+
+At iterate10682    f= -4.11976D+02    |proj g|=  1.27974D-04
+
+At iterate10780    f= -4.11976D+02    |proj g|=  5.75379D-04
+
+At iterate10878    f= -4.11976D+02    |proj g|=  1.20035D-04
+
+At iterate10976    f= -4.11976D+02    |proj g|=  6.27142D-05
+
+At iterate11074    f= -4.11976D+02    |proj g|=  9.72927D-04
+
+At iterate11172    f= -4.11976D+02    |proj g|=  6.70363D-05
+
+At iterate11270    f= -4.11976D+02    |proj g|=  1.40286D-04
+
+At iterate11368    f= -4.11976D+02    |proj g|=  1.27799D-03
+
+At iterate11466    f= -4.11976D+02    |proj g|=  5.79875D-04
+
+At iterate11564    f= -4.11976D+02    |proj g|=  3.47220D-04
+
+At iterate11662    f= -4.11976D+02    |proj g|=  8.11069D-04
+
+At iterate11760    f= -4.11976D+02    |proj g|=  3.84139D-04
+
+At iterate11858    f= -4.11976D+02    |proj g|=  2.26406D-04
+
+At iterate11956    f= -4.11976D+02    |proj g|=  5.47991D-04
+
+At iterate12054    f= -4.11976D+02    |proj g|=  2.15051D-05
+
+At iterate12152    f= -4.11976D+02    |proj g|=  8.67953D-05
+
+At iterate12250    f= -4.11976D+02    |proj g|=  3.88842D-04
+
+At iterate12348    f= -4.11976D+02    |proj g|=  1.21926D-04
+
+At iterate12446    f= -4.11976D+02    |proj g|=  1.04713D-04
+
+  1.701707e-04  1.701707e-04 -4.119758e+02         12544         12945
+  3.049883e-04  3.049883e-04 -4.119758e+02         12642         13045
+  6.615358e-05  6.615358e-05 -4.119758e+02         12740         13147
+  4.395819e-04  4.395819e-04 -4.119758e+02         12838         13248
+  9.839125e-05  9.839125e-05 -4.119758e+02         12936         13347
+  2.880251e-04  2.880251e-04 -4.119758e+02         13034         13452
+  4.735149e-04  4.735149e-04 -4.119758e+02         13132         13554
+  2.335944e-04  2.335944e-04 -4.119758e+02         13230         13656
+  2.116987e-04  2.116987e-04 -4.119758e+02         13328         13756
+  4.061513e-04  4.061513e-04 -4.119758e+02         13426         13857
+  2.845974e-04  2.845974e-04 -4.119758e+02         13524         13958
+  2.405069e-04  2.405069e-04 -4.119758e+02         13622         14063
+  8.337839e-05  8.337839e-05 -4.119758e+02         13720         14162
+  3.211486e-04  3.211486e-04 -4.119758e+02         13818         14265
+  5.788014e-04  5.788014e-04 -4.119758e+02         13916         14367
+  2.739827e-04  2.739827e-04 -4.119758e+02         14014         14468
+  1.012847e-04  1.012847e-04 -4.119758e+02         14112         14569
+  2.003685e-03  2.003685e-03 -4.119758e+02         14210         14668
+  1.160533e-04  1.160533e-04 -4.119758e+02         14308         14770
+  1.041495e-04  1.041495e-04 -4.119758e+02         14406         14870
+  7.608760e-04  7.608760e-04 -4.119758e+02         14504         14972
+  8.778683e-05  8.778683e-05 -4.119758e+02         14602         15072
+  6.374395e-05  6.374395e-05 -4.119758e+02         14700         15171
+  9.760681e-05  9.760681e-05 -4.119758e+02         14798         15273
+  5.069353e-04  5.069353e-04 -4.119758e+02         14896         15374
+  6.427285e-04  6.427285e-04 -4.119758e+02         14994         15474
+  1.437652e-04  1.437652e-04 -4.119758e+02         15092         15574
+  2.030297e-03  2.030297e-03 -4.119758e+02         15190         15673
+  4.072441e-04  4.072441e-04 -4.119759e+02         15288         15779
+  1.324891e-04  1.324891e-04 -4.119759e+02         15386         15880
+  1.106395e-03  1.106395e-03 -4.119759e+02         15484         15981
+  2.080068e-04  2.080068e-04 -4.119759e+02         15582         16080
+  8.042276e-05  8.042276e-05 -4.119759e+02         15680         16184
+  8.900961e-05  8.900961e-05 -4.119759e+02         15778         16288
+  7.904072e-05  7.904072e-05 -4.119759e+02         15876         16390
+  4.856428e-05  4.856428e-05 -4.119759e+02         15974         16492
+  5.827131e-05  5.827131e-05 -4.119759e+02         16001         16520
+
+================================================================================
+
+
+All done :) in 2056 s
+At iterate12544    f= -4.11976D+02    |proj g|=  1.70171D-04
+
+At iterate12642    f= -4.11976D+02    |proj g|=  3.04988D-04
+
+At iterate12740    f= -4.11976D+02    |proj g|=  6.61536D-05
+
+At iterate12838    f= -4.11976D+02    |proj g|=  4.39582D-04
+
+At iterate12936    f= -4.11976D+02    |proj g|=  9.83912D-05
+
+At iterate13034    f= -4.11976D+02    |proj g|=  2.88025D-04
+
+At iterate13132    f= -4.11976D+02    |proj g|=  4.73515D-04
+
+At iterate13230    f= -4.11976D+02    |proj g|=  2.33594D-04
+
+At iterate13328    f= -4.11976D+02    |proj g|=  2.11699D-04
+
+At iterate13426    f= -4.11976D+02    |proj g|=  4.06151D-04
+
+At iterate13524    f= -4.11976D+02    |proj g|=  2.84597D-04
+
+At iterate13622    f= -4.11976D+02    |proj g|=  2.40507D-04
+
+At iterate13720    f= -4.11976D+02    |proj g|=  8.33784D-05
+
+At iterate13818    f= -4.11976D+02    |proj g|=  3.21149D-04
+
+At iterate13916    f= -4.11976D+02    |proj g|=  5.78801D-04
+
+At iterate14014    f= -4.11976D+02    |proj g|=  2.73983D-04
+
+At iterate14112    f= -4.11976D+02    |proj g|=  1.01285D-04
+
+At iterate14210    f= -4.11976D+02    |proj g|=  2.00369D-03
+
+At iterate14308    f= -4.11976D+02    |proj g|=  1.16053D-04
+
+At iterate14406    f= -4.11976D+02    |proj g|=  1.04149D-04
+
+At iterate14504    f= -4.11976D+02    |proj g|=  7.60876D-04
+
+At iterate14602    f= -4.11976D+02    |proj g|=  8.77868D-05
+
+At iterate14700    f= -4.11976D+02    |proj g|=  6.37439D-05
+
+At iterate14798    f= -4.11976D+02    |proj g|=  9.76068D-05
+
+At iterate14896    f= -4.11976D+02    |proj g|=  5.06935D-04
+
+At iterate14994    f= -4.11976D+02    |proj g|=  6.42729D-04
+
+At iterate15092    f= -4.11976D+02    |proj g|=  1.43765D-04
+
+At iterate15190    f= -4.11976D+02    |proj g|=  2.03030D-03
+
+At iterate15288    f= -4.11976D+02    |proj g|=  4.07244D-04
+
+At iterate15386    f= -4.11976D+02    |proj g|=  1.32489D-04
+
+At iterate15484    f= -4.11976D+02    |proj g|=  1.10639D-03
+
+At iterate15582    f= -4.11976D+02    |proj g|=  2.08007D-04
+
+At iterate15680    f= -4.11976D+02    |proj g|=  8.04228D-05
+
+At iterate15778    f= -4.11976D+02    |proj g|=  8.90096D-05
+
+At iterate15876    f= -4.11976D+02    |proj g|=  7.90407D-05
+
+At iterate15974    f= -4.11976D+02    |proj g|=  4.85643D-05

@@ -1,0 +1,20 @@
+UGE job for TestLB built Sat Nov 12 13:40:02 PST 2016
+
+  TestLB directory:
+    /u/home/s/sanjaydm/voom2/src/Applications/Landau-Brazovskii/gauss/eps_mp04
+  Submitted to UGE:
+    Job 1094847, queue: idre_smp.q, sub: Sat Nov 12 13:40:05 2016
+  SCRATCH directory:
+    /work/1094847.1.idre_smp.q
+
+TestLB started on:   n130
+TestLB started at:   Sat Nov 12 13:41:18 PST 2016
+
+TestLB InputGauss.LB >& TestLB.output.1094847
+
+358.678u 0.227s 5:59.72 99.7%	0+0k 36984+3192io 42pf+0w
+
+TestLB finished at:  Sat Nov 12 13:47:18 PST 2016
+
+Scratch files in /work/1094847.1.idre_smp.q deleted:
+total 0

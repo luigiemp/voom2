@@ -1,0 +1,6 @@
+Number of original nodes = 7000 
+Number of ghost nodes = 112 
+Ghost node indicies are 7000 to 7111 
+----------------------------
+Number of original elements = 13888 
+Number of ghost elements = 224 

@@ -1,0 +1,235 @@
+File name of mesh nodes: gauss_nodes.dat
+File name of conn nodes: gauss_conn.dat
+IC: None
+running...../createbump.py -0.01
+eps = -0.010000
+Number of nodes = 4380
+Building elements...
+Building HalfEdgeMesh...
+Linked 25920 half-edges, 8640 faces, and 4380 vertices. 
+Determining half-edge opposites.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25208.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25214.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25220.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25224.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25231.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25237.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25242.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25249.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25256.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25262.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25268.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25272.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25279.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25285.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25290.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25297.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25304.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25310.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25316.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25320.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25327.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25333.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25338.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25345.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25352.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25358.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25364.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25368.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25375.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25381.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25386.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25393.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25400.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25406.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25412.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25416.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25423.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25429.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25434.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25441.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25448.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25454.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25460.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25464.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25471.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25477.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25482.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25489.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25496.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25502.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25508.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25512.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25519.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25525.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25530.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25537.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25544.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25550.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25556.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25559.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25562.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25565.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25571.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25576.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25581.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25587.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25594.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25599.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25607.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25613.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25619.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25624.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25629.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25635.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25642.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25647.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25655.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25661.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25667.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25672.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25677.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25683.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25690.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25695.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25703.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25709.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25715.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25720.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25725.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25731.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25738.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25743.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25751.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25757.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25763.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25768.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25773.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25779.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25786.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25791.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25799.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25805.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25811.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25816.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25821.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25827.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25834.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25839.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25847.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25853.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25859.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25864.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25869.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25875.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25882.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25887.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25895.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25901.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25907.  This HalfEdge is on the boundary.
+  Warning.  Couldn't find HalfEdge opposite to HalfEdge 25913.  This HalfEdge is on the boundary.
+HalfEdgeMesh built.
+Identified 60 boundary edges.
+Done building elements.  Elapsed time: 0.07
+
+Number of elements 8640
+Shapes' size: 1
+6,6,6
+Boundary nodes=60
+Ghost nodes=120
+PBDOF=180
+================================================================================
+
+Starting BFGS iterations.
+
+      |proj g|           |g|             f    iterations   evaluations
+--------------------------------------------------------------------------------
+  1.142420e+00  1.142420e+00 -2.297983e+00            98           101
+  5.930925e-01  5.930925e-01 -1.986189e+02           196           209
+  1.597172e+00  1.597172e+00 -3.640190e+02           294           310
+  1.374502e-01  1.374502e-01 -4.114742e+02           392           412
+  4.337208e-02  4.337208e-02 -4.122277e+02           490           511
+  1.072127e-02  1.072127e-02 -4.122387e+02           588           615
+  2.264430e-04  2.264430e-04 -4.122389e+02           686           718
+  1.637185e-04  1.637185e-04 -4.122389e+02           784           818
+  4.035316e-05  4.035316e-05 -4.122389e+02           882           919
+  8.862322e-05  8.862322e-05 -4.122389e+02           980          1021
+  6.266258e-06  6.266258e-06 -4.122389e+02          1078          1123
+  2.414062e-06  2.414062e-06 -4.122389e+02          1176          1226
+  4.081431e-05  4.081431e-05 -4.122389e+02          1274          1326
+  1.543033e-06  1.543033e-06 -4.122389e+02          1372          1441
+CONVERGENCE: REL_REDUCTION_OF_F_<=_FACTR*EPSMCH             
+  1.164627e-06  1.164627e-06 -4.122389e+02          1383          1478
+
+================================================================================
+
+
+All done :) in 317 s
+RUNNING THE L-BFGS-B CODE
+
+           * * *
+
+Machine precision = 2.220D-16
+ N =         4200     M =            5
+ This problem is unconstrained.
+
+At X0         0 variables are exactly at the bounds
+
+At iterate    0    f=  6.73658D+04    |proj g|=  3.63269D+02
+
+At iterate   98    f= -2.29798D+00    |proj g|=  1.14242D+00
+
+At iterate  196    f= -1.98619D+02    |proj g|=  5.93093D-01
+
+At iterate  294    f= -3.64019D+02    |proj g|=  1.59717D+00
+
+At iterate  392    f= -4.11474D+02    |proj g|=  1.37450D-01
+
+At iterate  490    f= -4.12228D+02    |proj g|=  4.33721D-02
+
+At iterate  588    f= -4.12239D+02    |proj g|=  1.07213D-02
+
+At iterate  686    f= -4.12239D+02    |proj g|=  2.26443D-04
+
+At iterate  784    f= -4.12239D+02    |proj g|=  1.63719D-04
+
+At iterate  882    f= -4.12239D+02    |proj g|=  4.03532D-05
+
+At iterate  980    f= -4.12239D+02    |proj g|=  8.86232D-05
+
+At iterate 1078    f= -4.12239D+02    |proj g|=  6.26626D-06
+
+At iterate 1176    f= -4.12239D+02    |proj g|=  2.41406D-06
+
+At iterate 1274    f= -4.12239D+02    |proj g|=  4.08143D-05
+
+At iterate 1372    f= -4.12239D+02    |proj g|=  1.54303D-06
+
+           * * *
+
+Tit   = total number of iterations
+Tnf   = total number of function evaluations
+Tnint = total number of segments explored during Cauchy searches
+Skip  = number of BFGS updates skipped
+Nact  = number of active bounds at final generalized Cauchy point
+Projg = norm of the final projected gradient
+F     = final function value
+
+           * * *
+
+   N    Tit     Tnf  Tnint  Skip  Nact     Projg        F
+ 4200   1383   1478      1     0     0   1.165D-06  -4.122D+02
+  F =  -412.23887683505387     
+
+CONVERGENCE: REL_REDUCTION_OF_F_<=_FACTR*EPSMCH             
+
+ Warning:  more than 10 function and gradient
+   evaluations in the last line search.  Termination
+   may possibly be caused by a bad search direction.
+
+ Cauchy                time 0.000E+00 seconds.
+ Subspace minimization time 5.148E-01 seconds.
+ Line search           time 3.105E+02 seconds.
+
+ Total User time 3.117E+02 seconds.
+

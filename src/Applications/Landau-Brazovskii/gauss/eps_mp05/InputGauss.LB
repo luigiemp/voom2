@@ -1,0 +1,13 @@
+ 
+inputMeshNodes         gauss_nodes.dat
+inputMeshConn          gauss_conn.dat
+IC                     None
+k0                     8
+r                      -8
+u                      0
+v                      1
+c                      1
+nMax                   20000
+output                 k0_8_solution_pm05
+epsilon                -0.05
+

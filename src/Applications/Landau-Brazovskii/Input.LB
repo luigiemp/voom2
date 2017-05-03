@@ -1,0 +1,11 @@
+ 
+inputMeshNodes         Unda1c2PerBCNodes.dat
+inputMeshConn          Unda1c2PerBCConn.dat
+IC                     None
+k0                     1
+r                      -1
+u                      0
+v                      1
+c                      1
+nMax                   6000
+

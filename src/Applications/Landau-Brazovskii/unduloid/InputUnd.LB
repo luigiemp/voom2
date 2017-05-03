@@ -1,0 +1,11 @@
+ 
+inputMeshNodes         Undap4c2p5PerBCNodes.dat
+inputMeshConn          Undap4c2p5PerBCConn.dat
+IC                     None
+k0                     6
+r                      -3
+u                      0
+v                      1
+c                      .05
+nMax                   6000
+

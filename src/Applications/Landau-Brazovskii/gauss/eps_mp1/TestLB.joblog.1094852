@@ -1,0 +1,20 @@
+UGE job for TestLB built Sat Nov 12 13:41:45 PST 2016
+
+  TestLB directory:
+    /u/home/s/sanjaydm/voom2/src/Applications/Landau-Brazovskii/gauss/eps_mp1
+  Submitted to UGE:
+    Job 1094852, queue: c2_smp.q, sub: Sat Nov 12 13:41:48 2016
+  SCRATCH directory:
+    /work/1094852.1.c2_smp.q
+
+TestLB started on:   n9831
+TestLB started at:   Sat Nov 12 13:42:54 PST 2016
+
+TestLB InputGauss.LB >& TestLB.output.1094852
+
+3333.303u 0.224s 55:35.14 99.9%	0+0k 31776+7088io 25pf+0w
+
+TestLB finished at:  Sat Nov 12 14:38:29 PST 2016
+
+Scratch files in /work/1094852.1.c2_smp.q deleted:
+total 0
