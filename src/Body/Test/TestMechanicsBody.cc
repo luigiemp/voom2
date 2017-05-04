@@ -12,7 +12,7 @@ int main(int argc, char** argv) {
 
   //Test Mechanics model
   {
-    cout << " ------------------------------- " << endl;
+    cout << " ----------------------------------- " << endl;
     cout << " TEST OF MECHANICS MODEL " << endl << endl;
   
     cout << " TEST OF 1st MECHANICS MODEL " << endl << endl;
@@ -53,7 +53,7 @@ int main(int argc, char** argv) {
 
     
     cout << endl << " END OF TEST OF 1st MECHANICS MODEL " << endl;
-    cout << " ------------------------------ " << endl << endl;
+    cout <<         " ---------------------------------- " << endl << endl;
   }
 
 
