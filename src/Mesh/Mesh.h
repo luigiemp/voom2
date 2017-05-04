@@ -87,6 +87,9 @@ namespace voom
       return _elements;
     }
 
+    //! Get element type (assumed one element type per mesh - no mixed meshes for now)
+    string getElementType() { return _elementType; }
+
     // //! Return mapping between local and global DoF and ghost DoF
     // const vector<int > & getLocalDoF() { return _localDoF; };
     // const vector<int > & getGhostDoF() { return _ghostDoF; };
@@ -108,6 +111,9 @@ namespace voom
 
     //! List of Elements
     vector<GeomElement* > _elements;
+
+    //! Element type
+    string _elementType;
 
     // //! Map of Degrees of freedom local ID to global ID
     // vector<int >          _localDoF;
