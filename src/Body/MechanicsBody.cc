@@ -569,7 +569,7 @@ namespace voom {
       // F at each quadrature point are computed at the same time in one element
       vector<Matrix3d > Flist(numQP, Matrix3d::Zero());
       // Compute deformation gradients for current element
-      this->computeDeformationGradient(Flist, geomEl);
+      this->computeDeformationGradient(Flist, geomEl, R);
 
       // Loop over quadrature Points
       // for (int q = 0; q < numQP; q++) {
@@ -601,16 +601,6 @@ namespace voom {
     writer->SetInput(newUnstructuredGrid);
     writer->Write();
     
-    // ** BEGIN: SUPPORT FOR INTEGRATION POINTS ** //
-    // ~~ BEGIN: PLOT PRESSURE NORMALS ~~ //
-    if (_pressureFlag) 
-      writePressurePolyData(OutputFile, step);
-    // ~~ END: PLOT PRESSURE NORMALS ~~ //
-
-    if (_springBCflag)
-      writeLinearSpringPolyData(OutputFile, step);
-    if (_torsionalSpringBCflag)
-      writeTorsionalSpringPolyData(OutputFile, step);
   } // writeOutput
 
   
