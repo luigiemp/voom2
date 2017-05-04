@@ -2,6 +2,7 @@
 
 #include "MechanicsBody.h"
 #include "FEMesh.h"
+#include "EigenResult.h"
 #include "PassMyoA.h"
 #include "CompNeoHookean.h"
 
