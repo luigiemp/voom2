@@ -38,36 +38,22 @@ int main(int argc, char** argv) {
     EigenResult R(PbDoF, NumMat*(materials[0]->getMaterialParameters()).size() );
     
     MechanicsBody myMehcanicsBody(&myFEmesh, NodeDoF, materials, &R);
-    
-    
-//     
-//     int TotNumMatProp = NumMat*2;
-//     EigenResult myResults
 
-//     Real perturbationFactor = 0.1;
-//     uint myRequest = 6; // Check both Forces and Stiffness
-//     Real myH = 1e-6;
-//     Real myTol = 1e-7;
+    Real perturbationFactor = 0.1;
+    myRequest = FORCES && STIFFNESS; // Check both Forces and Stiffness
+    Real myH = 1e-6;
+    Real myTol = 1e-7;
+    myMehcanicsBody.checkConsistency(&R, perturbationFactor, myRequest, myH, myTol);
+    
 
 //     myModel.checkConsistency(myResults, perturbationFactor, myRequest, myH, myTol);
   
 //     myModel.checkDmat(myResults, perturbationFactor, myH, myTol);
 
-//     // Check model volume
-//     cout << endl << "Model reference volume is = " << myModel.computeRefVolume() << endl;
-//     cout << endl << "Model current volume is   = " << myModel.computeCurrentVolume() << endl;
 
-//     // Change field and recompute volume
-//     vector<Real > x(PbDoF, 0.0);
-//     myModel.getField(x);
-//     for (int i=0; i<PbDoF; i++) {
-//       myModel.setField(i, x[i]*0.5);
-//     }
-//     cout << endl << "Model current volume is   = " << myModel.computeCurrentVolume() << endl;
     
-    
-//     cout << endl << " END OF TEST OF 1st MECHANICS MODEL " << endl;
-//     cout << " ------------------------------ " << endl << endl;
+    cout << endl << " END OF TEST OF 1st MECHANICS MODEL " << endl;
+    cout << " ------------------------------ " << endl << endl;
   }
 
 
