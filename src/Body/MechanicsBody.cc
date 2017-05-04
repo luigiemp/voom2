@@ -123,8 +123,7 @@ namespace voom {
                   Real tempStiffness = 0.0;
                   for(int M = 0; M < dim; M++) {
                     for(int N = 0; N < dim; N++) {
-                      tempStiffness += FKres.K.get(i, M, j, N)*elements[e]->getDN(q, a, M)*
-                      elements[e]->getDN(q, b, N);
+                      tempStiffness += FKres.K.get(i, M, j, N)*elements[e]->getDN(q, a, M)*elements[e]->getDN(q, b, N);
                     } // N loop
                   } // M loop
                   tempStiffness *= Vol;
