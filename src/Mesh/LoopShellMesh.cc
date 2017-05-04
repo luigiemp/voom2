@@ -5,7 +5,10 @@
 namespace voom {
 
   // Constructor from input file
-  LoopShellMesh::LoopShellMesh(const string Nodes, const string ConnTable): Mesh(Nodes, ConnTable), _elType("LoopShell") {
+  LoopShellMesh::LoopShellMesh(const string Nodes, const string ConnTable): Mesh(Nodes, ConnTable) {
+
+    _elementType = "LoopShell";
+
     ifstream inp(ConnTable.c_str());
     
     uint NumFaces = 0, temp = 0;

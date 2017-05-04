@@ -33,8 +33,9 @@ namespace voom {
   FEMesh::FEMesh(const vector<VectorXd > &  Positions,
     const vector<vector<int > > & Connectivity,
     string ElementType):
-    Mesh(Positions), _elementType(ElementType)
+    Mesh(Positions)
   {
+    _elementType = ElementType;
     this->createElementShapeAndQuadrature(ElementType);
 
     // Resize element container
