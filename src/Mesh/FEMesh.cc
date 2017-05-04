@@ -11,6 +11,7 @@ namespace voom {
     // First line
     // First number is NumNodes, Second is type of element
     inp >> NumEl >> ElType;
+    _elementType = ElType;
     _elements.resize(NumEl);
 
     uint NumNodesEl = this->createElementShapeAndQuadrature(ElType);
@@ -32,7 +33,7 @@ namespace voom {
   FEMesh::FEMesh(const vector<VectorXd > &  Positions,
     const vector<vector<int > > & Connectivity,
     string ElementType):
-    Mesh(Positions)
+    Mesh(Positions), _elementType(ElementType)
   {
     this->createElementShapeAndQuadrature(ElementType);
 
