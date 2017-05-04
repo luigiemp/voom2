@@ -41,7 +41,7 @@ int main(int argc, char** argv) {
     MechanicsBody myBody(&myFEmesh, NodeDoF, materials, &myResult);
 
     Real perturbationFactor = 0.1;
-    int myRequest = STIFFNESS; // Check both Forces and Stiffness
+    int myRequest = FORCE | STIFFNESS; // Check both Forces and Stiffness
     Real myH = 1e-6;
     Real myTol = 1e-7;
     myResult.setRequest(ENERGY);
