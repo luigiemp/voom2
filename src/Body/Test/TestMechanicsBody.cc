@@ -35,7 +35,7 @@ int main(int argc, char** argv) {
     }
 
     int PbDoF = myFEmesh.getNumberOfNodes()*NodeDoF;
-    EigenResult R(PbDoF, NumMat*(materials[0]->getMaterialParameters()).size() );
+    EigenResult myResult(PbDoF, NumMat*(materials[0]->getMaterialParameters()).size() );
     
     MechanicsBody myMehcanicsBody(&myFEmesh, NodeDoF, materials, &R);
 
@@ -43,7 +43,17 @@ int main(int argc, char** argv) {
     int myRequest = FORCE && STIFFNESS; // Check both Forces and Stiffness
     Real myH = 1e-6;
     Real myTol = 1e-7;
-    myMehcanicsBody.checkConsistency(&R, perturbationFactor, myRequest, myH, myTol);
+    myResult.setRequest(1);
+    myBody.compute(myResult);
+    cout << endl << "Body energy is  = " << myResult.getEnergy() << endl;
+    // Change field and recompute energy
+    for (int i=0; i<PbDoF; i++) {
+      myResult.linearizeUpdate(i, double(0.1*rand())/RAND_MAX);
+    }
+    myBody.compute(myResult);
+    cout << endl << "Body energy is  = " << myResult.getEnergy() << endl;
+
+    myMehcanicsBody.checkConsistency(&myResult, perturbationFactor, myRequest, myH, myTol);
     
 
 //     myModel.checkConsistency(myResults, perturbationFactor, myRequest, myH, myTol);
