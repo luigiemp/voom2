@@ -329,8 +329,8 @@ namespace voom {
             (*itMatB)->setMaterialParameters(MatPropB);
 
             error += pow( (GradPlus - GradMinus)/(2.0*hM) -
-            R->getStiffnes( MatIDA*MatPropA.size() + mA, MatIDB*MatPropB.size() + mB ), 2.0);
-            norm += pow( R->getStiffnes( MatIDA*MatPropA.size() + mA, MatIDB*MatPropB.size() + mB ) , 2.0 );
+            R->getStiffness( MatIDA*MatPropA.size() + mA, MatIDB*MatPropB.size() + mB ), 2.0);
+            norm += pow( R->getStiffness( MatIDA*MatPropA.size() + mA, MatIDB*MatPropB.size() + mB ) , 2.0 );
 
             // cout << (*R->_Gradg)( MatID*MatProp.size() + m) << " " << (RTRplus-RTRminus)/(2.0*hM) << endl;
 
@@ -355,7 +355,7 @@ namespace voom {
     // Reset field to initial values
     for(int a = 0; a < nodeNum; a++) {
       for(int i = 0; i < _nodeDoF; i++) {
-        R->linearizedUpdate(a, i, -perturb[a*_nodeDoF + i]);
+        R->linearizedUpdate(a*_nodeDoF + i, -perturb[a*_nodeDoF + i]);
       }
     }
 
@@ -372,6 +372,7 @@ namespace voom {
   {
     /////
     // Todo: NEED TO BE REWRITTEN TAKING INTO ACCOUNT MULTIPLE QUADRATURE POINTS PER ELEMENT !!!
+    // Todo: Figure out how to handle mixed meshes
     /////
 
     // Rewrite it with VTK Libraries
@@ -394,32 +395,23 @@ namespace voom {
     newUnstructuredGrid->SetPoints(points);
     
     // Element Connectivity:
-    // To-do: Figure out how to handle mixed meshes
-    // To-do: It would be better to select based on Abaqus element names
     vector <GeomElement*> elements = _myMesh->getElements();
     int NumEl = elements.size();
     int NodePerEl = (elements[0])->getNodesPerElement();
+    string ElType = _myMesh->getElementType();
     int dim = _myMesh->getDimension();
 
     VTKCellType cellType;
     // Set Cell Type: http://www.vtk.org/doc/nightly/html/vtkCellType_8h.html
-    switch (dim) {
-      case 3: // 3D
-	switch (NodePerEl) {
-	  case 4: // Linear Tetrahedron
-	    cellType = VTK_TETRA;
-	    break;
-	  case 10: // Quadratic Tetrahedron
-	    cellType = VTK_QUADRATIC_TETRA;
-	    break;
-	  default:
-	    cout << "3D Element type not implemented in MechanicsBody writeOutput." << endl;
-	    exit(EXIT_FAILURE);
-	}
-	break;
-      default:
-        cout << "This element has not been implemented in MechanicsBody writeOutput." << endl;
-	exit(EXIT_FAILURE);
+    if (ElType == "C3D4") {
+      // Full integration linear tetrahedral element
+      cellType = VTK_TETRA; }
+    else if (ElType == "C3D10") {
+      // Full integration quadratic tetrahedral element
+      cellType = VTK_QUADRATIC_TETRA; }
+    else {
+      cout << "3D Element type not implemented in MechanicsBody writeOutput." << endl;
+      exit(EXIT_FAILURE);
     }
 
     for (int el_iter = 0; el_iter < NumEl; el_iter++) {
@@ -461,16 +453,15 @@ namespace voom {
 
     // Compute Residual
     int PbDoF = ( _myMesh->getNumberOfNodes())*this->getDoFperNode();
-    EigenResult myVTKResults(PbDoF, 2);
+    Result myVTKResults(PbDoF, 2);
     int myRequest = 2;
     myVTKResults.setRequest(myRequest);
     this->compute(&myVTKResults);
-    VectorXd R = *(myVTKResults._residual);
 
     for (int i = 0; i < NumNodes; i++ ) {
       double res[dim];
       for (int j = 0; j < dim; j++) {
-        res[j] = R(i*dim + j);
+        res[j] = R->getResidual(i*dim + j);
       }
       residuals->InsertNextTuple(res);
     }
