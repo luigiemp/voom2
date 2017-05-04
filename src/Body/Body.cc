@@ -34,7 +34,7 @@ namespace voom {
       this->compute(R);
 
       R->setRequest(1); // Reset result request so that only energy is computed 
-      // this->compute(R);
+      this->compute(R);
 
       cout << "Model energy at test start = " <<  R->getEnergy() << endl;
 
