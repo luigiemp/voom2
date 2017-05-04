@@ -17,6 +17,14 @@ namespace voom {
 
     // Initialization function
     virtual void initializeResults(int NumEntries) = 0;
+    void resetResults(int ResetOrder) {
+      if (ResetOrder & ENERGY) {
+	this->setEnergy(0.0); };
+      if (ResetOrder & FORCE) {
+	this->resetResidualToZero(); };
+      if (ResetOrder & STIFFNESS) {
+	{this->resetStiffnessToZero(); };
+    }
 
     // NumMat and PbDoF
     virtual int getNumMatProp() = 0;

@@ -30,10 +30,12 @@ namespace voom {
     if ( request & FORCE ) {
       Real error = 0.0, norm = 0.0;
 
-      R->setRequest(2); // First compute forces numerically
+      R->setRequest(FORCE); // First compute forces numerically
+      R->resetResults(FORCE);
       this->compute(R);
 
       R->setRequest(1); // Reset result request so that only energy is computed 
+      R->resetResults(ENERGY);
       this->compute(R);
 
       cout << "Model energy at test start = " <<  R->getEnergy() << endl;
@@ -42,18 +44,20 @@ namespace voom {
 	for(int i = 0; i < _nodeDoF; i++) {
 	  // Perturb +h
 	  R->linearizedUpdate(a*_nodeDoF + i, h);
+	  R->resetResults(ENERGY);
 	  this->compute(R);
 	  Real Wplus = R->getEnergy();
 	  
 	  // Perturb -2h
-	  R->linearizedUpdate(a*_nodeDoF + i, -2*h);
+	  R->linearizedUpdate(a*_nodeDoF + i, -2.0*h);
+	  R->resetResults(ENERGY);
 	  this->compute(R);
 	  Real Wminus = R->getEnergy();
 	  
 	  // Bring back to original position
 	  R->linearizedUpdate(a*_nodeDoF + i, h);
 	  
-	  error += pow( (Wplus-Wminus)/(2.*h) - 
+	  error += pow( (Wplus-Wminus)/(2.0*h) - 
 			R->getResidual(a*_nodeDoF + i), 2);
 	  norm += pow(R->getResidual(a*_nodeDoF + i), 2);
 	} // Loop over dimension
