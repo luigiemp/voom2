@@ -82,6 +82,7 @@ namespace voom {
       Real error = 0.0, norm = 0.0;
 
       R->setRequest(STIFFNESS); // First compute stiffness numerically
+      R->resetResults(STIFFNESS);
       this->compute(R);
 
       R->setRequest(FORCE); // Reset result request so that only forces are computed 
@@ -91,11 +92,13 @@ namespace voom {
 	    for(int j = 0; j < _nodeDoF; j++) {
 	      // Perturb +h
 	      R->linearizedUpdate(b*_nodeDoF + j, h);
+	      R->resetResults(FORCE);
 	      this->compute(R);
 	      Real Fplus = R->getResidual(a*_nodeDoF + i);
 
 	      // Perturb -2h
 	      R->linearizedUpdate(b*_nodeDoF + j, -2*h);
+	      R->resetResults(FORCE);
 	      this->compute(R);
 	      Real Fminus = R->getResidual(a*_nodeDoF + i);
 
