@@ -16,51 +16,34 @@ int main(int argc, char** argv) {
   
     cout << " TEST OF 1st MECHANICS MODEL " << endl << endl;
     
-    FEMesh myFEmesh("../../Mesh/Test/Cube.node", "../../Mesh/Test/Cube.ele");
+    FEMesh myFEmesh("../../Mesh/Test/Cube.node", "../../Mesh/Test/Cube.ele");   uint NumQP = 1;
+
+    int NodeDoF = 3;
+
+    int NumMat = myFEmesh.getNumberOfElements()*NumQP;
+    vector<MechanicsMaterial * > materials;
+    materials.reserve(NumMat);
+    for (int k = 0; k < NumMat; k++) {
+      vector<Vector3d > Fibers;
+      Vector3d N; N << 1.0, 0.0, 0.0;
+      Fibers.push_back(N);
+      PassMyoA* Mat = new PassMyoA(k, 1.0+double(rand())/RAND_MAX, 3.0+double(rand())/RAND_MAX, 1.0+double(rand())/RAND_MAX, 1.0+double(rand())/RAND_MAX,  1.0+double(rand())/RAND_MAX, 2.0+double(rand())/RAND_MAX, Fibers);
+
+      // CompNeoHookean* Mat = new CompNeoHookean(k, 1.0+double(rand())/RAND_MAX, 3.0+double(rand())/RAND_MAX);
+      materials.push_back(Mat);
+    }
+
+    int PbDoF = myFEmesh.getNumberOfNodes()*NodeDoF;
+    EigenResult R(PbDoF, TotNumMatProp);
     
-
+    MechanicsBody(&myFEmesh, NodeDoF,
+		  materials,
+		  &R);
     
-    // // Initialize Model
-    // uint NodeDoF = 3;
-    // uint NumQP = 4;
-
-    // uint NumMat = myFEmesh.getNumberOfElements()*NumQP;
-    // vector<MechanicsMaterial * > materials;
-    // materials.reserve(NumMat);
     
- //    for (int k = 0; k < NumMat; k++) {
-//       // vector<Vector3d > Fibers;
-//       // Vector3d N; N << 1.0, 0.0, 0.0;
-//       // Fibers.push_back(N);
-//       // PassMyoA* Mat = new PassMyoA(k, 1.0+double(rand())/RAND_MAX, 3.0+double(rand())/RAND_MAX, 1.0+double(rand())/RAND_MAX, 1.0+double(rand())/RAND_MAX,  1.0+double(rand())/RAND_MAX, 2.0+double(rand())/RAND_MAX, Fibers);
-
-//       CompNeoHookean* Mat = new CompNeoHookean(k, 1.0+double(rand())/RAND_MAX, 3.0+double(rand())/RAND_MAX);
-//       materials.push_back(Mat);
-//     }
-   
-
-//     // Apply pressure
-//     int PressureFlag = 1;
-//     MechanicsModel myModel(&myFEmesh, materials, NodeDoF, PressureFlag, &surfMesh);
-
-//     // Apply spring BC
-//     Real SpringK = 1.0;
-//     myModel.initSpringBC("../../Mesh/Test/SurfCubeQuad.nodes", &surfMesh, SpringK);
-
-
-
-// <<<<<<< HEAD
-//     int PressureFlag = 1;
-//     Real Pressure = 1.0;
-//     MechanicsModel myModel(&myFEmesh, materials, NodeDoF, PressureFlag, Pressure, &surfMesh);
-  
-// // =======
-    
-// >>>>>>> 29309bbfa22d9ab99c53776e10f3040558987a65
-//     // Run consistency test
-//     uint PbDoF = (myFEmesh.getNumberOfNodes())*myModel.getDoFperNode();
+//     
 //     int TotNumMatProp = NumMat*2;
-//     EigenResult myResults(PbDoF, TotNumMatProp);
+//     EigenResult myResults
 
 //     Real perturbationFactor = 0.1;
 //     uint myRequest = 6; // Check both Forces and Stiffness
