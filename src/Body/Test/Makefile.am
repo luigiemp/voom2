@@ -10,7 +10,7 @@ INCLUDES = -I./							\
 	   -I./../../Material/MechanicsMaterial			\
 	   -I./../../Element					\
 	   -I./../../Mesh					\
-	   -I./../../Solver/Result				\
+	   -I./../../Solver/Results				\
 	   -I/u/local/apps/eigen/3.2.4/gcc-4.4.7/include/eigen3	\
 	   -I./../../Geometry -I./../../HalfEdgeMesh
 AM_LDFLAGS = 	-L./ 								\
