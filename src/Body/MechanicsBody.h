@@ -34,7 +34,8 @@ namespace voom{
     //! Basic Constructor
     /*! Construct from basic data structures defining the mesh and materials. */
     MechanicsBody(Mesh* aMesh, const int NodeDoF,
-		  vector<MechanicsMaterial * > Materials);
+		  vector<MechanicsMaterial * > Materials,
+		  Result* R);
 
     //! Destructor
     ~MechanicsBody() {
@@ -49,20 +50,15 @@ namespace voom{
 
     //! Initialize field
     // From constant value
-    void initializeField(Result* R, Real value = 1.0) {
-      vector<Real> field;
+    void initializeField(Result* R, Real fact = 1.0) {
       const int numNodes = _myMesh->getNumberOfNodes();
       const int dim = _myMesh->getDimension();
       
-      for (int i = 0; i < numNodes; i++) // i -> node number
-	for (int j = 0; j < dim; j++)
-	  field[i*dim+j] = _myMesh->getX(i,j)*value; // value = isotropic expansion/shrinking
-      R->initializeField(field);
-    };
-
-    //! From array
-    void initializeField(Result* R, const vector<Real > & Field) {
-      R->initializeField(Field);
+      for (int i = 0; i < numNodes; i++) { // i -> node number
+	for (int j = 0; j < dim; j++) {
+	  R->setField(i*dim+j, _myMesh->getX(i,j)*value);
+	}
+      }
     };
 
     int getNumMat() {
@@ -94,10 +90,10 @@ namespace voom{
 
   protected:
     //! Compute Deformation Gradient
-    void computeDeformationGradient(vector<Matrix3d > & Flist, GeomElement* geomEl);
+    void computeDeformationGradient(vector<Matrix3d > & Flist, GeomElement* geomEl, Result* R);
 
     //! Compute Green Lagrangian Strain Tensor
-    void computeGreenLagrangianStrainTensor(vector<Matrix3d> & Elist, GeomElement* geomEl);
+    void computeGreenLagrangianStrainTensor(vector<Matrix3d> & Elist, GeomElement* geomEl, Result* R);
 
     //! List of Material data at each QP in the model
     vector<MechanicsMaterial * > _materials;

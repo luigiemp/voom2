@@ -43,10 +43,7 @@ namespace voom {
 
     //! Initialize field
     // From constant value
-    virtual void initializeField(Result* R, Real value = 1.0) = 0;
- 
-    //! From array
-    virtual void initializeField(Result* R, const vector<Real > & Field) = 0;
+    virtual void initializeField(Result* R, Real fact = 1.0) = 0;
 
     //! Finalize compute
     virtual void FinalizeCompute() = 0;

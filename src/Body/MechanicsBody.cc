@@ -8,8 +8,7 @@ namespace voom {
 			       Result* R):
     Body(myMesh, NodeDoF), _materials(Materials)
     {
-      // Resize and initialize (default function) _field vector
-      R->fieldResize(( _myMesh->getNumberOfNodes() )*_nodeDoF );
+      // Initialize _field vector for the part corresponding to this Body
       this->initializeField(R);
     } // Constructor
 
@@ -31,7 +30,7 @@ namespace voom {
       for(int i = 0; i < dim; i++) {
 	for(int J = 0; J < dim; J++) {
 	  for(int a = 0; a < nodeNum; a++) {
-	    Flist[q](i,J) += R->_field[NodesID[a]*dim + i] * geomEl->getDN(q, a, J);
+	    Flist[q](i,J) += R->getField(NodesID[a]*dim + i) * geomEl->getDN(q, a, J);
 	  }
 	}
       }
