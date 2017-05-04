@@ -453,10 +453,8 @@ namespace voom {
 
     // Compute Residual
     int PbDoF = ( _myMesh->getNumberOfNodes())*this->getDoFperNode();
-    Result myVTKResults(PbDoF, 2);
-    int myRequest = 2;
-    myVTKResults.setRequest(myRequest);
-    this->compute(&myVTKResults);
+    R->setRequest(FORCE);
+    this->compute(R);
 
     for (int i = 0; i < NumNodes; i++ ) {
       double res[dim];
