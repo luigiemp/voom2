@@ -48,7 +48,8 @@ namespace voom {
     //! Finalize compute
     virtual void FinalizeCompute() = 0;
 
-
+    //! Write mechanics body to paraview file
+    virtual void writeOutputVTK(const string OutputFile, int step, Result* R) = 0;
 
   protected:
     Mesh*        _myMesh;

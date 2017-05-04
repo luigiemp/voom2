@@ -56,7 +56,7 @@ namespace voom{
       
       for (int i = 0; i < numNodes; i++) { // i -> node number
 	for (int j = 0; j < dim; j++) {
-	  R->setField(i*dim+j, _myMesh->getX(i,j)*value);
+	  R->setField(i*dim+j, _myMesh->getX(i,j)*fact);
 	}
       }
     };
@@ -86,7 +86,12 @@ namespace voom{
     void compute(Result* R);
 
     //! Check consistency of gradg and Hg
-    void checkDmat(Result * R, Real perturbationFactor, Real h, Real tol);
+    void checkDmat(Result* R, Real perturbationFactor, Real h, Real tol);
+
+    //! Write mechanics body to paraview file
+    void writeOutputVTK(const string OutputFile, int step, Result* R);
+
+
 
   protected:
     //! Compute Deformation Gradient

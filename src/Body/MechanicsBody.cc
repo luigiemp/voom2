@@ -201,8 +201,10 @@ namespace voom {
 
 
 
+
+
   // Check consistency on Hg needed for material parameter identification
-  void MechanicsBody::checkDmat(Result * R, Real perturbationFactor, Real hM, Real tol)
+  void MechanicsBody::checkDmat(Result* R, Real perturbationFactor, Real hM, Real tol)
   {
 
     // Perturb initial config - gradg and Hg are zero at F = I
@@ -219,7 +221,7 @@ namespace voom {
       for(int i = 0; i < _nodeDoF; i++) {
         Real randomNum =  perturbationFactor*(Real(rand())/RAND_MAX - 0.5);
         perturb[a*_nodeDoF + i] = randomNum;
-        R->linearizedUpdate(a, i, randomNum);
+        R->linearizedUpdate(a*_nodeDoF + i, randomNum);
       }
     }
 
@@ -287,12 +289,10 @@ namespace voom {
     }
 
 
-
     // Test Hg //
     error = 0.0; norm = 0.0;
     R->setRequest(8);
     this->compute(R);
-    SparseMatrix<Real > HgAn = *R->_Hg;
     for ( set<MechanicsMaterial *>::iterator itMatA =  UNIQUEmaterials.begin(); itMatA != UNIQUEmaterials.end(); itMatA++ )
     {
       vector<Real > MatPropA = (*itMatA)->getMaterialParameters();
@@ -329,8 +329,8 @@ namespace voom {
             (*itMatB)->setMaterialParameters(MatPropB);
 
             error += pow( (GradPlus - GradMinus)/(2.0*hM) -
-            HgAn.coeff( MatIDA*MatPropA.size() + mA, MatIDB*MatPropB.size() + mB ), 2.0);
-            norm += pow( HgAn.coeff( MatIDA*MatPropA.size() + mA, MatIDB*MatPropB.size() + mB ) , 2.0 );
+            R->getStiffnes( MatIDA*MatPropA.size() + mA, MatIDB*MatPropB.size() + mB ), 2.0);
+            norm += pow( R->getStiffnes( MatIDA*MatPropA.size() + mA, MatIDB*MatPropB.size() + mB ) , 2.0 );
 
             // cout << (*R->_Gradg)( MatID*MatProp.size() + m) << " " << (RTRplus-RTRminus)/(2.0*hM) << endl;
 
@@ -367,15 +367,8 @@ namespace voom {
 
 
 
- 
-
-  
-
-  
-
-
   // Writing output
-  void MechanicsBody::writeOutputVTK(const string OutputFile, int step)
+  void MechanicsBody::writeOutputVTK(const string OutputFile, int step, Result* R)
   {
     /////
     // Todo: NEED TO BE REWRITTEN TAKING INTO ACCOUNT MULTIPLE QUADRATURE POINTS PER ELEMENT !!!
@@ -445,14 +438,14 @@ namespace voom {
     displacements->SetNumberOfComponents(dim);
     displacements->SetName("displacement");
     displacements->SetComponentName(0, "X");
-    displacements->SetComponentName(1, "Y");
+    if (dim > 1) displacements->SetComponentName(1, "Y");
     if (dim > 2) displacements->SetComponentName(2, "Z");
 
     for (int i = 0; i < NumNodes; i++ ) {
       double x[dim];
       VectorXd X = _myMesh->getX(i);
       for (int j = 0; j < dim; j++) {
-        x[j] = _myResult->_field[i*dim + j] - X(j);
+        x[j] = R->getField(i*dim + j) - X(j);
       }
       displacements->InsertNextTuple(x);
     }
