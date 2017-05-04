@@ -44,13 +44,13 @@ int main(int argc, char** argv) {
     Real myH = 1e-6;
     Real myTol = 1e-7;
     myResult.setRequest(1);
-    myBody.compute(myResult);
+    myBody.compute(&myResult);
     cout << endl << "Body energy is  = " << myResult.getEnergy() << endl;
     // Change field and recompute energy
     for (int i=0; i<PbDoF; i++) {
       myResult.linearizedUpdate(i, double(0.1*rand())/RAND_MAX);
     }
-    myBody.compute(myResult);
+    myBody.compute(&myResult);
     cout << endl << "Body energy is  = " << myResult.getEnergy() << endl;
 
     myBody.checkConsistency(&myResult, perturbationFactor, myRequest, myH, myTol);
