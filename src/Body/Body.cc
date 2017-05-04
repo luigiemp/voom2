@@ -30,7 +30,7 @@ namespace voom {
     if ( request & FORCE ) {
       Real error = 0.0, norm = 0.0;
 
-      R->setRequest(ENERGY && FORCE); // First compute forces numerically
+      R->setRequest(FORCE); // First compute forces numerically
       this->compute(R);
 
       R->setRequest(ENERGY); // Reset result request so that only energy is computed 
