@@ -10,9 +10,11 @@ INCLUDES = -I./							\
 	   -I./../../Material/MechanicsMaterial			\
 	   -I./../../Element					\
 	   -I./../../Mesh					\
+           -I./../../Geometry -I./../../HalfEdgeMesh		\
 	   -I./../../Solver/Results				\
 	   -I/u/local/apps/eigen/3.2.4/gcc-4.4.7/include/eigen3	\
-	   -I./../../Geometry -I./../../HalfEdgeMesh
+	    -I/u/local/apps/vtk/5.8.0/include/vtk-5.8	
+
 AM_LDFLAGS = 	-L./ 								\
 	     	-L./../ 							\
 	     	-L./../../Body					 		\
@@ -24,7 +26,11 @@ AM_LDFLAGS = 	-L./ 								\
 		-L./../../Shape 						\
 		-L./../../VoomMath 						\
 		-L./../../Geometry						\
-		-L./../../HalfEdgeMesh
-LDADD   = 	-lBody -lMesh -lElement -lQuadrature -lShape -lMaterials -lVoomMath  \
-		-lGeometry -lHEMesh -lMechanicsMaterial
+		-L./../../HalfEdgeMesh						\
+		-L/u/local/apps/vtk/5.8.0/lib/vtk-5.8
+LDADD   = 	-lBody -lMesh -lElement -lQuadrature -lShape -lMaterials -lVoomMath  	\
+		-lGeometry -lHEMesh -lMechanicsMaterial					\
+	 	-lvtkIO -lvtkGraphics -lvtkGenericFiltering -lvtkFiltering -lvtkCommon 			\
+		-lvtksys -ldl -lpthread -lvtkzlib -lvtkDICOMParser -lvtkNetCDF -lvtkmetaio 		\
+		-lvtkNetCDF_cxx -lvtksqlite -lvtkpng -lvtkjpeg -lvtktiff -lvtkexpat -lvtkverdict	
 TestMechanicsBody_SOURCES = TestMechanicsBody.cc
