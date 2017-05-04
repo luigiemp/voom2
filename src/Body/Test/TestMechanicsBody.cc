@@ -16,20 +16,8 @@ int main(int argc, char** argv) {
   
     cout << " TEST OF 1st MECHANICS MODEL " << endl << endl;
     
-    // FEMesh myFEmesh("../../Solver/Test/QuadTet.node", "../../Solver/Test/QuadTet.ele");
-    // FEMesh surfMesh("../../Solver/Test/QuadTet.node", "../../Solver/Test/QuadTet.surf");
-    // FEMesh myFEmesh("../../Mesh/Test/CoarseLV.node", "../../Mesh/Test/CoarseLV.ele");
-    // FEMesh surfMesh("../../Mesh/Test/CoarseLV.node", "../../Mesh/Test/CoarseLV.surf");
-    FEMesh myFEmesh("../../Mesh/Test/CubeQuad.node", "../../Mesh/Test/CubeQuad.ele");
-    FEMesh surfMesh("../../Mesh/Test/CubeQuad.node", "../../Mesh/Test/SurfCubeQuad.ele");
-    // FEMesh myFEmesh("../../Mesh/Test/Cube.node", "../../Mesh/Test/Cube.ele");
-    // FEMesh surfMesh("../../Mesh/Test/Cube.node", "../../Mesh/Test/SurfCube.ele");
-    // FEMesh myFEmesh("../../Mesh/Test/NodeFile.dat", "../../Mesh/Test/ElFile.dat");
-
-    // FEMesh myFEmesh("/u/home/l/luigiemp/project-cardio/CardiacMesh/Contraction/SmallHeart/Small_A.node", 
-    // 		    "/u/home/l/luigiemp/project-cardio/CardiacMesh/Contraction/SmallHeart/Small_A.ele");
-    // FEMesh surfMesh("/u/home/l/luigiemp/project-cardio/CardiacMesh/Contraction/SmallHeart/Small_A.node", 
-    // 		    "/u/home/l/luigiemp/project-cardio/CardiacMesh/Contraction/SmallHeart/Small_A.surfEle");
+    FEMesh myFEmesh("../../Mesh/Test/Cube.node", "../../Mesh/Test/Cube.ele");
+    
 
     
     // // Initialize Model
