@@ -76,6 +76,9 @@ AC_CONFIG_FILES([
 		  src/Shape/Test/Makefile
 		  src/Element/Makefile
 		  src/Element/Test/Makefile
+		  src/Geometry/Makefile
+		  src/Body/Makefile
+		  src/Body/Test/Makefile
 		  src/Model/Makefile
 		  src/Model/Test/Makefile
 		  src/Solver/Makefile
@@ -84,7 +87,6 @@ AC_CONFIG_FILES([
 		  src/Applications/PassiveLV/Makefile
 		  src/Applications/Contraction/Makefile
 	          src/Utils/inpParser/Makefile
-		  src/Geometry/Makefile
 		  src/Output/Makefile
 		  src/Output/Test/Makefile
 		])
