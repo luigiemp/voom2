@@ -20,7 +20,7 @@ namespace voom {
       for(int i = 0; i < _nodeDoF; i++) {
 	Real randomNum =  perturbationFactor*(Real(rand())/RAND_MAX - 0.5);
 	perturb[a*_nodeDoF + i] = randomNum;
-	R->linearizedUpdate(a, i, randomNum, _nodeDoF);
+	R->linearizedUpdate(a*_nodeDoF + i, randomNum);
       }
     }      
     
@@ -41,17 +41,17 @@ namespace voom {
       for(int a = 0; a < nodeNum; a++) {
 	for(int i = 0; i < _nodeDoF; i++) {
 	  // Perturb +h
-	  R->linearizedUpdate(a, i, h, _nodeDoF);
+	  R->linearizedUpdate(a*_nodeDoF + i, h);
 	  this->compute(R);
 	  Real Wplus = R->getEnergy();
 	  
 	  // Perturb -2h
-	  R->linearizedUpdate(a, i, -2*h, _nodeDoF);
+	  R->linearizedUpdate(a*_nodeDoF + i, -2*h);
 	  this->compute(R);
 	  Real Wminus = R->getEnergy();
 	  
 	  // Bring back to original position
-	  R->linearizedUpdate(a, i, h, _nodeDoF);
+	  R->linearizedUpdate(a*_nodeDoF + i, h);
 	  
 	  error += pow( (Wplus-Wminus)/(2.*h) - 
 			R->getResidual(a*_nodeDoF + i), 2);
@@ -86,17 +86,17 @@ namespace voom {
 	  for(int b = 0; b < nodeNum; b++) {
 	    for(int j = 0; j < _nodeDoF; j++) {
 	      // Perturb +h
-	      R->linearizedUpdate(b, j, h, _nodeDoF);
+	      R->linearizedUpdate(b*_nodeDoF + j, h);
 	      this->compute(R);
 	      Real Fplus = R->getResidual(a*_nodeDoF + i);
 
 	      // Perturb -2h
-	      R->linearizedUpdate(b, j, -2*h, _nodeDoF);
+	      R->linearizedUpdate(b*_nodeDoF + j, -2*h);
 	      this->compute(R);
 	      Real Fminus = R->getResidual(a*_nodeDoF + i);
 
 	      // Bring back to original position
-	      R->linearizedUpdate(b, j, h, _nodeDoF);
+	      R->linearizedUpdate(b*_nodeDoF + j, h);
 
 	      // Computing Error and Norm;
 	      error += pow((Fplus - Fminus)/(2.*h) - R->getStiffness(a*_nodeDoF+i, b*_nodeDoF+j), 2.0);
@@ -122,7 +122,7 @@ namespace voom {
     // Reset field to initial values
     for(int a = 0; a < nodeNum; a++) {
       for(int i = 0; i < _nodeDoF; i++) {
-	R->linearizedUpdate(a, i, -perturb[a*_nodeDoF + i], _nodeDoF);
+	R->linearizedUpdate(a*_nodeDoF + i, -perturb[a*_nodeDoF + i]);
       }
     } 
     
