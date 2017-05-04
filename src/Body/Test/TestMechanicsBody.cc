@@ -40,7 +40,7 @@ int main(int argc, char** argv) {
     MechanicsBody myMehcanicsBody(&myFEmesh, NodeDoF, materials, &R);
 
     Real perturbationFactor = 0.1;
-    myRequest = FORCES && STIFFNESS; // Check both Forces and Stiffness
+    int myRequest = FORCES && STIFFNESS; // Check both Forces and Stiffness
     Real myH = 1e-6;
     Real myTol = 1e-7;
     myMehcanicsBody.checkConsistency(&R, perturbationFactor, myRequest, myH, myTol);
