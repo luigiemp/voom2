@@ -12,6 +12,7 @@ int main(int argc, char** argv) {
 
   //Test Mechanics model
   {
+    srand(time(NULL));
     cout << " ----------------------------------- " << endl;
     cout << " TEST OF MECHANICS MODEL " << endl << endl;
   
