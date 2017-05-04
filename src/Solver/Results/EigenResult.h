@@ -32,7 +32,7 @@ namespace voom {
     // Initialization function
     void initializeResults(int NumEntries) {
       KtripletList.reserve(NumEntries);
-      HgtripletList.reserve(square(NumMatProp));
+      HgtripletList.reserve(square(_numMatProp));
     };
 
 
@@ -46,7 +46,7 @@ namespace voom {
     void setField(int ind, Real value) {
       _field(ind) = value;
     };
-    void linearizedUpdate(const vector<Real > & Field Real fact) {
+    void linearizedUpdate(const vector<Real > & Field, Real fact) {
       assert(_field.size() == Field.size());
       _field += Field*fact; 
     };

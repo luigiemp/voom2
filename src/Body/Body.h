@@ -46,7 +46,7 @@ namespace voom {
     virtual void initializeField(Result* R, Real fact = 1.0) = 0;
 
     //! Finalize compute
-    virtual void FinalizeCompute() = 0;
+    virtual void FinalizeCompute() {} ;
 
     //! Write mechanics body to paraview file
     virtual void writeOutputVTK(const string OutputFile, int step, Result* R) = 0;
