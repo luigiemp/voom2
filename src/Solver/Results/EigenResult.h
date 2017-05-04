@@ -48,7 +48,9 @@ namespace voom {
     };
     void linearizedUpdate(const vector<Real > & Field, Real fact) {
       assert(_field.size() == Field.size());
-      _field += Field*fact; 
+      for (i=0; i++; i<Field.size()) {
+	_field(i) += Field[i]*fact;
+      }; 
     };
     void linearizedUpdate(int ind, Real value) {
       _field(ind) += value;

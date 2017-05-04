@@ -37,9 +37,7 @@ int main(int argc, char** argv) {
     int PbDoF = myFEmesh.getNumberOfNodes()*NodeDoF;
     EigenResult R(PbDoF, NumMat*(materials[0]->getMaterialParameters()).size() );
     
-    MechanicsBody(&myFEmesh, NodeDoF,
-		  materials,
-		  &R) myMehcanicsBody;
+    MechanicsBody myMehcanicsBody(&myFEmesh, NodeDoF, materials, &R);
     
     
 //     
