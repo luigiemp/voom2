@@ -104,7 +104,7 @@ namespace voom {
       _stiffness->setZero();
     };
     void addStiffness(int indRow, int indCol, Real value) {
-      _stiffness->coeffRef(indRow, indCol) += value;
+      KtripletList.push_back( Triplet<Real >( indRow, indCol, value );
     };
     void FinalizeGlobalStiffnessAssembly() {
       _stiffness->setFromTriplets(KtripletList.begin(), KtripletList.end());

@@ -154,13 +154,12 @@ namespace voom {
       } // QP loop
 
       if ( R->getRequest() & STIFFNESS ) {
-        // Transform in triplets Kele
+        // Add Kele to global stiffness matrix
         for(int a = 0; a < numNodes; a++) {
           for(int i = 0; i < dim; i++) {
             for(int b = 0; b < numNodes; b++) {
               for(int j = 0; j < dim; j++) {
 		R->addStiffness(NodesID[a]*dim + i, NodesID[b]*dim + j, Kele(a*dim + i, b*dim + j));
-                // KtripletList.push_back( Triplet<Real >( NodesID[a]*dim + i, NodesID[b]*dim + j, Kele(a*dim + i, b*dim + j) ) );
               }
             }
           }
