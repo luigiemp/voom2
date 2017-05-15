@@ -84,7 +84,7 @@ namespace voom {
       R->setRequest(STIFFNESS); // First compute stiffness numerically
       R->resetResults(STIFFNESS);
       this->compute(R);
-      R->FinalizeGlobalStiffnessAssembly();
+      // R->FinalizeGlobalStiffnessAssembly();
 
       R->setRequest(FORCE); // Reset result request so that only forces are computed 
       for(int a = 0; a < nodeNum; a++) {
