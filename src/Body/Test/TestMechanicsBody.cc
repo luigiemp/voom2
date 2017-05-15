@@ -37,6 +37,7 @@ int main(int argc, char** argv) {
 
     int PbDoF = myFEmesh.getNumberOfNodes()*NodeDoF;
     EigenResult myResult(PbDoF, NumMat*(materials[0]->getMaterialParameters()).size() );
+    myResult.initializeResults(PbDoF*4);
     
     MechanicsBody myBody(&myFEmesh, NodeDoF, materials, &myResult);
 
@@ -57,11 +58,7 @@ int main(int argc, char** argv) {
     cout << endl << "Body energy is  = " << myResult.getEnergy() << endl;
 
     myBody.checkConsistency(&myResult, perturbationFactor, myRequest, myH, myTol);
-    
-
-//     myModel.checkConsistency(myResults, perturbationFactor, myRequest, myH, myTol);
-  
-//     myModel.checkDmat(myResults, perturbationFactor, myH, myTol);
+    myModel.checkDmat(myResults, perturbationFactor, myH, myTol);
 
 
     
