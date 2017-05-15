@@ -58,7 +58,7 @@ int main(int argc, char** argv) {
     cout << endl << "Body energy is  = " << myResult.getEnergy() << endl;
 
     myBody.checkConsistency(&myResult, perturbationFactor, myRequest, myH, myTol);
-    myBody.checkDmat(myResult, perturbationFactor, myH, myTol);
+    myBody.checkDmat(&myResult, perturbationFactor, myH, myTol);
 
 
     
