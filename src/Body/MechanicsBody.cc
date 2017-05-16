@@ -233,6 +233,7 @@ namespace voom {
     R->setRequest(DMATPROP); // First compute gradg and Hg numerically
     R->resetGradgToZero();
     R->resetHgToZero();
+cout << "here 0" << endl;
     this->compute(R);
 
 cout << "here 1" << endl;
