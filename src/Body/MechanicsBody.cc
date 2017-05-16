@@ -315,6 +315,7 @@ namespace voom {
             // Compute R
 	    R->resetResults(DMATPROP);
             this->compute(R);
+	    R->FinalizeHgAssembly();
             Real GradPlus = R->getGradg( MatIDA*MatPropA.size() + mA);
 
             // Perturb -2hM the material property alpha
@@ -324,6 +325,7 @@ namespace voom {
             // Compute R
 	    R->resetResults(DMATPROP);
             this->compute(R);
+	    R->FinalizeHgAssembly();
             Real GradMinus = R->getGradg( MatIDA*MatPropA.size() + mA);
 
             // Bring back to original value of alpha
