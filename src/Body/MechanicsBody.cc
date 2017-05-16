@@ -235,6 +235,8 @@ namespace voom {
     R->resetHgToZero();
     this->compute(R);
 
+cout << "here 1" << endl;
+
     // Test gradg //
     R->setRequest(FORCE); // Reset result request so that only forces are computed
     for ( set<MechanicsMaterial *>::iterator itMat =  UNIQUEmaterials.begin();
@@ -250,6 +252,8 @@ namespace voom {
         // Compute R
 	R->resetResults(FORCE);
         this->compute(R);
+
+cout << "here 2" << endl;
 
 	Real RTRplus = 0.0;
 	for (int i = 0; i < PbDoF; i++) {
@@ -271,6 +275,8 @@ namespace voom {
         // Reset matProp in all the materials with MatProp[m]
         (*itMat)->setMaterialParameters(MatProp);
 
+cout << "here 3" << endl;
+
         error += pow( (RTRplus-RTRminus)/(2.0*hM) -
 		      R->getGradg( MatID*MatProp.size() + m), 2.0 );
         norm  += pow( R->getGradg(  MatID*MatProp.size() + m), 2.0 );
@@ -280,6 +286,8 @@ namespace voom {
     } // Loop over unique materials
     error = sqrt(error);
     norm  = sqrt(norm);
+
+cout << "here 4" << endl;
 
     if ( abs(error) < norm * tol) {
       cout << "** Gradg consistency check PASSED" << endl;
