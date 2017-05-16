@@ -178,6 +178,7 @@ namespace voom {
       for (int i = 0; i < PbDoF; i++) {
         Residual(i) = R->getResidual(i); // local copy
       }
+      cout << "here 00 " << endl;
 
       for (int alpha = 0; alpha < TotNumMatProp; alpha++) {
 	R->addGradg(alpha, 2.0*dRdalpha[alpha].dot(Residual) );
