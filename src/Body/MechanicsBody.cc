@@ -180,7 +180,6 @@ namespace voom {
       for (int i = 0; i < PbDoF; i++) {
         Residual(i) = R->getResidual(i); // local copy
       }
-      cout << "here 00 " << endl;
 
       for (int alpha = 0; alpha < TotNumMatProp; alpha++) {
 	R->addGradg(alpha, 2.0*dRdalpha[alpha].dot(Residual) );
@@ -236,10 +235,7 @@ namespace voom {
     R->setRequest(DMATPROP); // First compute gradg and Hg numerically
     R->resetGradgToZero();
     R->resetHgToZero();
-cout << "here 0" << endl;
     this->compute(R);
-
-cout << "here 1" << endl;
 
     // Test gradg //
     R->setRequest(FORCE); // Reset result request so that only forces are computed
@@ -256,8 +252,6 @@ cout << "here 1" << endl;
         // Compute R
 	R->resetResults(FORCE);
         this->compute(R);
-
-cout << "here 2" << endl;
 
 	Real RTRplus = 0.0;
 	for (int i = 0; i < PbDoF; i++) {
@@ -279,8 +273,6 @@ cout << "here 2" << endl;
         // Reset matProp in all the materials with MatProp[m]
         (*itMat)->setMaterialParameters(MatProp);
 
-cout << "here 3" << endl;
-
         error += pow( (RTRplus-RTRminus)/(2.0*hM) -
 		      R->getGradg( MatID*MatProp.size() + m), 2.0 );
         norm  += pow( R->getGradg(  MatID*MatProp.size() + m), 2.0 );
@@ -290,8 +282,6 @@ cout << "here 3" << endl;
     } // Loop over unique materials
     error = sqrt(error);
     norm  = sqrt(norm);
-
-cout << "here 4" << endl;
 
     if ( abs(error) < norm * tol) {
       cout << "** Gradg consistency check PASSED" << endl;
