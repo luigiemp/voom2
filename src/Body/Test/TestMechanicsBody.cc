@@ -37,8 +37,7 @@ int main(int argc, char** argv) {
 
     int PbDoF = myFEmesh.getNumberOfNodes()*NodeDoF;
     EigenResult myResult(PbDoF, NumMat*(materials[0]->getMaterialParameters()).size() );
-    cout << (materials[0]->getMaterialParameters()) << endl;
-    cout << endl << "Material parameters per element = " << materials[0]->getMaterialParameters() << endl;
+    cout << endl << "Material parameters per element = " << (materials[0]->getMaterialParameters()).size() << endl;
     myResult.initializeResults(PbDoF*4);
     
     MechanicsBody myBody(&myFEmesh, NodeDoF, materials, &myResult);
