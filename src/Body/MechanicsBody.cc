@@ -292,7 +292,7 @@ namespace voom {
       cout << "** Error: " << error << " Norm: " << norm << " Norm*tol: " << norm*tol << endl;
     }
 
-    /*
+    
     // Test Hg //
     error = 0.0; norm = 0.0;
     R->setRequest(DMATPROP);
@@ -353,7 +353,7 @@ namespace voom {
       cout << "** Hg consistency check FAILED" << endl;
       cout << "** Error: " << error << " Norm: " << norm << " Norm*tol: " << norm*tol << endl;
     }
-    */
+    
 
 
     // Reset field to initial values
