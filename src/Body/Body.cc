@@ -34,7 +34,7 @@ namespace voom {
       R->resetResults(FORCE);
       this->compute(R);
 
-      R->setRequest(1); // Reset result request so that only energy is computed 
+      R->setRequest(ENERGY); // Reset result request so that only energy is computed 
       R->resetResults(ENERGY);
       this->compute(R);
 

@@ -226,15 +226,17 @@ namespace voom {
     Real error = 0.0, norm = 0.0;
 
     set<MechanicsMaterial *> UNIQUEmaterials;
-    for (int i = 0; i < _materials.size(); i++)
-    UNIQUEmaterials.insert(_materials[i]);
+    for (int i = 0; i < _materials.size(); i++) {
+      UNIQUEmaterials.insert(_materials[i]); };
 
     cout << "Number of unique materials = " <<  UNIQUEmaterials.size() << endl;
-    R->setRequest(8); // First compute gradg and Hg numerically
+    R->setRequest(DMATPROP); // First compute gradg and Hg numerically
+    R->resetGradgToZero();
+    R->resetHgToZero();
     this->compute(R);
 
     // Test gradg //
-    R->setRequest(2); // Reset result request so that only forces are computed
+    R->setRequest(FORCE); // Reset result request so that only forces are computed
     for ( set<MechanicsMaterial *>::iterator itMat =  UNIQUEmaterials.begin();
     itMat != UNIQUEmaterials.end(); itMat++ )
     {
@@ -246,6 +248,7 @@ namespace voom {
         // Reset matProp in the materials with MatProp[m]
         (*itMat)->setMaterialParameters(MatProp);
         // Compute R
+	R->resetResults(FORCE);
         this->compute(R);
 
 	Real RTRplus = 0.0;
@@ -257,6 +260,7 @@ namespace voom {
         // Reset matProp in the materials with MatProp[m]
         (*itMat)->setMaterialParameters(MatProp);
         // Compute R
+	R->resetResults(FORCE);
         this->compute(R);
         Real RTRminus = 0;
 	for (int i = 0; i < PbDoF; i++) {
@@ -286,10 +290,10 @@ namespace voom {
       cout << "** Error: " << error << " Norm: " << norm << " Norm*tol: " << norm*tol << endl;
     }
 
-
+    /*
     // Test Hg //
     error = 0.0; norm = 0.0;
-    R->setRequest(8);
+    R->setRequest(DMATPROP);
     this->compute(R);
     for ( set<MechanicsMaterial *>::iterator itMatA =  UNIQUEmaterials.begin(); itMatA != UNIQUEmaterials.end(); itMatA++ )
     {
@@ -347,7 +351,7 @@ namespace voom {
       cout << "** Hg consistency check FAILED" << endl;
       cout << "** Error: " << error << " Norm: " << norm << " Norm*tol: " << norm*tol << endl;
     }
-
+    */
 
 
     // Reset field to initial values
