@@ -68,6 +68,8 @@ namespace voom {
     int PbDoF = R->getPbDoF();
     int TotNumMatProp = R->getNumMatProp();
     vector<VectorXd > dRdalpha;
+    if ( R->getRequest() & DMATPROP ) {
+      dRdalpha.assign( TotNumMatProp, VectorXd::Zero(PbDoF) ); }
     int NumPropPerMat = (_materials[0]->getMaterialParameters()).size(); // Assume all materials have the same number of material properties
 
 
@@ -101,7 +103,7 @@ namespace voom {
         }
 
         // Compute Residual
-        if ( (R->getRequest() & FORCE) | (R->getRequest() & DMATPROP) ) {
+        if ( (R->getRequest() & FORCE) || (R->getRequest() & DMATPROP) ) {
           for(int a = 0; a < numNodes; a++) {
             for(int i = 0; i < dim; i++) {
               Real tempResidual = 0.0;
