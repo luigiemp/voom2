@@ -325,7 +325,7 @@ namespace voom {
             // Compute R
 	    R->resetResults(DMATPROP);
             this->compute(R);
-	    R->FinalizeHgAssembly();
+	    R->FinalizeHgAssembly(); // Hg is not used at this point but it is computed since DMATPROP computes both Gradg and Hg
             Real GradMinus = R->getGradg( MatIDA*MatPropA.size() + mA);
 
             // Bring back to original value of alpha
@@ -336,7 +336,7 @@ namespace voom {
 	    // Need to compute Hg at the reference material properties
 	    R->resetResults(DMATPROP);
             this->compute(R);
-	    R->FinalizeHgAssembly();
+	    R->FinalizeHgAssembly(); // Hg is not used at this point but it is computed since DMATPROP computes both Gradg and Hg
 
             error += pow( (GradPlus - GradMinus)/(2.0*hM) -
             R->getHg( MatIDA*MatPropA.size() + mA, MatIDB*MatPropB.size() + mB ), 2.0);
