@@ -135,7 +135,8 @@ namespace voom {
       _Hg->setZero();
     };
     void addHg(int indRow, int indCol, Real value) {
-      _Hg->coeffRef(indRow, indCol) += value;
+      HgtripletList.push_back( Triplet<Real >( indRow, indCol, value ) );
+      // _Hg->coeffRef(indRow, indCol) += value;
     };
     void FinalizeHgAssembly() {
       _Hg->setFromTriplets(HgtripletList.begin(), HgtripletList.end());

@@ -233,9 +233,7 @@ namespace voom {
 
     cout << "Number of unique materials = " <<  UNIQUEmaterials.size() << endl;
     R->setRequest(DMATPROP); // First compute gradg and Hg numerically
-    R->resetGradgToZero();
-    R->resetHgToZero();
-    R->resetResults(FORCE);
+    R->resetResults(DMATPROP);
     this->compute(R);
 
     // Test gradg //
@@ -292,12 +290,10 @@ namespace voom {
       cout << "** Gradg consistency check FAILED" << endl;
       cout << "** Error: " << error << " Norm: " << norm << " Norm*tol: " << norm*tol << endl;
     }
-
     
     // Test Hg //
     error = 0.0; norm = 0.0;
     R->setRequest(DMATPROP);
-    this->compute(R);
     for ( set<MechanicsMaterial *>::iterator itMatA =  UNIQUEmaterials.begin(); itMatA != UNIQUEmaterials.end(); itMatA++ )
     {
       vector<Real > MatPropA = (*itMatA)->getMaterialParameters();
@@ -317,6 +313,7 @@ namespace voom {
             // Reset matProp in the materials with MatProp[m]
             (*itMatB)->setMaterialParameters(MatPropB);
             // Compute R
+	    R->resetResults(DMATPROP);
             this->compute(R);
             Real GradPlus = R->getGradg( MatIDA*MatPropA.size() + mA);
 
@@ -325,6 +322,7 @@ namespace voom {
             // Reset matProp in the materials with MatProp[m]
             (*itMatB)->setMaterialParameters(MatPropB);
             // Compute R
+	    R->resetResults(DMATPROP);
             this->compute(R);
             Real GradMinus = R->getGradg( MatIDA*MatPropA.size() + mA);
 
@@ -332,12 +330,15 @@ namespace voom {
             MatPropB[mB] += hM;
             // Reset matProp in all the materials with MatPropB[m]
             (*itMatB)->setMaterialParameters(MatPropB);
+	    
+	    // Need to compute Hg at the reference material properties
+	    R->resetResults(DMATPROP);
+            this->compute(R);
+	    R->FinalizeHgAssembly();
 
             error += pow( (GradPlus - GradMinus)/(2.0*hM) -
-            R->getStiffness( MatIDA*MatPropA.size() + mA, MatIDB*MatPropB.size() + mB ), 2.0);
-            norm += pow( R->getStiffness( MatIDA*MatPropA.size() + mA, MatIDB*MatPropB.size() + mB ) , 2.0 );
-
-            // cout << (*R->_Gradg)( MatID*MatProp.size() + m) << " " << (RTRplus-RTRminus)/(2.0*hM) << endl;
+            R->getHg( MatIDA*MatPropA.size() + mA, MatIDB*MatPropB.size() + mB ), 2.0);
+            norm += pow( R->getHg( MatIDA*MatPropA.size() + mA, MatIDB*MatPropB.size() + mB ) , 2.0 );
 
           } // Loop over mB
         } // Loop over unique materials B
@@ -345,6 +346,7 @@ namespace voom {
     } // Loop over unique materials A
     error = sqrt(error);
     norm  = sqrt(norm);
+
 
     if ( abs(error) < norm * tol) {
       cout << "** Hg consistency check PASSED" << endl;
@@ -355,7 +357,6 @@ namespace voom {
       cout << "** Error: " << error << " Norm: " << norm << " Norm*tol: " << norm*tol << endl;
     }
     
-
 
     // Reset field to initial values
     for(int a = 0; a < nodeNum; a++) {

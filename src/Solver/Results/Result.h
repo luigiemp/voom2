@@ -23,9 +23,12 @@ namespace voom {
       if (ResetOrder & FORCE) {
 	this->resetResidualToZero(); };
       if (ResetOrder & STIFFNESS) {
-	{this->resetStiffnessToZero(); };
+	this->resetStiffnessToZero(); };
+      if (ResetOrder & DMATPROP) {
+	this->resetGradgToZero(); 
+	this->resetHgToZero();
+	this->resetResidualToZero(); };
       }
-    };
 
     // NumMat and PbDoF
     virtual int getNumMatProp() = 0;
