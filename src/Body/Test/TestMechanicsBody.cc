@@ -14,9 +14,9 @@ int main(int argc, char** argv) {
   {
     srand(time(NULL));
     cout << " ----------------------------------- " << endl;
-    cout << " TEST OF MECHANICS MODEL " << endl << endl;
+    cout << " TEST OF MECHANICS BODY " << endl << endl;
   
-    cout << " TEST OF 1st MECHANICS MODEL " << endl << endl;
+    cout << " TEST OF 1st MECHANICS BODY " << endl << endl;
     
     FEMesh myFEmesh("../../Mesh/Test/Cube.node", "../../Mesh/Test/Cube.ele");   uint NumQP = 1;
 
@@ -63,7 +63,7 @@ int main(int argc, char** argv) {
 
 
     
-    cout << endl << " END OF TEST OF 1st MECHANICS MODEL " << endl;
+    cout << endl << " END OF TEST OF 1st MECHANICS BODY " << endl;
     cout <<         " ---------------------------------- " << endl << endl;
   }
 
