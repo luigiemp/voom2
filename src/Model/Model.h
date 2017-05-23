@@ -21,7 +21,7 @@ namespace voom {
     // Model(Mesh* myMesh, const string inputFile, const uint NodeDoF);
 
     //! Constructor to be used
-    Model(vector<Body *> Bodies, Result* ModelResult): _bodies(Bodies) _modelResult(ModelResult) {} ;
+    Model(vector<Body *> Bodies, Result* ModelResult): _bodies(Bodies), _modelResult(ModelResult) {} ;
 
     //! Destructor
     ~Model() {};
