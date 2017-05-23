@@ -15,7 +15,7 @@ namespace voom {
   // Consistency Checks //
   void Model::checkConsistency(Result* R,  int nodeNum, int nodeDoF, 
 			       Real perturbationFactor, 
-			       int request = 6, Real h = 1e-6, Real tol = 1e-6);
+			       int request = 6, Real h = 1e-6, Real tol = 1e-6)
   {
     // Check only for local nodes
     const int nodeNum   = _myMesh->getNumberOfNodes();
