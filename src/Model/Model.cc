@@ -15,7 +15,7 @@ namespace voom {
   // Consistency Checks //
   void Model::checkConsistency(Result* R,  int nodeNum, int nodeDoF, 
 			       Real perturbationFactor, 
-			       int request = 6, Real h = 1e-6, Real tol = 1e-6)
+			       int request, Real h, Real tol)
   {
     // Perturb field randomly to change from reference configuration
     // Save perturbed field to set the configuration back to reference 
