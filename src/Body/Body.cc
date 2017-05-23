@@ -38,7 +38,7 @@ namespace voom {
       R->resetResults(ENERGY);
       this->compute(R);
 
-      cout << "Model energy at test start = " <<  R->getEnergy() << endl;
+      cout << "Body energy at test start = " <<  R->getEnergy() << endl;
 
       for(int a = 0; a < nodeNum; a++) {
 	for(int i = 0; i < _nodeDoF; i++) {
@@ -66,11 +66,11 @@ namespace voom {
       norm  = sqrt(norm);
 
       if ( abs(error) < norm * tol) {
-	cout << "** Elliptic Model Force consistency check PASSED" << endl;
+	cout << "** Elliptic Body Force consistency check PASSED" << endl;
 	cout << "** Error: " << error << " Norm: " << norm  << " Norm*tol: " << norm*tol << endl;
       }
       else {
-	cout << "** Elliptic Model Force consistency check FAILED" << endl;
+	cout << "** Elliptic Body Force consistency check FAILED" << endl;
 	cout << "** Error: " << error << " Norm: " << norm << " Norm*tol: " << norm*tol << endl;
       }
     } // Check Forces loop
@@ -118,11 +118,11 @@ namespace voom {
       error = sqrt(error);
       norm  = sqrt(norm);
       if ( abs(error) < norm * tol) {
-	cout << "** Elliptic Model Hessian consistency check PASSED" << endl;
+	cout << "** Elliptic Body Hessian consistency check PASSED" << endl;
 	cout << "** Error: " << error << " Norm: " << norm << " Norm*tol: " << norm*tol << endl << endl;
       }
       else {
-	cout << "** Elliptic Model Hessian consistency check FAILED" << endl;
+	cout << "** Elliptic Body Hessian consistency check FAILED" << endl;
 	cout << "** Error: " << error << " Norm: " << norm << " Norm*tol: " << norm*tol << endl << endl;
       }
     } // Check Stiffness    
