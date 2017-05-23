@@ -17,14 +17,10 @@ namespace voom {
 			       Real perturbationFactor, 
 			       int request = 6, Real h = 1e-6, Real tol = 1e-6)
   {
-    // Check only for local nodes
-    const int nodeNum   = _myMesh->getNumberOfNodes();
-    const int nLocalDoF = nodeNum * nodeDoF;
-
     // Perturb field randomly to change from reference configuration
     // Save perturbed field to set the configuration back to reference 
     // at the end of the test
-    vector<Real > perturb(nLocalDoF, 0.0);
+    vector<Real > perturb(nodeNum * nodeDoF, 0.0);
     srand( time(NULL) );
     for(int a = 0; a < nodeNum; a++) {
       for(int i = 0; i < nodeDoF; i++) {
