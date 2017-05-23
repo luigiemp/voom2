@@ -8,9 +8,10 @@ INCLUDES     = 	-I./ 							\
 		-I./../Material/MechanicsMaterial			\
 		-I./../Element						\
 		-I./../Mesh 						\
-		-I./../Body						\
 		-I./../Geometry 					\
 		-I./../HalfEdgeMesh					\
+		-I./../Body						\
+		-I./../Solver/Results					\
 		-I/u/local/apps/eigen/3.2.4/gcc-4.4.7/include/eigen3	\
 		-I/u/local/apps/vtk/5.8.0/include/vtk-5.8
 
