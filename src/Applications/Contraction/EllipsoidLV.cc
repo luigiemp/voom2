@@ -18,6 +18,7 @@
 
 using namespace voom;
 
+double calculateCavityVolume(MechanicsModel* myocardiumModel, FEMesh* surfaceCapMesh, const vector<int> endoBaseRingNodeSet);
 double calculateEjectionFraction(MechanicsModel* cavityModel, const MechanicsModel* myocardiumModel, const vector<int> surfaceNodes, const vector<double> currentMyocardiumField);
 
 int main(int argc, char** argv)
@@ -29,7 +30,7 @@ int main(int argc, char** argv)
   time(&start);
 
   // Activation Sequence? Set True to make activation a function of z
-  bool activationSequence = true;
+  bool activationSequence = false;
 
   // Constant Activation?
   bool constantActivation = true;
@@ -43,26 +44,24 @@ int main(int argc, char** argv)
   bool calculateEjectionFractionFlag = false;
 
   // Use Conduction Velocity (if false - uses activation Time file)
-  bool useConductionVelocity = false;
+  bool useConductionVelocity = true;
 
   // Conduction Velocity (cm/ms)
   double cv = 0.06;
 
   // Pressure File
   bool pressureFlag = true;
-  string pressureFile = "InputFiles/Pressure_1ms.dat";
+  string pressureFile = "InputFiles/Pressure_1ms_Inflation.dat";
+  double pressureDivider = -1.0; // Divides the pressure by this value;
   
   // Simulation Time (in ms)
   double simTime = 2000;  
 
-  // Pressure Substepping
-  double numSubSteps = 1;
-  
   // Time Step (in ms)
   double deltaT = 0.01;
 
   // OutputString
-  string outputString = "/u/project/cardio/adityapo/ScratchResults/PressureOnly/Ellipsoid";
+  string outputString = "/u/project/cardio/adityapo/ScratchResults/PressureOnly3/S9_";
   // string outputString = "/u/project/cardio/adityapo/ScratchResults/ContractionOnly/Ellipsoid";
 
   // Fiber Visualization String
@@ -73,30 +72,37 @@ int main(int argc, char** argv)
 
   // Spring BC:
   int SpringBCflag = 0;
-
   // Spring Stiffnes
   Real SpringK = 1.0e4; // 1.0e4;
   
   // Torsional Spring BC:
   int torsionalSpringBCflag = 1;
-
   // Torsional Spring Stiffness:
-  int TorsionalSpringK = 1.0e6;
+  int TorsionalSpringK = 1.0e3;
 
   
   // LJ Type Boundary Condition
   bool LJBoundaryConditionFlag = true;
-  FEMesh LJBoundaryConditionMesh("Mesh/EllipsoidMeshCoarse_Quadratic/EllipsoidCoarseQuadratic_LJBoundaryCondition.node", "Mesh/EllipsoidMeshCoarse_Quadratic/EllipsoidCoarseQuadratic_LJBoundaryCondition.ele");
+  FEMesh* LJBoundaryConditionMesh;
+  if (LJBoundaryConditionFlag)
+    LJBoundaryConditionMesh = new FEMesh("Mesh/S9/S9_LJBoundaryCondition0_25.node", "Mesh/S9/S9_LJBoundaryCondition0_25.ele");
+  double LJsearchRadius = 1.0;
+  double LJdepthPotentialWell = 1.0e-1;
+  double LJminDistance = 0.25;
 
   // Initialize Mesh
   // Assumptions to use this main as is: strip has a face at z=0; tetrahedral mesh
-  FEMesh Cube("Mesh/EllipsoidMeshCoarse_Quadratic/EllipsoidCoarseQuadratic.node", "Mesh/EllipsoidMeshCoarse_Quadratic/EllipsoidCoarseQuadratic.ele");
-  FEMesh surfMesh("Mesh/EllipsoidMeshCoarse_Quadratic/EllipsoidCoarseQuadratic.node", "Mesh/EllipsoidMeshCoarse_Quadratic/EllipsoidCoarseQuadratic.EpicardiumElset");
-  FEMesh innerSurfMesh("Mesh/EllipsoidMeshCoarse_Quadratic/EllipsoidCoarseQuadratic.node", "Mesh/EllipsoidMeshCoarse_Quadratic/EllipsoidCoarseQuadratic.EndocardiumElset");
-  string FiberFile = "Mesh/EllipsoidMeshCoarse_Quadratic/EllipsoidCoarseQuadratic.fiber";
-  string BCfile = "Mesh/EllipsoidMeshCoarse_Quadratic/EllipsoidCoarseQuadratic.Null.bc";
-  // string BCfile = "Mesh/EllipsoidMeshCoarse_Quadratic/EllipsoidCoarseQuadratic.BaseNodeset";
-  string torsionalSpringBC = "Mesh/EllipsoidMeshCoarse_Quadratic/EllipsoidCoarseQuadratic.BaseNodeset";
+  FEMesh Cube("Mesh/S9/S9.node", "Mesh/S9/S9.ele");
+  FEMesh surfMesh("Mesh/S9/S9.node", "Mesh/S9/S9.EpicardiumElset");
+  FEMesh innerSurfMesh("Mesh/S9/S9.node", "Mesh/S9/S9.EndocardiumElset");
+  
+  FEMesh surfaceCapMesh("Mesh/S9/S9_TopCapMesh.node", "Mesh/S9/S9_TopCapMesh.ele");
+  string EndoBaseRingNodeSet = "Mesh/S9/S9_TopCapMesh.EndoBaseRingNodeset";
+
+  string FiberFile = "Mesh/S9/S9.fiber";
+  string BCfile = "Mesh/S9/S9.Null.bc";
+  // string BCfile = "Mesh/S9/S9.BaseNodeset";
+  string torsionalSpringBC = "Mesh/S9/S9.BaseNodeset";
   string ActivationTimeFile = "Mesh/EllipsoidMeshFiner/Small_B.activationTime";   // This is the Element Activation Time File
   string ActivationFile = "InputFiles/ActFunc_600ms_1msInterval.dat";  // This is the Calcium Transient
   ifstream FiberInp(FiberFile.c_str());
@@ -165,18 +171,19 @@ int main(int argc, char** argv)
   cout << "Mesh Dimension    : " << Cube.getDimension() << endl << endl;
   
   // Initialize Material
-  uint NumMat =  Cube.getNumberOfElements();
+  uint NumEl =  Cube.getNumberOfElements();
   vector<GeomElement*> meshElements = Cube.getElements();
   int numQuadPoints = meshElements[0]->getNumberOfQuadPoints();
+  uint NumMat = NumEl * numQuadPoints;
   
   vector<MechanicsMaterial * > PLmaterials;
-  PLmaterials.reserve(NumMat);
+  PLmaterials.reserve(NumEl * numQuadPoints);
 
 
   APForceVelPotential TestPotential(4.0, 1000.0, 3.0);	// 50.0 for 2nd parameter, force
   BlankViscousPotential ViscPotential;
   // NewtonianViscousPotential ViscPotential(0.005, 0.5);
-  Vector3d HardParam(0.,0.,0.);
+  Vector3d HardParam(1.,1.,1.);
 
   // Visualize Fiber directions
   ofstream out;
@@ -186,7 +193,7 @@ int main(int argc, char** argv)
   out << "Fiber vector representation" << endl;
   out << "ASCII" << endl;
   out << "DATASET UNSTRUCTURED_GRID" << endl;
-  out << "POINTS " << NumMat*numQuadPoints << " FLOAT" << endl;
+  out << "POINTS " << NumEl*numQuadPoints << " FLOAT" << endl;
 
   vector <Vector3d> fiberVectors;
   vector <Vector3d> sheetVectors;
@@ -275,7 +282,7 @@ int main(int argc, char** argv)
 	quadPointX += meshElements[el_iter]->getN(quadPt_iter, el_node_iter) * Cube.getX(el_nodeIds[el_node_iter], 0);
 	quadPointY += meshElements[el_iter]->getN(quadPt_iter, el_node_iter) * Cube.getX(el_nodeIds[el_node_iter], 1);
 	quadPointZ += meshElements[el_iter]->getN(quadPt_iter, el_node_iter) * Cube.getX(el_nodeIds[el_node_iter], 2);
-    }
+      }
       
       // Activation Time Calculations:
       if(activationSequence) {
@@ -292,18 +299,18 @@ int main(int argc, char** argv)
       vector <Vector3d> el_vectors(3, Vector3d::Zero(3,1));
       
       if (fibersAcrossWall)
-	{
-	  // Load Fiber Data:
-	  FiberInp >> el_vectors[0][0]; FiberInp >> el_vectors[0][1]; FiberInp >> el_vectors[0][2];
-	  FiberInp >> el_vectors[1][0]; FiberInp >> el_vectors[1][1]; FiberInp >> el_vectors[1][2];
-	  FiberInp >> el_vectors[2][0]; FiberInp >> el_vectors[2][1]; FiberInp >> el_vectors[2][2];
-	}
+      {
+	// Load Fiber Data:
+	FiberInp >> el_vectors[0][0]; FiberInp >> el_vectors[0][1]; FiberInp >> el_vectors[0][2];
+	FiberInp >> el_vectors[1][0]; FiberInp >> el_vectors[1][1]; FiberInp >> el_vectors[1][2];
+	FiberInp >> el_vectors[2][0]; FiberInp >> el_vectors[2][1]; FiberInp >> el_vectors[2][2];
+      }
       else
-	{
-	  el_vectors[0] << 1., 0., 0.;
-	  el_vectors[1] << 0., 1., 0.;
-	  el_vectors[2] << 0., 0., 1.;
-	}
+      {
+	el_vectors[0] << 1., 0., 0.;
+	el_vectors[1] << 0., 1., 0.;
+	el_vectors[2] << 0., 0., 1.;
+      }
       fiberVectors.push_back(el_vectors[0]);
       sheetVectors.push_back(el_vectors[1]);
       sheetNormalVectors.push_back(el_vectors[2]);
@@ -311,7 +318,9 @@ int main(int argc, char** argv)
       Humphrey_Compressible* PassiveMat = new Humphrey_Compressible(0, 15.98, 55.85, 0.0, -33.27, 30.21, 30.590, 640.62, el_vectors);
       LinYinActive_Compressible* ActiveMat = new LinYinActive_Compressible(0, -38.70, 40.83, 25.12, 90.51, 171.18, el_vectors);
       
-      // CompNeoHookean* PassiveMat = new CompNeoHookean(0, 1.0, 1.0);
+      // CompNeoHookean* PassiveMat = new CompNeoHookean(0, 1.0e5, 1.0e5);
+      // PLmaterials.push_back(PassiveMat);
+      
       
       PlasticMaterial* PlMat = new PlasticMaterial(el_iter, ActiveMat, PassiveMat, &TestPotential, &ViscPotential);
       PlMat->setDirectionVectors(el_vectors);
@@ -323,8 +332,9 @@ int main(int argc, char** argv)
       PlMat->setActivationMultiplier(0.0);
 
       PLmaterials.push_back(PlMat);
-    }
-  }
+      
+    } // Quad point loop
+  } // Element loop
 
   // Finish vtk file for plotting fiber data:
   out << "POINT_DATA " << meshElements.size() * numQuadPoints << endl;
@@ -348,18 +358,20 @@ int main(int argc, char** argv)
   myModel.updateNodalForces(&ForcesID, &Forces);
 
   if (SpringBCflag)
-    myModel.initSpringBC("Mesh/EllipsoidMeshCoarse_Quadratic/EllipsoidCoarseQuadratic.EpicardiumNodeset", &surfMesh, SpringK);
+    myModel.initSpringBC("Mesh/S9/S9.EpicardiumNodeset", &surfMesh, SpringK);
 
   if (torsionalSpringBCflag)
     myModel.initTorsionalSpringBC(torsionalSpringBC, TorsionalSpringK);
   
   if (LJBoundaryConditionFlag)
-    myModel.initializeLennardJonesBC("Mesh/EllipsoidMeshCoarse_Quadratic/EllipsoidCoarseQuadratic.EpicardiumNodeset", &LJBoundaryConditionMesh, &surfMesh, 0.05, 10, 0.1);
+    myModel.initializeLennardJonesBC("Mesh/S9/S9.EpicardiumNodeset", LJBoundaryConditionMesh, &surfMesh, LJsearchRadius, LJdepthPotentialWell, LJminDistance);
+
+  cout << "Model Setup" << endl;
 
   // Initialize Result
   uint myRequest;
   uint PbDoF = (Cube.getNumberOfNodes())*myModel.getDoFperNode();
-  EigenResult myResults(PbDoF, NumMat*2);
+  EigenResult myResults(PbDoF, 0);
 
   // Run Consistency check
 
@@ -372,7 +384,6 @@ int main(int argc, char** argv)
   // set to the current deformation state.
 
   // myModel.checkConsistency(myResults, perturbationFactor, myRequest, myH, myTol);
-  // myModel.checkDmat(myResults, perturbationFactor, myH, myTol);
 
 
   // Print initial configuration
@@ -408,11 +419,11 @@ int main(int argc, char** argv)
   }
 
   // Solver
-  Real NRtol = 1.0e-7;
+  Real NRtol = 1.0e-4;
   uint NRmaxIter = 100;
   EigenNRsolver mySolver(&myModel, BCid, BCvalues, CHOL, NRtol, NRmaxIter);
 
-  
+  // ********************************* // 
   // SOLVE:
 
   ind = 0;
@@ -423,22 +434,17 @@ int main(int argc, char** argv)
 
   for (int s = 0; s < simTime/deltaT; s++)
   {
-    cout << "Step " << s << endl;
+    cout << endl << "*** Step " << s << " ***" << endl;
     if (SpringBCflag) myModel.computeNormals();
 
-    // Update pressure	
+    // Update pressure:
     if (pressureFlag) {
-      for (int substep = 0; substep < numSubSteps; substep++) {
-	double appliedPressure = pressureData[s][1];
-	if (s > 0)
-	  appliedPressure = -1.0 * pressureData[s - 1][1] + (pressureData[s][1] - pressureData[s-1][1])/numSubSteps * (substep + 1);
+	double appliedPressure = pressureData[s][1]/pressureDivider;
         myModel.updatePressure(appliedPressure);
-	mySolver.solve(DISP);
-	myModel.finalizeCompute();
-      }
+	cout << "* Applying " << appliedPressure << " units of pressure to the endocardium." << endl;
     }
 
-    for (int k = 0; k < NumMat; k++)
+    for (int k = 0; k < meshElements.size(); k++)
     {
       for (int q = 0; q < numQuadPoints; q++) {
 	(PLmaterials[k * numQuadPoints + q])->setTimestep(deltaT/1000);
