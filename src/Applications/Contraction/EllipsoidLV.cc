@@ -18,7 +18,7 @@
 
 using namespace voom;
 
-double calculateCavityVolume(MechanicsModel* myocardiumModel, FEMesh* surfaceCapMesh, const vector<int> endoBaseRingNodeSet);
+double calculateCavityVolume(const vector<double> currentMyocardiumField, FEMesh* EndocardialSurfMesh, FEMesh* surfaceCapMesh, const vector<int> &endoBaseRingNodeSet);
 double calculateEjectionFraction(MechanicsModel* cavityModel, const MechanicsModel* myocardiumModel, const vector<int> surfaceNodes, const vector<double> currentMyocardiumField);
 
 int main(int argc, char** argv)
@@ -41,7 +41,7 @@ int main(int argc, char** argv)
   bool fibersAcrossWall = true;
 
   // Calculate Ejection Fraction?
-  bool calculateEjectionFractionFlag = false;
+  bool calculateEjectionFractionFlag = true;
 
   // Use Conduction Velocity (if false - uses activation Time file)
   bool useConductionVelocity = true;
@@ -86,7 +86,7 @@ int main(int argc, char** argv)
   FEMesh* LJBoundaryConditionMesh;
   if (LJBoundaryConditionFlag)
     LJBoundaryConditionMesh = new FEMesh("Mesh/S9/S9_LJBoundaryCondition0_25.node", "Mesh/S9/S9_LJBoundaryCondition0_25.ele");
-  double LJsearchRadius = 1.0;
+  double LJsearchRadius = 0.2;
   double LJdepthPotentialWell = 1.0e-1;
   double LJminDistance = 0.25;
 
@@ -114,8 +114,32 @@ int main(int argc, char** argv)
   FEMesh* cavityMesh;
   vector <int> surfaceNodes;
 
+  vector <int> EndoBaseRingNodeSetVec;
+
   if (calculateEjectionFractionFlag)
   {
+    ifstream EndoBaseRingNodeSetFileStream (EndoBaseRingNodeSet.c_str());
+
+    if (EndoBaseRingNodeSetFileStream.is_open())
+        cout << "** Opened EndoBaseRingNodeSet File Successfully." << endl;
+    else
+    {
+        cout << "** Cannot Open EndoBaseRingNodeSet File." << endl;
+        exit(1);
+    }
+
+    double numEndoBaseRingNodes;
+    EndoBaseRingNodeSetFileStream >> numEndoBaseRingNodes;
+
+    for (int i = 0; i < numEndoBaseRingNodes; i++)
+    {
+      double tempEndoBaseRingNode;
+      EndoBaseRingNodeSetFileStream >> tempEndoBaseRingNode;
+      EndoBaseRingNodeSetVec.push_back(tempEndoBaseRingNode);
+    }
+    EndoBaseRingNodeSetFileStream.close();
+
+    /*
     // Setup mesh for calculating ejection fraction
     cavityMesh = new FEMesh("Mesh/EllipsoidMesh/Small_A_Cavity.node", 
       		            "Mesh/EllipsoidMesh/Small_A_Cavity.ele");
@@ -155,6 +179,7 @@ int main(int argc, char** argv)
     }
   
     cavityModel = new MechanicsModel(cavityMesh, cavityMaterials, cavityNodeDoF);
+    */
   }
 
   double z_min = 0.0;
@@ -356,7 +381,9 @@ int main(int argc, char** argv)
 			 NodalForcesFlag, SpringBCflag);
   myModel.updatePressure(Pressure);
   myModel.updateNodalForces(&ForcesID, &Forces);
-
+  
+  cout << "** Applying Boundary Conditions" << endl;
+  
   if (SpringBCflag)
     myModel.initSpringBC("Mesh/S9/S9.EpicardiumNodeset", &surfMesh, SpringK);
 
@@ -475,8 +502,13 @@ int main(int argc, char** argv)
     {
       vector <double> currentMyocardiumField(Cube.getNumberOfNodes() * Cube.getDimension(), 0.0);
       myModel.getField(currentMyocardiumField);
+      double cavityVolume = calculateCavityVolume(currentMyocardiumField, &innerSurfMesh, &surfaceCapMesh, EndoBaseRingNodeSetVec);
+      outVolume << "\t" << cavityVolume;
+      cout << "Cavity Volume: " << cavityVolume << endl;
+      /*
       outVolume << "\t" << calculateEjectionFraction(cavityModel, &myModel, surfaceNodes, currentMyocardiumField);
       cavityModel->writeOutputVTK(outputString + "Cavity_", ind);
+      */
     }
     outVolume << endl;
 
@@ -502,6 +534,116 @@ int main(int argc, char** argv)
   cout << endl << "BVP solved in " << difftime(end,start) << " s" << endl;
 
   return 0;
+}
+
+
+
+double calculateCavityVolume(const vector<double> currentMyocardiumField, FEMesh* EndocardialSurfMesh, FEMesh* surfaceCapMesh, const vector<int> &endoBaseRingNodeSet) {
+  double volume = 0.0;
+  
+  // First deform the surfaceCapMesh
+  vector <VectorXd> surfaceCapMeshNewX;
+  VectorXd baseCenterNode(3);
+  baseCenterNode << 0.0, 0.0, 0.0;
+
+  // Preallocate the vector of vectorXd
+  for (int node_iter = 0; node_iter < surfaceCapMesh->getNumberOfNodes(); node_iter++) {
+    VectorXd tempVecXd(3);
+    tempVecXd << 0.0, 0.0, 0.0;
+    surfaceCapMeshNewX.push_back(tempVecXd);
+  }
+
+  for (int surfCapNode_Iter = 0; surfCapNode_Iter < endoBaseRingNodeSet.size(); surfCapNode_Iter++) {
+    surfaceCapMeshNewX[surfCapNode_Iter](0) = currentMyocardiumField[endoBaseRingNodeSet[surfCapNode_Iter] * 3 + 0];
+    surfaceCapMeshNewX[surfCapNode_Iter](1) = currentMyocardiumField[endoBaseRingNodeSet[surfCapNode_Iter] * 3 + 1];
+    surfaceCapMeshNewX[surfCapNode_Iter](2) = currentMyocardiumField[endoBaseRingNodeSet[surfCapNode_Iter] * 3 + 2];
+    baseCenterNode = baseCenterNode + surfaceCapMeshNewX[surfCapNode_Iter];
+  }
+  
+  // Compute the center node of the base
+  baseCenterNode = baseCenterNode/endoBaseRingNodeSet.size();
+  surfaceCapMeshNewX[endoBaseRingNodeSet.size()] = baseCenterNode;
+  int baseCenterNodeId = endoBaseRingNodeSet.size();
+  
+  vector<GeomElement*> surfaceCapElements = surfaceCapMesh->getElements();
+  // Compute positions of midside nodes
+  for (int el_iter = 0; el_iter < surfaceCapElements.size(); el_iter++) {
+    vector<int> el_nodeIds = surfaceCapElements[el_iter]->getNodesID();
+
+    if (el_nodeIds.size() > 3) {
+      if (el_nodeIds.size() > 6) {
+	cout << "ERROR: Can only compute midside node for a Quad triangle." << endl;
+	return EXIT_FAILURE;
+      }
+      // Node 0 and Node 1
+      if (el_nodeIds[0] == baseCenterNodeId || el_nodeIds[1] == baseCenterNodeId) {
+        int edgeVertex = (el_nodeIds[0] == baseCenterNodeId) ? el_nodeIds[1] : el_nodeIds[0];
+        VectorXd midsideNode = 0.5 * (surfaceCapMeshNewX[edgeVertex] + baseCenterNode);
+	surfaceCapMeshNewX[el_nodeIds[3]] = midsideNode;
+      }
+      if (el_nodeIds[1] == baseCenterNodeId || el_nodeIds[2] == baseCenterNodeId) {
+        int edgeVertex = (el_nodeIds[1] == baseCenterNodeId) ? el_nodeIds[2] : el_nodeIds[1];
+        VectorXd midsideNode = 0.5 * (surfaceCapMeshNewX[edgeVertex] + baseCenterNode);
+        surfaceCapMeshNewX[el_nodeIds[4]] = midsideNode;
+      }
+      if (el_nodeIds[2] == baseCenterNodeId || el_nodeIds[0] == baseCenterNodeId) {
+        int edgeVertex = (el_nodeIds[2] == baseCenterNodeId) ? el_nodeIds[0] : el_nodeIds[2];
+        VectorXd midsideNode = 0.5 * (surfaceCapMeshNewX[edgeVertex] + baseCenterNode);
+        surfaceCapMeshNewX[el_nodeIds[5]] = midsideNode;
+      }        
+    }
+  }
+  surfaceCapMesh->setX(surfaceCapMeshNewX);
+
+  // Compute first the volume associated with myocardiumModel
+  vector<GeomElement*> endocardialElements = EndocardialSurfMesh->getElements();
+  for (int el_iter = 0; el_iter < EndocardialSurfMesh->getNumberOfElements(); el_iter++) {
+    vector <int> el_nodeIds = endocardialElements[el_iter]->getNodesID();
+
+    int numQP = endocardialElements[el_iter]->getNumberOfQuadPoints();
+    for (int quadPt_iter = 0; quadPt_iter < numQP; quadPt_iter++) {
+      Vector3d a1 = Vector3d::Zero(), a2 = Vector3d::Zero(), a3 = Vector3d::Zero();
+      Vector3d quadPtLocation = Vector3d::Zero();
+
+      for (int a = 0; a < el_nodeIds.size(); a++) {
+        int nodeID = el_nodeIds[a];
+        Vector3d current_x;
+	current_x << currentMyocardiumField[nodeID * 3], currentMyocardiumField[nodeID * 3 + 1], currentMyocardiumField[nodeID * 3 + 2];
+	quadPtLocation += current_x * endocardialElements[el_iter]->getN(quadPt_iter, a);
+
+        a1 += current_x * endocardialElements[el_iter]->getDN(quadPt_iter, a, 0);
+        a2 += current_x * endocardialElements[el_iter]->getDN(quadPt_iter, a, 1);
+      }
+      a3 = a1.cross(a2);
+      volume += 1./3. * quadPtLocation.dot(a3) * endocardialElements[el_iter]->getQPweights(quadPt_iter);
+    }
+  } // End of for loop endocardial elements
+
+
+  // Compute the volume associated with surfaceCapMesh
+  for (int el_iter = 0; el_iter < surfaceCapMesh->getNumberOfElements(); el_iter++) {
+    vector <int> el_nodeIds = surfaceCapElements[el_iter]->getNodesID();
+
+    int numQP = surfaceCapElements[el_iter]->getNumberOfQuadPoints();
+    for (int quadPt_iter = 0; quadPt_iter < numQP; quadPt_iter++) {
+      Vector3d a1 = Vector3d::Zero(), a2 = Vector3d::Zero(), a3 = Vector3d::Zero();
+      Vector3d quadPtLocation = Vector3d::Zero();
+
+      for (int a = 0; a < el_nodeIds.size(); a++) {
+        int nodeID = el_nodeIds[a];
+        Vector3d current_x;
+        current_x << surfaceCapMeshNewX[nodeID](0), surfaceCapMeshNewX[nodeID](1), surfaceCapMeshNewX[nodeID](2);
+        quadPtLocation += current_x * surfaceCapElements[el_iter]->getN(quadPt_iter, a);
+
+        a1 += current_x * surfaceCapElements[el_iter]->getDN(quadPt_iter, a, 0);
+        a2 += current_x * surfaceCapElements[el_iter]->getDN(quadPt_iter, a, 1);
+      }
+      a3 = a1.cross(a2);
+      volume += 1./3. * quadPtLocation.dot(a3) * surfaceCapElements[el_iter]->getQPweights(quadPt_iter);
+    }
+  } // End of for loop endocardial elements
+  
+  return volume;
 }
 
 double calculateEjectionFraction(MechanicsModel* cavityModel, const MechanicsModel* myocardiumModel, const vector<int> surfaceNodes, const vector<double> currentMyocardiumField)
