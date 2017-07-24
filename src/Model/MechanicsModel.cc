@@ -127,6 +127,7 @@ namespace voom {
 
       // Loop over quadrature points
       for(int q = 0; q < numQP; q++) {
+	// cout << "Element: " << e << "\tQuadrature: " << q << endl;
         _materials[e*numQP + q]->compute(FKres, Flist[q]);
 
         // Volume associated with QP q
@@ -282,40 +283,17 @@ namespace voom {
 
   } // Compute Mechanics Model
 
-
-
   void MechanicsModel::finalizeCompute() {
     // The following code keeps track of \bar{x} which is used as the anchor point
     // for the linear springs
     if (_springBCflag) {
       // Compute new normals
       computeNormals();
-
-      // Compute \bar{u}_{k+1} = x_{k+1} - \bar{x}_k
-      vector <Real> ubar = _field;
-      vector <Real> xbar;
-      xbar = _field;
-      for (int i = 0; i < _field.size(); i++)
-        ubar[i] = _field[i] - _prevField[i];
-
-      // Compute the tangent vector at every node      
-      for(int n = 0; n < _spNodes.size(); n++) {
-        Vector3d nodeTangent;
-	Vector3d ubarNode;
-	Vector3d xbarkNode;
-	Vector3d xNode;
-	ubarNode << ubar[_spNodes[n] * 3 + 0], ubar[_spNodes[n] * 3 + 1], ubar[_spNodes[n] * 3 + 2];
-	xbarkNode << _prevField[_spNodes[n] * 3 + 0], _prevField[_spNodes[n] * 3 + 1], _prevField[_spNodes[n] * 3 + 2];
-     	xNode << _field[_spNodes[n] * 3 + 0], _field[_spNodes[n] * 3 + 1], _field[_spNodes[n] * 3 + 2];
-	nodeTangent = ubarNode - (ubarNode.dot(_spNormals[n])) * _spNormals[n];
-
-	Vector3d xbarkp1Node = xbarkNode + (nodeTangent.dot(xNode - xbarkNode)) * nodeTangent;
-        xbar[_spNodes[n] * 3 + 0] = xbarkp1Node[0];
-	xbar[_spNodes[n] * 3 + 1] = xbarkp1Node[1];
-	xbar[_spNodes[n] * 3 + 2] = xbarkp1Node[2];
-      }
-      setPrevField(xbar);
+      computeAnchorPoints(); 
     }
+
+    if (_lennardJonesBCFlag)
+      findNearestRigidNeighbors();
   } // finalizeCompute Mechanics Model
 
 
@@ -534,8 +512,36 @@ namespace voom {
     _spNormals.resize(_spNodes.size(), Vector3d::Zero());
     // Compute initial node normals
     this->computeNormals();
+    this->computeAnchorPoints();
 
   } // InitSpringBC
+
+  void MechanicsModel::computeAnchorPoints() {
+    // Compute \bar{u}_{k+1} = x_{k+1} - \bar{x}_k
+    vector <Real> ubar = _field;
+    vector <Real> xbar;
+    xbar = _field;
+    for (int i = 0; i < _field.size(); i++)
+      ubar[i] = _field[i] - _prevField[i];
+    
+    // Compute the tangent vector at every node      
+    for(int n = 0; n < _spNodes.size(); n++) {
+      Vector3d nodeTangent;
+      Vector3d ubarNode;
+      Vector3d xbarkNode;
+      Vector3d xNode;
+      ubarNode << ubar[_spNodes[n] * 3 + 0], ubar[_spNodes[n] * 3 + 1], ubar[_spNodes[n] * 3 + 2];
+      xbarkNode << _prevField[_spNodes[n] * 3 + 0], _prevField[_spNodes[n] * 3 + 1], _prevField[_spNodes[n] * 3 + 2];
+      xNode << _field[_spNodes[n] * 3 + 0], _field[_spNodes[n] * 3 + 1], _field[_spNodes[n] * 3 + 2];
+      nodeTangent = ubarNode - (ubarNode.dot(_spNormals[n])) * _spNormals[n];
+      
+      Vector3d xbarkp1Node = xbarkNode + (nodeTangent.dot(xNode - xbarkNode)) * nodeTangent;
+      xbar[_spNodes[n] * 3 + 0] = xbarkp1Node[0];
+      xbar[_spNodes[n] * 3 + 1] = xbarkp1Node[1];
+      xbar[_spNodes[n] * 3 + 2] = xbarkp1Node[2];
+    }
+    setPrevField(xbar);
+  } // computeAnchorPoints
 
 
 
@@ -895,7 +901,12 @@ namespace voom {
     // Compute initial node normals
     this->computeLJNormals();
 
+    // Initialize Rigid Neighbors vector:
+    _rigidNeighbors.resize(_bodyPotentialBoundaryNodes.size());
+    this->findNearestRigidNeighbors();
+
   }
+
   
 
   vector<Triplet<Real> > MechanicsModel::imposeLennardJones(Result& R) {
@@ -912,8 +923,9 @@ namespace voom {
     {
       int NodeID = _bodyPotentialBoundaryNodes[n];
       Vector3d xa_body, xa_rigid;
-      xa_body << _myMesh->getX(NodeID)(0), _myMesh->getX(NodeID)(1), _myMesh->getX(NodeID)(2);
-      for (int node_rigid = 0; node_rigid < _rigidPotentialBoundaryMesh->getNumberOfNodes(); node_rigid++) {
+      xa_body << _field[NodeID*3 + 0],  _field[NodeID*3 + 1],  _field[NodeID*3 + 2];
+      for (int node_rigid_iter = 0; node_rigid_iter < _rigidNeighbors[n].size(); node_rigid_iter++) {
+	int node_rigid = _rigidNeighbors[n][node_rigid_iter];
         xa_rigid << _rigidPotentialBoundaryMesh->getX(node_rigid)(0), _rigidPotentialBoundaryMesh->getX(node_rigid)(1), _rigidPotentialBoundaryMesh->getX(node_rigid)(2);
         
         // Check if within search radius
@@ -921,36 +933,54 @@ namespace voom {
         double gapDistance = gapVector.norm();
         Real r_e = gapVector.dot(_rigidSurfaceNormals[node_rigid]);
 
-	if (gapDistance <= _searchRadius) {
-          // Compute energy
-          if (R.getRequest() & ENERGY) {
-            // Real r_e = gapVectorNormal.norm();
- 	    // minDistance is the distance where the energy is a minimum
- 	    // r_e is the current distance between rigid and body surfaces
-            double tempW = _depthPotentialWell * (pow(_minDistance/r_e, 12.0) - 2.0 * pow(_minDistance/r_e, 2.0));
-	    // Multiplying by -1 because this is really acting like an external energy
-            R.addEnergy(-1.0 * tempW);
-          }
+	// Compute energy
+	if (R.getRequest() & ENERGY) {
+	  // Real r_e = gapVectorNormal.norm();
+	  // minDistance is the distance where the energy is a minimum
+	  // r_e is the current distance between rigid and body surfaces
+	  double tempW = _depthPotentialWell * (pow(_minDistance/r_e, 12.0) - 2.0 * pow(_minDistance/r_e, 6.0));
+	  // Multiplying by -1 because this is really acting like an external energy
+	  // R.addEnergy(-1.0 * tempW);
+	    
+
+	  // Quadratic Spring
+	  // R.addEnergy( -1.0 * (1.0/_rigidNeighbors[n].size()) * 0.5 * _depthPotentialWell * pow( gapVector.dot(_rigidSurfaceNormals[node_rigid]) - _minDistance, 2.0) );
+
+	  // Quartic Spring
+	  R.addEnergy( -1.0 * (1.0/_rigidNeighbors[n].size()) * 0.5 * _depthPotentialWell * pow( gapVector.dot(_rigidSurfaceNormals[node_rigid]) - _minDistance, 4.0) );
+	}
   
-          // Compute Residual
-          if (R.getRequest() & FORCE) {
-            for(uint i = 0; i < 3; i++) {
-              double tempFactor = -12 * _depthPotentialWell/r_e * (pow(_minDistance/r_e, 12.0) - pow(_minDistance/r_e, 2.0));
-	      // Multiplying by -1 because this is an external force
-              R.addResidual(NodeID*3+i, -1.0 * tempFactor * _rigidSurfaceNormals[node_rigid](i));
-            } // i loop
-          } // Internal force loop
+	// Compute Residual
+	if (R.getRequest() & FORCE) {
+	  for(uint i = 0; i < 3; i++) {
+	    double tempFactor = -12 * _depthPotentialWell/r_e * (pow(_minDistance/r_e, 12.0) - pow(_minDistance/r_e, 6.0));
+	    // Multiplying by -1 because this is an external force
+	    // R.addResidual(NodeID*3+i, -1.0 * tempFactor * _rigidSurfaceNormals[node_rigid](i));
+
+	    // Quadratic Spring
+	    // R.addResidual(NodeID*3+i, -1.0 * (1.0/_rigidNeighbors[n].size()) * _depthPotentialWell * _rigidSurfaceNormals[node_rigid](i) * (gapVector.dot(_rigidSurfaceNormals[node_rigid]) - _minDistance));
+
+	    // Quartic Spring
+	    R.addResidual(NodeID*3+i, -1.0 * (1.0/_rigidNeighbors[n].size()) * 2.0 * _depthPotentialWell * _rigidSurfaceNormals[node_rigid](i) * pow(gapVector.dot(_rigidSurfaceNormals[node_rigid]) - _minDistance, 3.0));
+
+	  } // i loop
+	} // Internal force loop
 
           // Compute stiffness matrix
-          if ( R.getRequest() & STIFFNESS ) {
-            for(uint i = 0; i < 3; i++) {
-              for(uint j = 0; j < 3; j++) {
-                double tempFactor = 12 * _depthPotentialWell/pow(r_e, 2.0) * (13.0 * pow(_minDistance/r_e, 12.0) - 7.0 * pow(_minDistance/r_e, 2.0));
-	        KtripletList_FromLJ.push_back(Triplet<Real >( NodeID*3+i, NodeID*3+j,-1.0 * tempFactor * _rigidSurfaceNormals[node_rigid](i) * _rigidSurfaceNormals[node_rigid](j)));
-              } // j loop
-            } // i loop
-          } // Stiffness loop
-        } // within search radius loop
+	if ( R.getRequest() & STIFFNESS ) {
+	  for(uint i = 0; i < 3; i++) {
+	    for(uint j = 0; j < 3; j++) {
+	      double tempFactor = 12 * _depthPotentialWell/pow(r_e, 2.0) * (13.0 * pow(_minDistance/r_e, 12.0) - 7.0 * pow(_minDistance/r_e, 6.0));
+	      // KtripletList_FromLJ.push_back(Triplet<Real >( NodeID*3+i, NodeID*3+j,-1.0 * tempFactor * _rigidSurfaceNormals[node_rigid](i) * _rigidSurfaceNormals[node_rigid](j)));
+	      
+	      // Quadratic Spring  
+	      // KtripletList_FromLJ.push_back(Triplet<Real >( NodeID*3+i, NodeID*3+j, -1.0 * (1.0/_rigidNeighbors[n].size()) * _depthPotentialWell*_rigidSurfaceNormals[node_rigid](i)*_rigidSurfaceNormals[node_rigid](j) ));
+
+	      // Quartic Spring
+	      KtripletList_FromLJ.push_back(Triplet<Real >( NodeID*3+i, NodeID*3+j, -1.0 * (1.0/_rigidNeighbors[n].size()) * 6.0 * _depthPotentialWell*_rigidSurfaceNormals[node_rigid](i)*_rigidSurfaceNormals[node_rigid](j) * pow(gapVector.dot(_rigidSurfaceNormals[node_rigid]) - _minDistance, 2.0) ));
+	    } // j loop
+	  } // i loop
+	} // Stiffness loop
       } // Loop over rigid nodes
     } // Spring nodes loop
 
@@ -1002,6 +1032,49 @@ namespace voom {
       // cout << _spNormals[n](0) << " " << _spNormals[n](1) << " " << _spNormals[n](2) << endl;
     }
   }
+
+  void MechanicsModel::findNearestRigidNeighbors() {
+    // Loop through every surface node
+    int numSurfaceNodes = _bodyPotentialBoundaryNodes.size();
+    for(int n = 0; n < numSurfaceNodes; n++)
+    {
+      _rigidNeighbors[n].clear();
+      int NodeID = _bodyPotentialBoundaryNodes[n];
+      Vector3d xa_body, xa_rigid;
+      xa_body << _field[NodeID*3 + 0],  _field[NodeID*3 + 1],  _field[NodeID*3 + 2];
+      for (int node_rigid = 0; node_rigid < _rigidPotentialBoundaryMesh->getNumberOfNodes(); node_rigid++) {
+        xa_rigid << _rigidPotentialBoundaryMesh->getX(node_rigid)(0), _rigidPotentialBoundaryMesh->getX(node_rigid)(1), _rigidPotentialBoundaryMesh->getX(node_rigid)(2);
+        
+        // Check if within search radius
+        Vector3d gapVector = xa_body - xa_rigid;
+        double gapDistance = gapVector.norm();
+        Real r_e = gapVector.dot(_rigidSurfaceNormals[node_rigid]);
+
+	if (gapDistance <= _searchRadius)
+	  _rigidNeighbors[n].push_back(node_rigid);
+      } // loop through all rigid nodes
+    } // loop through all surface nodes
+    cout << "Found Nearest Neighbors" << endl;
+  } // end findNearestRigidNeighbors
+
+  void MechanicsModel::recomputeAverageMinDistance() {
+    double averageDistance = 0.0;
+    int counter = 0;
+    Vector3d xa_body, xa_rigid;
+    for (int n = 0; n < _rigidNeighbors.size(); n++) {
+      int bodyNodeID = _bodyPotentialBoundaryNodes[n];
+      xa_body << _field[bodyNodeID * 3 + 0], _field[bodyNodeID * 3 + 1], _field[bodyNodeID * 3 + 2];
+      for (int r = 0; r < _rigidNeighbors[n].size(); r++) {
+	xa_rigid << _rigidPotentialBoundaryMesh->getX(_rigidNeighbors[n][r])(0), _rigidPotentialBoundaryMesh->getX(_rigidNeighbors[n][r])(1), _rigidPotentialBoundaryMesh->getX(_rigidNeighbors[n][r])(2);
+	Vector3d gapVector = xa_body - xa_rigid;
+	averageDistance += gapVector.norm();
+	counter++;
+      }
+    }
+    averageDistance /= counter;
+    cout << "Resetting Potential BC Minimum Distance to " << averageDistance << endl;
+    _minDistance = averageDistance;
+  } // end recomputeAverageMinDistance
 
 
   // Writing output
@@ -1160,7 +1233,7 @@ namespace voom {
 	  cout << "Internal Variables output for multi-materials not supported yet." << endl;
           // double* tempIntProp = new double[numInternalVariables]();
           double tempIntProp[numInternalVariables];
-          for (int p = 0; p < numInternalVariables; p++) tempIntProp[p] = -123.4; // Some error value. NaN is better.
+          for (int p = 0; p < numInternalVariables; p++) tempIntProp[p] = numeric_limits<double>::quiet_NaN(); // Some error value. NaN is better.
 	  internalVariables->InsertNextTuple(tempIntProp);
 	  // delete tempIntProp;
 	  continue;
@@ -1241,6 +1314,87 @@ namespace voom {
     }
     newUnstructuredGrid->GetCellData()->AddArray(FirstPKStress);
     // ~~ END: 1ST PIOLA-KIRCHHOFF STRESS ~~ //
+    
+    
+    // ~~ START: COMPUTE FIBER AND CIRCUMFERENTIAL STRAINS ~~ //
+    vtkSmartPointer <vtkDoubleArray> GreenStrains = vtkSmartPointer<vtkDoubleArray>::New();
+    GreenStrains->SetName("GreenStrains");
+    GreenStrains->SetNumberOfComponents(4);
+    GreenStrains->SetComponentName(0, "FiberDirection");
+    GreenStrains->SetComponentName(1, "RadialDirection");
+    GreenStrains->SetComponentName(2, "CircumferentialDirection");
+    GreenStrains->SetComponentName(3, "LongitudinalDirection");
+
+    // Compute Radial Vector
+    vtkSmartPointer<vtkDoubleArray> radialVecs = vtkSmartPointer<vtkDoubleArray>::New();
+    radialVecs->SetNumberOfComponents(3);
+    radialVecs->SetName("RadialVector");
+
+    // Compute Centroid
+    Vector3d centroidLoc(3); centroidLoc << 0.0, 0.0, 0.0;
+    for (int i = 0; i < NumNodes; i++ ) {
+      centroidLoc = centroidLoc + _myMesh->getX(i);
+    }
+    centroidLoc[0] = centroidLoc[0]/NumNodes; centroidLoc[1] = centroidLoc[1]/NumNodes; centroidLoc[2] = centroidLoc[2]/NumNodes;
+
+    for (int e = 0; e < NumEl; e++) {
+      // FIX THIS: ONLY WORKS FOR ONE QUADRATURE POINT
+      // FOR NOW: q = 0 (first quadrature point
+      int q = 0;
+      // Setup an empty array to hold all Green strains
+      double eleGreenStrains[4] = {0.0, 0.0, 0.0, 0.0};
+
+      GeomElement* geomEl = elements[e];
+      const int numQP = geomEl->getNumberOfQuadPoints();
+      vector<Matrix3d> Elist(numQP, Matrix3d::Zero());
+      this->computeGreenLagrangianStrainTensor(Elist, geomEl);
+      
+      vector<Vector3d> dirVecs = _materials[e * numQP + q]->getDirectionVectors();
+
+      // Fiber Strain:
+      eleGreenStrains[0] = dirVecs[0].transpose() * Elist[q] * dirVecs[0];
+
+      // Compute the Radial/Tangential/Longitudinal vectors
+      vector<Vector3d> cylindricalVectors(3, Vector3d::Zero());
+
+      // Compute location of quadrature point:
+      Vector3d quadPointLocation(3); quadPointLocation << 0.0, 0.0, 0.0;
+      const vector<int>& NodesID = geomEl->getNodesID();
+      const uint numNodesOfEl = NodesID.size();
+
+      for (int n = 0; n < numNodesOfEl; n++) {
+        for (int d = 0; d < dim; d++) {
+          quadPointLocation[d] += _myMesh->getX(NodesID[n])(d) * geomEl->getN(q,n);
+        }
+      }
+      // Radial Vec:
+      cylindricalVectors[0] = quadPointLocation - centroidLoc;
+      cylindricalVectors[0](2) = 0.0;
+      // Normalize:
+      cylindricalVectors[0] = cylindricalVectors[0]/cylindricalVectors[0].norm();
+      eleGreenStrains[1] = cylindricalVectors[0].transpose() * Elist[q] * cylindricalVectors[0];
+     
+      double tempRadialVec[3] = {cylindricalVectors[0](0), cylindricalVectors[0](1), cylindricalVectors[0](2)};
+      radialVecs->InsertNextTuple(tempRadialVec);
+
+
+      // Circumferential Vec:
+      cylindricalVectors[1](0) = -1 * cylindricalVectors[0](1);
+      cylindricalVectors[1](1) = cylindricalVectors[0](0);
+      cylindricalVectors[1](2) = 0.0;
+      cylindricalVectors[1] = cylindricalVectors[1]/cylindricalVectors[1].norm();
+      eleGreenStrains[2] = cylindricalVectors[1].transpose() * Elist[q] * cylindricalVectors[1];
+      
+      // Longitudinal Vec:
+      cylindricalVectors[2] = cylindricalVectors[0].cross(cylindricalVectors[1]);
+      cylindricalVectors[2] = cylindricalVectors[2]/cylindricalVectors[2].norm();
+      eleGreenStrains[3] = cylindricalVectors[2].transpose() * Elist[q] * cylindricalVectors[2];
+
+      GreenStrains->InsertNextTuple(eleGreenStrains);
+    }
+    newUnstructuredGrid->GetCellData()->AddArray(GreenStrains);
+    newUnstructuredGrid->GetCellData()->AddArray(radialVecs);
+    // ~~ END  : COMPUTE FIBER AND CIRCUMFERENTIAL STRAINS ~~ //
     // ** END: CELL DATA ** //
 
     // Write file
@@ -1254,11 +1408,12 @@ namespace voom {
     if (_pressureFlag) 
       writePressurePolyData(OutputFile, step);
     // ~~ END: PLOT PRESSURE NORMALS ~~ //
-
     if (_springBCflag)
       writeLinearSpringPolyData(OutputFile, step);
     if (_torsionalSpringBCflag)
       writeTorsionalSpringPolyData(OutputFile, step);
+    if (_lennardJonesBCFlag)
+       writeLJBCPolyData(OutputFile, step);
   } // writeOutput
 
   void MechanicsModel::writePressurePolyData(string OutputFile, int step) {
@@ -1283,7 +1438,7 @@ namespace voom {
 	float tempDisplacement[3] = {0.0}; float tempPoint[3] = {0.0};
 	for (int d = 0; d < dim; d++) {
 	  for (int n = 0; n < numNodesOfEl; n++) {
-	    tempPoint[d] += _surfaceMesh->getX(n)(d) * geomEl->getN(q,n);
+	    tempPoint[d] += _surfaceMesh->getX(NodesID[n])(d) * geomEl->getN(q,n);
 	    tempDisplacement[d] += (_field[NodesID[n]*dim + d] - _surfaceMesh->getX(n)(d)) * geomEl->getN(q, n);
 	  }
 	}
@@ -1349,7 +1504,7 @@ namespace voom {
     vtkSmartPointer<vtkDoubleArray> LinearSpringForces = vtkSmartPointer<vtkDoubleArray>::New();
     LinearSpringForces->SetNumberOfComponents(3);
     LinearSpringForces->SetName("LinearSpring_Force");
-
+  
     uint PbDoF = ( _myMesh->getNumberOfNodes())*this->getDoFperNode();
     EigenResult myResults(PbDoF, 0);
     myResults.resetResidualToZero();
@@ -1360,25 +1515,27 @@ namespace voom {
     VectorXd R = *(myResults._residual);
 
     vector <GeomElement*> elements2D = _spMesh->getElements();
+    double springForceMagnitude = 0.0;
     for (int n = 0; n < _spNodes.size(); n++) {
       float tempDisplacement[3] = {0.0}; float tempPoint[3] = {0.0};
 
       // Compute Spring Force also
-      float tempSpringForce[3] = {0.0};
-      Vector3d xa_prev, xa_curr;
-      xa_prev << _prevField[_spNodes[n]*3], _prevField[_spNodes[n]*3+1], _prevField[_spNodes[n]*3+2];
-      xa_curr << _field[_spNodes[n]*3], _field[_spNodes[n]*3+1], _field[_spNodes[n]*3+2];
+      float tempSpringForce[3] = {0.0};  double tempSpringForceMagnitude = 0.0;
 
       for (int d = 0; d < dim; d++) {
         tempPoint[d] = _spMesh->getX(n)(d);
 	tempDisplacement[d] = (_field[_spNodes[n]*dim + d] - _spMesh->getX(n)(d));
-        tempSpringForce[d] =  _springK*_spNormals[n](d)*(xa_curr - xa_prev).dot(_spNormals[n]); 
+        tempSpringForce[d] =  R(_spNodes[n]*dim + d);
+        tempSpringForceMagnitude = tempSpringForceMagnitude + pow(tempSpringForce[d],2);
       }
+      springForceMagnitude = springForceMagnitude + sqrt(tempSpringForceMagnitude);
       // cout << "Spring Force:\t" << tempSpringForce[0] << "\t" << tempSpringForce[1] << "\t" << tempSpringForce[2] << endl;
       IntegrationPoints->InsertNextPoint(tempPoint);
       IntegrationPointsDisplacements->InsertNextTuple(tempDisplacement);
       LinearSpringForces->InsertNextTuple(tempSpringForce);
     }
+
+    cout << "Spring Reaction Force: " << springForceMagnitude << endl;
     
     IntegrationPointGrid->SetPoints(IntegrationPoints);
     IntegrationPointGrid->GetPointData()->AddArray(IntegrationPointsDisplacements);
@@ -1443,6 +1600,107 @@ namespace voom {
     IntegrationPointWriter->SetFileName(outputIntegrationPointDataFileName.c_str());
     IntegrationPointWriter->SetInput(IntegrationPointGrid);
     IntegrationPointWriter->Write();
+  }
+
+  void MechanicsModel::writeLJBCPolyData(string OutputFile, int step) {
+    int dim = _myMesh->getDimension();
+
+    string LJBCPointDataFileName = OutputFile + "_LJBC" + boost::lexical_cast<string>(step) + ".vtu";
+
+    vtkSmartPointer<vtkUnstructuredGrid> NodalPointGrid = vtkSmartPointer<vtkUnstructuredGrid>::New();
+    vtkSmartPointer<vtkPoints> NodalPoints = vtkSmartPointer<vtkPoints>::New();
+    vtkSmartPointer<vtkDoubleArray> NodalPointsDisplacements = vtkSmartPointer<vtkDoubleArray>::New();
+    NodalPointsDisplacements->SetNumberOfComponents(3);
+    NodalPointsDisplacements->SetName("Displacements");
+
+    vtkSmartPointer<vtkDoubleArray> LJForces = vtkSmartPointer<vtkDoubleArray>::New();
+    LJForces->SetNumberOfComponents(3);
+    LJForces->SetName("LJ_Force");
+
+    uint PbDoF = ( _myMesh->getNumberOfNodes())*this->getDoFperNode();
+    EigenResult myResults(PbDoF, 0);
+    myResults.resetResidualToZero();
+    ComputeRequest myRequest = FORCE;
+
+    myResults.setRequest(myRequest);
+    this->imposeLennardJones(myResults);
+    VectorXd R = *(myResults._residual);
+
+    vector <GeomElement*> elements2D = _bodyPotentialBoundaryMesh->getElements();
+    for (int n = 0; n < _myMesh->getNumberOfNodes(); n++) {
+      float tempDisplacement[3] = {0.0}; float tempPoint[3] = {0.0};
+      float tempForce[3] = {0.0};
+
+      for (int d = 0; d < dim; d++) {
+          tempPoint[d] = _myMesh->getX(n)(d);
+	  tempDisplacement[d] = (_field[n * dim + d] - _myMesh->getX(n)(d));
+          tempForce[d] = R(n*dim + d);
+	  // cout << n * dim + d << "\t" << tempForce[d] << endl;
+       }
+       NodalPoints->InsertNextPoint(tempPoint);
+       NodalPointsDisplacements->InsertNextTuple(tempDisplacement);
+       LJForces->InsertNextTuple(tempForce);
+    }
+    
+    NodalPointGrid->SetPoints(NodalPoints);
+    NodalPointGrid->GetPointData()->AddArray(NodalPointsDisplacements);
+    NodalPointGrid->GetPointData()->AddArray(LJForces);
+
+    for (int el_iter = 0; el_iter < elements2D.size(); el_iter++) {
+      vtkSmartPointer<vtkIdList> elConnectivity = vtkSmartPointer<vtkIdList>::New();
+
+      const vector<int > & NodesID = (elements2D[el_iter])->getNodesID();
+      for (int n = 0; n < NodesID.size(); n++) {
+        elConnectivity->InsertNextId(NodesID[n]);
+      }
+      NodalPointGrid->InsertNextCell(determineVTKCellType(2, NodesID.size()), elConnectivity);
+    }
+
+    // Write File
+    vtkSmartPointer<vtkXMLUnstructuredGridWriter> NodalPointWriter = vtkSmartPointer<vtkXMLUnstructuredGridWriter>::New();
+    NodalPointWriter->SetFileName(LJBCPointDataFileName.c_str());
+    NodalPointWriter->SetInput(NodalPointGrid);
+    NodalPointWriter->Write();
+
+  }
+
+  // Helper function to determine vtkCellType
+  VTKCellType MechanicsModel::determineVTKCellType(int dim, int NodePerEl) {
+     VTKCellType cellType;
+     // Set Cell Type: http://www.vtk.org/doc/nightly/html/vtkCellType_8h.html
+     
+     switch (dim) {
+      case 2: // 2D
+        switch (NodePerEl) {
+          case 3: // Linear Triangle
+            cellType = VTK_TRIANGLE;
+	    break;
+	  case 6: // Quadratic Triangle
+	    cellType = VTK_QUADRATIC_TRIANGLE;
+	    break;
+          default:
+	    cout << "2D Element type not implemented in MechanicsModel writeOutput." << endl;
+            exit(EXIT_FAILURE);
+        }
+        break;
+      case 3: // 3D
+	switch (NodePerEl) {
+	  case 4: // Linear Tetrahedron
+	    cellType = VTK_TETRA;
+	    break;
+	  case 10: // Quadratic Tetrahedron
+	    cellType = VTK_QUADRATIC_TETRA;
+	    break;
+	  default:
+	    cout << "3D Element type not implemented in MechanicsModel writeOutput." << endl;
+	    exit(EXIT_FAILURE);
+	}
+	break;
+      default:
+        cout << "This element has not been implemented in MechanicsModel writeOutput." << endl;
+	exit(EXIT_FAILURE);
+    }
+    return cellType;
   }
 
 } // namespace voom

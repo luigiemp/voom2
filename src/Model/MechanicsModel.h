@@ -177,6 +177,9 @@ namespace voom{
     //! Write output
     void writeOutputVTK(const string OutputFile, int step);
 
+    //! GET THIS OUT OF HERE:
+    VTKCellType determineVTKCellType(int dim, int NodePerEl);
+
     //! Write VTK output for normals of pressure
     void writePressurePolyData(string OutputFile, int step);
 
@@ -186,6 +189,9 @@ namespace voom{
     //! Write VTK output for torsional spring
     void writeTorsionalSpringPolyData(string OutputFile, int step);
 
+    //! Write VTK output for LJ Boundary Condition
+    void writeLJBCPolyData(string OutputFile, int step);
+ 
     //! Solve the system
     void compute(Result * R);
 
@@ -213,6 +219,7 @@ namespace voom{
     void initSpringBC(const string SpNodes, Mesh* SpMesh, Real SpringK);
     void computeNormals();
     vector<Triplet<Real > > applySpringBC(Result & R);
+    void computeAnchorPoints();		// This is for \bar{x} formulation
 
     // Functions for applying Torsional Spring BC
     void initTorsionalSpringBC(const string torsionalSpringNodes, Real torsionalSpringK);
@@ -228,7 +235,9 @@ namespace voom{
     void initializeLennardJonesBC(const string bodyPotentialBoundaryNodesFile, Mesh* rigidPotentialBoundaryMesh, Mesh* bodyPotentialBoundaryMesh, Real searchRadius, Real depthPotentialWell, Real minDistance);
     vector<Triplet<Real> > imposeLennardJones(Result& R);
     void computeLJNormals();
-    void findNearestNeighbors();
+    void findNearestRigidNeighbors();
+    void setLJStiffness(double stiffness){_depthPotentialWell = stiffness;};
+    void recomputeAverageMinDistance();
 
   protected:
     //! Compute Deformation Gradient
@@ -282,6 +291,7 @@ namespace voom{
     Real _minDistance;
     vector<vector<int> > _LJNodesToEle; // Stores the elements which are connected to a specific node
     vector<Vector3d> _rigidSurfaceNormals;
+    vector<vector<int> > _rigidNeighbors;	// Stores each node and its rigid neighbors within a search radius
   };
 
 } // namespace voom
