@@ -21,6 +21,7 @@ namespace voom {
       // Initializing Flags, SpringBCflag should also be done here.
       _torsionalSpringBCflag = 0;
       _lennardJonesBCFlag = 0;
+      _makeFlexible = false;
 
       // if (_pressureFlag == 1) {
       _prevField.resize( _field.size() );
@@ -220,6 +221,11 @@ namespace voom {
     }
 
     if (_lennardJonesBCFlag) {
+      if (_makeFlexible) {
+        R->resizeDoFDataStructures(_field.size());
+        vector<Triplet<Real> > KtripletList_FromFlexibleMembrane = this->imposeFlexibleMembrane(*R);
+        KtripletList.insert(KtripletList.end(), KtripletList_FromFlexibleMembrane.begin(), KtripletList_FromFlexibleMembrane.end());
+      }
       vector<Triplet<Real> > KtripletList_FromLJ = this->imposeLennardJones(*R);
       KtripletList.insert(KtripletList.end(), KtripletList_FromLJ.begin(), KtripletList_FromLJ.end());
     }
@@ -292,8 +298,11 @@ namespace voom {
       computeAnchorPoints(); 
     }
 
-    if (_lennardJonesBCFlag)
+    if (_lennardJonesBCFlag) {
+      if (_makeFlexible)
+        computeLJNormals();
       findNearestRigidNeighbors();
+    }
   } // finalizeCompute Mechanics Model
 
 
@@ -855,13 +864,19 @@ namespace voom {
     return  KtripletList_FromSpring;
   }
 
-  void MechanicsModel::initializeLennardJonesBC(const string bodyPotentialBoundaryNodesFile, Mesh* rigidPotentialBoundaryMesh, Mesh* bodyPotentialBoundaryMesh, Real searchRadius, Real depthPotentialWell, Real minDistance) {
+  void MechanicsModel::initializeLennardJonesBC(BCPotentialType BCType, const string bodyPotentialBoundaryNodesFile, Mesh* rigidPotentialBoundaryMesh, Mesh* bodyPotentialBoundaryMesh, Real searchRadius, Real depthPotentialWell, Real minDistance) {
     _lennardJonesBCFlag = 1;
+    _potentialType = BCType;
     _rigidPotentialBoundaryMesh = rigidPotentialBoundaryMesh;
     _bodyPotentialBoundaryMesh = bodyPotentialBoundaryMesh;
     _searchRadius = searchRadius;
     _depthPotentialWell = depthPotentialWell;
     _minDistance = minDistance;
+    _useConstantMinimumDistance = true;
+    _useNumberNeighborFlag = false;
+
+    for (int i = 0; i < _rigidPotentialBoundaryMesh->getNumberOfNodes(); i++) 
+      _minDistancePerRigidNode.push_back(_minDistance);
 
     // Read in the surface Nodes
     ifstream inp(bodyPotentialBoundaryNodesFile.c_str());
@@ -908,6 +923,21 @@ namespace voom {
   }
 
   
+  void MechanicsModel::initializeMembraneStiffness(double membraneStiffness) {
+    _makeFlexible = true;
+    _membraneStiffnessCoefficient = membraneStiffness;
+
+    // Steps:
+    // - Get number of nodes from mesh
+    // - Resize the field vector
+    int numMembraneMeshNodes = _rigidPotentialBoundaryMesh->getNumberOfNodes();
+    for (int node_iter = 0; node_iter < numMembraneMeshNodes; node_iter++) {
+      for (int dim_iter = 0; dim_iter < _nodeDoF; dim_iter++) {
+	_field.push_back(_rigidPotentialBoundaryMesh->getX(node_iter, dim_iter));
+      }
+    }
+    this->computeLJNormals();
+  } // End initializeMembraneStiffness 
 
   vector<Triplet<Real> > MechanicsModel::imposeLennardJones(Result& R) {
     // 1. Loop through every surface node
@@ -919,6 +949,8 @@ namespace voom {
 
     // Loop through every surface node
     int numSurfaceNodes = _bodyPotentialBoundaryNodes.size();
+    int dim = _rigidPotentialBoundaryMesh->getDimension();
+    int numMainNodes = _myMesh->getNumberOfNodes();
     for(int n = 0; n < numSurfaceNodes; n++)
     {
       int NodeID = _bodyPotentialBoundaryNodes[n];
@@ -926,43 +958,71 @@ namespace voom {
       xa_body << _field[NodeID*3 + 0],  _field[NodeID*3 + 1],  _field[NodeID*3 + 2];
       for (int node_rigid_iter = 0; node_rigid_iter < _rigidNeighbors[n].size(); node_rigid_iter++) {
 	int node_rigid = _rigidNeighbors[n][node_rigid_iter];
-        xa_rigid << _rigidPotentialBoundaryMesh->getX(node_rigid)(0), _rigidPotentialBoundaryMesh->getX(node_rigid)(1), _rigidPotentialBoundaryMesh->getX(node_rigid)(2);
+	if (_makeFlexible)
+          xa_rigid << _field[numMainNodes * dim + node_rigid * dim + 0], _field[numMainNodes * dim + node_rigid * dim + 1], _field[numMainNodes * dim + node_rigid * dim + 2];
+        else
+          xa_rigid << _rigidPotentialBoundaryMesh->getX(node_rigid)(0), _rigidPotentialBoundaryMesh->getX(node_rigid)(1), _rigidPotentialBoundaryMesh->getX(node_rigid)(2);
         
         // Check if within search radius
-        Vector3d gapVector = xa_body - xa_rigid;
+        Vector3d gapVector = xa_rigid - xa_body;
         double gapDistance = gapVector.norm();
         Real r_e = gapVector.dot(_rigidSurfaceNormals[node_rigid]);
+	// cout << r_e << endl;
 
 	// Compute energy
 	if (R.getRequest() & ENERGY) {
 	  // Real r_e = gapVectorNormal.norm();
 	  // minDistance is the distance where the energy is a minimum
 	  // r_e is the current distance between rigid and body surfaces
-	  double tempW = _depthPotentialWell * (pow(_minDistance/r_e, 12.0) - 2.0 * pow(_minDistance/r_e, 6.0));
-	  // Multiplying by -1 because this is really acting like an external energy
-	  // R.addEnergy(-1.0 * tempW);
-	    
+	  // IF YOU USE THIS MAKE SURE YOU CHECK THE SIGNS
+	  
+	  {
+	    // LENNARD-JONES needs work
+	    // double tempW = _depthPotentialWell * (pow(_minDistancePerRigidNode[node_rigid_iter]/r_e, 12.0) - 2.0 * pow(_minDistancePerRigidNode[node_rigid_iter]/r_e, 6.0));
+	    // Multiplying by -1 because this is really acting like an external energy
+	    // R.addEnergy(-1.0 * tempW);
+	  }  
 
-	  // Quadratic Spring
-	  // R.addEnergy( -1.0 * (1.0/_rigidNeighbors[n].size()) * 0.5 * _depthPotentialWell * pow( gapVector.dot(_rigidSurfaceNormals[node_rigid]) - _minDistance, 2.0) );
-
-	  // Quartic Spring
-	  R.addEnergy( -1.0 * (1.0/_rigidNeighbors[n].size()) * 0.5 * _depthPotentialWell * pow( gapVector.dot(_rigidSurfaceNormals[node_rigid]) - _minDistance, 4.0) );
-	}
+	  if (_potentialType == QUADRATIC) {
+	    // Quadratic Spring
+	    R.addEnergy(  (1.0/_rigidNeighbors[n].size()) * 0.5 * _depthPotentialWell * pow( gapVector.dot(_rigidSurfaceNormals[node_rigid]) - _minDistancePerRigidNode[node_rigid_iter], 2.0) );
+	  }
+	  else if(_potentialType == QUARTIC) {	
+	    // Quartic Spring
+	    R.addEnergy(  (1.0/_rigidNeighbors[n].size()) * 0.5 * _depthPotentialWell * pow( gapVector.dot(_rigidSurfaceNormals[node_rigid]) - _minDistancePerRigidNode[node_rigid_iter], 4.0) );
+	  }
+	  else {
+	    cout << "** Error: BCPotentialType not implemented." << endl;
+	    exit(EXIT_FAILURE);
+	  }
+	} // end ENERGY
   
 	// Compute Residual
 	if (R.getRequest() & FORCE) {
 	  for(uint i = 0; i < 3; i++) {
-	    double tempFactor = -12 * _depthPotentialWell/r_e * (pow(_minDistance/r_e, 12.0) - pow(_minDistance/r_e, 6.0));
-	    // Multiplying by -1 because this is an external force
-	    // R.addResidual(NodeID*3+i, -1.0 * tempFactor * _rigidSurfaceNormals[node_rigid](i));
+	    {
+	      // IF YOU USE THIS MAKE SURE YOU CHECK THE SIGNS - AND FLEXIBLE PART ISN'T COMPLETE
+	      // double tempFactor = -12 * _depthPotentialWell/r_e * (pow(_minDistancePerRigidNode[node_rigid_iter]/r_e, 12.0) - pow(_minDistancePerRigidNode[node_rigid_iter]/r_e, 6.0));
+	      // Multiplying by -1 because this is an external force
+	      // R.addResidual(NodeID*3+i, -1.0 * tempFactor * _rigidSurfaceNormals[node_rigid](i));
+	    }
 
-	    // Quadratic Spring
-	    // R.addResidual(NodeID*3+i, -1.0 * (1.0/_rigidNeighbors[n].size()) * _depthPotentialWell * _rigidSurfaceNormals[node_rigid](i) * (gapVector.dot(_rigidSurfaceNormals[node_rigid]) - _minDistance));
-
-	    // Quartic Spring
-	    R.addResidual(NodeID*3+i, -1.0 * (1.0/_rigidNeighbors[n].size()) * 2.0 * _depthPotentialWell * _rigidSurfaceNormals[node_rigid](i) * pow(gapVector.dot(_rigidSurfaceNormals[node_rigid]) - _minDistance, 3.0));
-
+	    if (_potentialType == QUADRATIC) {
+	      // Quadratic Spring
+	      R.addResidual(NodeID*3+i, (-1.0/_rigidNeighbors[n].size()) * _depthPotentialWell * _rigidSurfaceNormals[node_rigid](i) * (gapVector.dot(_rigidSurfaceNormals[node_rigid]) - _minDistancePerRigidNode[node_rigid_iter]));
+	      if (_makeFlexible)
+	        R.addResidual(numMainNodes * dim + node_rigid * dim + i, (1.0/_rigidNeighbors[n].size()) * _depthPotentialWell * _rigidSurfaceNormals[node_rigid](i) * (gapVector.dot(_rigidSurfaceNormals[node_rigid]) - _minDistancePerRigidNode[node_rigid_iter]));
+	    }
+	    else if (_potentialType == QUARTIC) {
+	      // Quartic Spring
+	      R.addResidual(NodeID*3+i, (-1.0/_rigidNeighbors[n].size()) * 2.0 * _depthPotentialWell * _rigidSurfaceNormals[node_rigid](i) * pow(gapVector.dot(_rigidSurfaceNormals[node_rigid]) - _minDistancePerRigidNode[node_rigid_iter], 3.0));
+	      if (_makeFlexible)
+	        R.addResidual(numMainNodes * dim + node_rigid * dim + i, (1.0/_rigidNeighbors[n].size()) * 2.0 * _depthPotentialWell * _rigidSurfaceNormals[node_rigid](i) * pow(gapVector.dot(_rigidSurfaceNormals[node_rigid]) - _minDistancePerRigidNode[node_rigid_iter], 3.0));
+             } 
+	     else {
+               cout << "** Error: BCPotentialType not implemented." << endl;
+               exit(EXIT_FAILURE);
+             }
 	  } // i loop
 	} // Internal force loop
 
@@ -970,14 +1030,36 @@ namespace voom {
 	if ( R.getRequest() & STIFFNESS ) {
 	  for(uint i = 0; i < 3; i++) {
 	    for(uint j = 0; j < 3; j++) {
-	      double tempFactor = 12 * _depthPotentialWell/pow(r_e, 2.0) * (13.0 * pow(_minDistance/r_e, 12.0) - 7.0 * pow(_minDistance/r_e, 6.0));
-	      // KtripletList_FromLJ.push_back(Triplet<Real >( NodeID*3+i, NodeID*3+j,-1.0 * tempFactor * _rigidSurfaceNormals[node_rigid](i) * _rigidSurfaceNormals[node_rigid](j)));
-	      
-	      // Quadratic Spring  
-	      // KtripletList_FromLJ.push_back(Triplet<Real >( NodeID*3+i, NodeID*3+j, -1.0 * (1.0/_rigidNeighbors[n].size()) * _depthPotentialWell*_rigidSurfaceNormals[node_rigid](i)*_rigidSurfaceNormals[node_rigid](j) ));
 
-	      // Quartic Spring
-	      KtripletList_FromLJ.push_back(Triplet<Real >( NodeID*3+i, NodeID*3+j, -1.0 * (1.0/_rigidNeighbors[n].size()) * 6.0 * _depthPotentialWell*_rigidSurfaceNormals[node_rigid](i)*_rigidSurfaceNormals[node_rigid](j) * pow(gapVector.dot(_rigidSurfaceNormals[node_rigid]) - _minDistance, 2.0) ));
+	      {
+	        // IF YOU USE THIS MAKE SURE YOU CHECK THE SIGNS - AND FLEXIBLE PART ISN'T COMPLETE
+	        // double tempFactor = 12 * _depthPotentialWell/pow(r_e, 2.0) * (13.0 * pow(_minDistancePerRigidNode[node_rigid_iter]/r_e, 12.0) - 7.0 * pow(_minDistancePerRigidNode[node_rigid_iter]/r_e, 6.0));
+	        // KtripletList_FromLJ.push_back(Triplet<Real >( NodeID*3+i, NodeID*3+j,-1.0 * tempFactor * _rigidSurfaceNormals[node_rigid](i) * _rigidSurfaceNormals[node_rigid](j)));
+	
+	      }
+
+	      if (_potentialType == QUADRATIC) {
+	        // Quadratic Spring  
+	        KtripletList_FromLJ.push_back(Triplet<Real >( NodeID*3+i, NodeID*3+j, (1.0/_rigidNeighbors[n].size()) * _depthPotentialWell*_rigidSurfaceNormals[node_rigid](i)*_rigidSurfaceNormals[node_rigid](j) ));
+	        if (_makeFlexible) {
+                  KtripletList_FromLJ.push_back(Triplet<Real >( numMainNodes * dim + node_rigid * dim + i, numMainNodes * dim + node_rigid * dim + j,  (1.0/_rigidNeighbors[n].size()) * _depthPotentialWell*_rigidSurfaceNormals[node_rigid](i)*_rigidSurfaceNormals[node_rigid](j) ));
+                  KtripletList_FromLJ.push_back(Triplet<Real >( NodeID*3+i, numMainNodes * dim + node_rigid * dim + j, (-1.0/_rigidNeighbors[n].size()) * _depthPotentialWell*_rigidSurfaceNormals[node_rigid](i)*_rigidSurfaceNormals[node_rigid](j) ));
+                  KtripletList_FromLJ.push_back(Triplet<Real >( numMainNodes * dim + node_rigid * dim + i, NodeID*3+j, (-1.0/_rigidNeighbors[n].size()) * _depthPotentialWell*_rigidSurfaceNormals[node_rigid](i)*_rigidSurfaceNormals[node_rigid](j) ));
+                }
+	      }
+	      else if (_potentialType == QUARTIC) {
+	        // Quartic Spring
+	        KtripletList_FromLJ.push_back(Triplet<Real >( NodeID*3+i, NodeID*3+j, (1.0/_rigidNeighbors[n].size()) * 6.0 * _depthPotentialWell*_rigidSurfaceNormals[node_rigid](i)*_rigidSurfaceNormals[node_rigid](j) * pow(gapVector.dot(_rigidSurfaceNormals[node_rigid]) - _minDistancePerRigidNode[node_rigid_iter], 2.0) ));
+	        if (_makeFlexible) {
+	          KtripletList_FromLJ.push_back(Triplet<Real >( numMainNodes * dim + node_rigid * dim + i, numMainNodes * dim + node_rigid * dim + j, (1.0/_rigidNeighbors[n].size()) * 6.0 * _depthPotentialWell*_rigidSurfaceNormals[node_rigid](i)*_rigidSurfaceNormals[node_rigid](j) * pow(gapVector.dot(_rigidSurfaceNormals[node_rigid]) - _minDistancePerRigidNode[node_rigid_iter], 2.0) ));
+	          KtripletList_FromLJ.push_back(Triplet<Real >( NodeID*3+i, numMainNodes * dim + node_rigid * dim + j, (-1.0/_rigidNeighbors[n].size()) * 6.0 * _depthPotentialWell*_rigidSurfaceNormals[node_rigid](i)*_rigidSurfaceNormals[node_rigid](j) * pow(gapVector.dot(_rigidSurfaceNormals[node_rigid]) - _minDistancePerRigidNode[node_rigid_iter], 2.0) ));
+	          KtripletList_FromLJ.push_back(Triplet<Real >( numMainNodes * dim + node_rigid * dim + i, NodeID*3+j, (-1.0/_rigidNeighbors[n].size()) * 6.0 * _depthPotentialWell*_rigidSurfaceNormals[node_rigid](i)*_rigidSurfaceNormals[node_rigid](j) * pow(gapVector.dot(_rigidSurfaceNormals[node_rigid]) - _minDistancePerRigidNode[node_rigid_iter], 2.0) ));
+ 	        }
+	      } // End Quartic
+	      else {
+               cout << "** Error: BCPotentialType not implemented." << endl;
+               exit(EXIT_FAILURE);
+             }
 	    } // j loop
 	  } // i loop
 	} // Stiffness loop
@@ -988,9 +1070,166 @@ namespace voom {
     
   }
 
+  vector<Triplet<Real> > MechanicsModel::imposeFlexibleMembrane(Result& R) {
+    vector<Triplet<Real> > KtripletList_FromFlexibleBoundary;
+    Matrix3d identityMat = Matrix3d::Identity();
+    int numMembraneMeshNodes = _rigidPotentialBoundaryMesh->getNumberOfNodes();
+    int numMembraneMeshElements = _rigidPotentialBoundaryMesh->getNumberOfElements();
+    int numMainNodes = _myMesh->getNumberOfNodes();
+    const vector<GeomElement*> BCelements = _rigidPotentialBoundaryMesh->getElements();
+
+    for (int el_iter = 0; el_iter < numMembraneMeshElements; el_iter++) {
+      vector<int> elNodeIds = BCelements[el_iter]->getNodesID();
+      int numNodesPerEl = elNodeIds.size();
+
+      vector <Vector3d> elCurrentNodePositions;
+      vector <Vector3d> elReferenceNodePositions;
+      vector<Vector3d> currentEdgeVectors;
+      vector<Vector3d> referenceEdgeVectors;
+
+      // Store the nodal positions of each vertex
+      for (int i = 0; i < elNodeIds.size(); i++) {
+        Vector3d tempCurr, tempRef;
+        tempCurr << _field[numMainNodes * _nodeDoF + elNodeIds[i] * _nodeDoF + 0], _field[numMainNodes * _nodeDoF + elNodeIds[i] * _nodeDoF + 1], _field[numMainNodes * _nodeDoF + elNodeIds[i] * _nodeDoF + 2];
+        tempRef  << _rigidPotentialBoundaryMesh->getX(elNodeIds[i])(0), _rigidPotentialBoundaryMesh->getX(elNodeIds[i])(1), _rigidPotentialBoundaryMesh->getX(elNodeIds[i])(2);
+        elCurrentNodePositions.push_back(tempCurr);
+        elReferenceNodePositions.push_back(tempRef);
+      }
+
+      if (numNodesPerEl == 3) { // Linear Tri
+        vector <pair <int,int> > vertexes;
+        pair<int,int> temp;
+        temp.first = 0; temp.second = 1; vertexes.push_back(temp);
+        temp.first = 1; temp.second = 2; vertexes.push_back(temp);
+        temp.first = 2; temp.second = 0; vertexes.push_back(temp);
+
+        for (int i = 0; i < vertexes.size(); i++) {
+          Vector3d tempCurr = elCurrentNodePositions[vertexes[i].first] - elCurrentNodePositions[vertexes[i].second];
+          Vector3d tempRef  = elReferenceNodePositions[vertexes[i].first] - elReferenceNodePositions[vertexes[i].second];
+          currentEdgeVectors.push_back(tempCurr);
+          referenceEdgeVectors.push_back(tempRef);
+        }
+
+        if (R.getRequest() & ENERGY) {
+          double tempEnergy = 0.0;
+	
+	  for (int edge_iter = 0; edge_iter < currentEdgeVectors.size(); edge_iter++)
+	    tempEnergy += _membraneStiffnessCoefficient/2.0 * pow(currentEdgeVectors[edge_iter].norm() - referenceEdgeVectors[edge_iter].norm(), 2.0);
+          R.addEnergy(tempEnergy);
+        } // End ENERGY
+	if (R.getRequest() & FORCE) {
+	  for (int i = 0; i < _nodeDoF; i++) {
+	    for (int edge_iter = 0; edge_iter < currentEdgeVectors.size(); edge_iter++) {
+	      int nodeID1 = elNodeIds[vertexes[edge_iter].first];
+              int nodeID2 = elNodeIds[vertexes[edge_iter].second];
+
+	      R.addResidual(numMainNodes * _nodeDoF + nodeID1 * _nodeDoF + i,  1.0 * _membraneStiffnessCoefficient * (currentEdgeVectors[edge_iter](i) - referenceEdgeVectors[edge_iter].norm() * currentEdgeVectors[edge_iter](i) / currentEdgeVectors[edge_iter].norm()));
+              R.addResidual(numMainNodes * _nodeDoF + nodeID2 * _nodeDoF + i, -1.0 * _membraneStiffnessCoefficient * (currentEdgeVectors[edge_iter](i) - referenceEdgeVectors[edge_iter].norm() * currentEdgeVectors[edge_iter](i) / currentEdgeVectors[edge_iter].norm()));
+
+	    }
+	  }
+	}
+	if (R.getRequest() & STIFFNESS) {
+	  for (int i = 0; i < _nodeDoF; i++) {
+	    for (int j = 0; j < _nodeDoF; j++) {
+	      for (int edge_iter = 0; edge_iter < currentEdgeVectors.size(); edge_iter++) {
+		int nodeID1 = elNodeIds[vertexes[edge_iter].first];
+                int nodeID2 = elNodeIds[vertexes[edge_iter].second];
+
+	        KtripletList_FromFlexibleBoundary.push_back(Triplet<Real >( numMainNodes * _nodeDoF + nodeID1 * _nodeDoF + i, numMainNodes * _nodeDoF + nodeID1 * _nodeDoF + j, _membraneStiffnessCoefficient * (identityMat(i,j) - referenceEdgeVectors[edge_iter].norm() * (identityMat(i,j) / currentEdgeVectors[edge_iter].norm() - currentEdgeVectors[edge_iter](i) * currentEdgeVectors[edge_iter](j)/ pow(currentEdgeVectors[edge_iter].norm(),3)))));
+
+	        KtripletList_FromFlexibleBoundary.push_back(Triplet<Real >( numMainNodes * _nodeDoF + nodeID2 * _nodeDoF + i, numMainNodes * _nodeDoF + nodeID2 * _nodeDoF + j, _membraneStiffnessCoefficient * (identityMat(i,j) - referenceEdgeVectors[edge_iter].norm() * (identityMat(i,j) / currentEdgeVectors[edge_iter].norm() - currentEdgeVectors[edge_iter](i) * currentEdgeVectors[edge_iter](j)/ pow(currentEdgeVectors[edge_iter].norm(),3)))));
+
+		KtripletList_FromFlexibleBoundary.push_back(Triplet<Real >( numMainNodes * _nodeDoF + nodeID1 * _nodeDoF + i, numMainNodes * _nodeDoF + nodeID2 * _nodeDoF + j, -1.0 * _membraneStiffnessCoefficient * (identityMat(i,j) - referenceEdgeVectors[edge_iter].norm() * (identityMat(i,j) / currentEdgeVectors[edge_iter].norm() - currentEdgeVectors[edge_iter](i) * currentEdgeVectors[edge_iter](j)/ pow(currentEdgeVectors[edge_iter].norm(),3)))));
+
+		KtripletList_FromFlexibleBoundary.push_back(Triplet<Real >( numMainNodes * _nodeDoF + nodeID2 * _nodeDoF + i, numMainNodes * _nodeDoF + nodeID1 * _nodeDoF + j, -1.0 * _membraneStiffnessCoefficient * (identityMat(i,j) - referenceEdgeVectors[edge_iter].norm() * (identityMat(i,j) / currentEdgeVectors[edge_iter].norm() - currentEdgeVectors[edge_iter](i) * currentEdgeVectors[edge_iter](j)/ pow(currentEdgeVectors[edge_iter].norm(),3)))));
+
+	      } // End edgeLoop Iter
+	    } // End j loop
+	  } // End i loop
+        } // End Stiffness
+      } // 3 Nodes Per El
+      else if (numNodesPerEl == 6) { // Quadratic Tri
+	vector <pair <int,int> > vertexes;
+	pair<int,int> temp;
+	temp.first = 0; temp.second = 3; vertexes.push_back(temp);
+	temp.first = 3; temp.second = 1; vertexes.push_back(temp);
+	temp.first = 1; temp.second = 4; vertexes.push_back(temp);
+	temp.first = 4; temp.second = 2; vertexes.push_back(temp);
+	temp.first = 2; temp.second = 5; vertexes.push_back(temp);
+	temp.first = 5; temp.second = 0; vertexes.push_back(temp);
+
+	temp.first = 3; temp.second = 4; vertexes.push_back(temp);
+	temp.first = 4; temp.second = 5; vertexes.push_back(temp);
+	temp.first = 5; temp.second = 3; vertexes.push_back(temp);
+
+	for (int i = 0; i < vertexes.size(); i++) {
+	  Vector3d tempCurr = elCurrentNodePositions[vertexes[i].first] - elCurrentNodePositions[vertexes[i].second];
+	  Vector3d tempRef  = elReferenceNodePositions[vertexes[i].first] - elReferenceNodePositions[vertexes[i].second];
+	  currentEdgeVectors.push_back(tempCurr);
+	  referenceEdgeVectors.push_back(tempRef);
+ 	}
+
+
+        if (R.getRequest() & ENERGY) {
+          double tempEnergy = 0.0;
+
+          for (int edge_iter = 0; edge_iter < currentEdgeVectors.size(); edge_iter++) {
+	    // Because edges get counted twice, we need to count midside nodes twice by multiplying x2
+	    double tempMembraneStiffnessCoefficient = (edge_iter < 6) ? _membraneStiffnessCoefficient : _membraneStiffnessCoefficient * 2.0;
+ 	    // cout << "Energy: " << tempMembraneStiffnessCoefficient/2.0 * pow(currentEdgeVectors[edge_iter].norm() - referenceEdgeVectors[edge_iter].norm(), 2.0) << "\t" << currentEdgeVectors[edge_iter].norm() << "\t" << referenceEdgeVectors[edge_iter].norm() << endl;
+            tempEnergy += tempMembraneStiffnessCoefficient/2.0 * pow(currentEdgeVectors[edge_iter].norm() - referenceEdgeVectors[edge_iter].norm(), 2.0);
+	  }
+          R.addEnergy(tempEnergy);
+        } // End ENERGY
+
+        if (R.getRequest() & FORCE) {
+          for (int i = 0; i < _nodeDoF; i++) {
+            for (int edge_iter = 0; edge_iter < currentEdgeVectors.size(); edge_iter++) {
+	      // Because edges get counted twice, we need to count midside nodes twice by multiplying x2
+	      double tempMembraneStiffnessCoefficient = (edge_iter < 6) ? _membraneStiffnessCoefficient : _membraneStiffnessCoefficient * 2.0;
+              int nodeID1 = elNodeIds[vertexes[edge_iter].first];
+              int nodeID2 = elNodeIds[vertexes[edge_iter].second];
+              R.addResidual(numMainNodes * _nodeDoF + nodeID1 * _nodeDoF + i,  1.0 * tempMembraneStiffnessCoefficient * (currentEdgeVectors[edge_iter](i) - referenceEdgeVectors[edge_iter].norm() * currentEdgeVectors[edge_iter](i) / currentEdgeVectors[edge_iter].norm()));
+              R.addResidual(numMainNodes * _nodeDoF + nodeID2 * _nodeDoF + i, -1.0 * tempMembraneStiffnessCoefficient * (currentEdgeVectors[edge_iter](i) - referenceEdgeVectors[edge_iter].norm() * currentEdgeVectors[edge_iter](i) / currentEdgeVectors[edge_iter].norm()));
+            }
+          }
+        }
+        if (R.getRequest() & STIFFNESS) {
+          for (int i = 0; i < _nodeDoF; i++) {
+            for (int j = 0; j < _nodeDoF; j++) {
+              for (int edge_iter = 0; edge_iter < currentEdgeVectors.size(); edge_iter++) {
+		// Because edges get counted twice, we need to count midside nodes twice by multiplying x2
+		double tempMembraneStiffnessCoefficient = (edge_iter < 6) ? _membraneStiffnessCoefficient : _membraneStiffnessCoefficient * 2.0;
+                int nodeID1 = elNodeIds[vertexes[edge_iter].first];
+                int nodeID2 = elNodeIds[vertexes[edge_iter].second];
+
+                KtripletList_FromFlexibleBoundary.push_back(Triplet<Real >( numMainNodes * _nodeDoF + nodeID1 * _nodeDoF + i, numMainNodes * _nodeDoF + nodeID1 * _nodeDoF + j, tempMembraneStiffnessCoefficient * (identityMat(i,j) - referenceEdgeVectors[edge_iter].norm() * (identityMat(i,j) / currentEdgeVectors[edge_iter].norm() - currentEdgeVectors[edge_iter](i) * currentEdgeVectors[edge_iter](j)/ pow(currentEdgeVectors[edge_iter].norm(),3)))));
+
+                KtripletList_FromFlexibleBoundary.push_back(Triplet<Real >( numMainNodes * _nodeDoF + nodeID2 * _nodeDoF + i, numMainNodes * _nodeDoF + nodeID2 * _nodeDoF + j, tempMembraneStiffnessCoefficient * (identityMat(i,j) - referenceEdgeVectors[edge_iter].norm() * (identityMat(i,j) / currentEdgeVectors[edge_iter].norm() - currentEdgeVectors[edge_iter](i) * currentEdgeVectors[edge_iter](j)/ pow(currentEdgeVectors[edge_iter].norm(),3)))));
+
+                KtripletList_FromFlexibleBoundary.push_back(Triplet<Real >( numMainNodes * _nodeDoF + nodeID1 * _nodeDoF + i, numMainNodes * _nodeDoF + nodeID2 * _nodeDoF + j, -1.0 * tempMembraneStiffnessCoefficient * (identityMat(i,j) - referenceEdgeVectors[edge_iter].norm() * (identityMat(i,j) / currentEdgeVectors[edge_iter].norm() - currentEdgeVectors[edge_iter](i) * currentEdgeVectors[edge_iter](j)/ pow(currentEdgeVectors[edge_iter].norm(),3)))));
+
+                KtripletList_FromFlexibleBoundary.push_back(Triplet<Real >( numMainNodes * _nodeDoF + nodeID2 * _nodeDoF + i, numMainNodes * _nodeDoF + nodeID1 * _nodeDoF + j, -1.0 * tempMembraneStiffnessCoefficient * (identityMat(i,j) - referenceEdgeVectors[edge_iter].norm() * (identityMat(i,j) / currentEdgeVectors[edge_iter].norm() - currentEdgeVectors[edge_iter](i) * currentEdgeVectors[edge_iter](j)/ pow(currentEdgeVectors[edge_iter].norm(),3)))));
+
+              }
+            }
+          }
+        }
+      }
+      else { // Neither Linear or Quadratic Tri
+	cout << "ERROR: Not sure what element to impose for the Flexible Membrane." << endl;
+	exit(EXIT_FAILURE);
+      }
+    }
+    return KtripletList_FromFlexibleBoundary;
+  } // End imposeFlexibleMembrane
+
   void MechanicsModel::computeLJNormals() {
     const vector<GeomElement* > elements = _rigidPotentialBoundaryMesh->getElements();
     vector<Vector3d > ElNormals(elements.size(), Vector3d::Zero()); 
+    int dim = _rigidPotentialBoundaryMesh->getDimension();
+    int numMainNodes = _myMesh->getNumberOfNodes();
     
     // Loop over elements
     for(int e = 0; e < elements.size(); e++)
@@ -1008,7 +1247,10 @@ namespace voom {
         for (int a = 0; a < NodesID.size(); a++) {
           int nodeID = NodesID[a];
           Vector3d nodalPos;
-          nodalPos << _rigidPotentialBoundaryMesh->getX(nodeID)(0), _rigidPotentialBoundaryMesh->getX(nodeID)(1), _rigidPotentialBoundaryMesh->getX(nodeID)(2);
+	  if (_makeFlexible)
+	    nodalPos << _field[numMainNodes * dim + nodeID * dim + 0], _field[numMainNodes * dim + nodeID * dim + 1], _field[numMainNodes * dim + nodeID * dim + 2];
+	  else
+            nodalPos << _rigidPotentialBoundaryMesh->getX(nodeID)(0), _rigidPotentialBoundaryMesh->getX(nodeID)(1), _rigidPotentialBoundaryMesh->getX(nodeID)(2);
           a1 += nodalPos*geomEl->getDN(q, a, 0);
           a2 += nodalPos*geomEl->getDN(q, a, 1);
         }
@@ -1036,44 +1278,110 @@ namespace voom {
   void MechanicsModel::findNearestRigidNeighbors() {
     // Loop through every surface node
     int numSurfaceNodes = _bodyPotentialBoundaryNodes.size();
+    int dim = _rigidPotentialBoundaryMesh->getDimension();
+    int numMainNodes = _myMesh->getNumberOfNodes();
     for(int n = 0; n < numSurfaceNodes; n++)
     {
       _rigidNeighbors[n].clear();
       int NodeID = _bodyPotentialBoundaryNodes[n];
       Vector3d xa_body, xa_rigid;
       xa_body << _field[NodeID*3 + 0],  _field[NodeID*3 + 1],  _field[NodeID*3 + 2];
+
+      vector <pair<double, int> > distanceAndIndex;
       for (int node_rigid = 0; node_rigid < _rigidPotentialBoundaryMesh->getNumberOfNodes(); node_rigid++) {
-        xa_rigid << _rigidPotentialBoundaryMesh->getX(node_rigid)(0), _rigidPotentialBoundaryMesh->getX(node_rigid)(1), _rigidPotentialBoundaryMesh->getX(node_rigid)(2);
+	if (_makeFlexible)
+	  xa_rigid << _field[numMainNodes * dim + node_rigid * dim + 0], _field[numMainNodes * dim + node_rigid * dim + 1], _field[numMainNodes * dim + node_rigid * dim + 2];
+ 	else
+          xa_rigid << _rigidPotentialBoundaryMesh->getX(node_rigid)(0), _rigidPotentialBoundaryMesh->getX(node_rigid)(1), _rigidPotentialBoundaryMesh->getX(node_rigid)(2);
         
         // Check if within search radius
-        Vector3d gapVector = xa_body - xa_rigid;
+        Vector3d gapVector = xa_rigid - xa_body;
         double gapDistance = gapVector.norm();
         Real r_e = gapVector.dot(_rigidSurfaceNormals[node_rigid]);
 
-	if (gapDistance <= _searchRadius)
+	if (gapDistance <= _searchRadius) {
 	  _rigidNeighbors[n].push_back(node_rigid);
+	  if (_useNumberNeighborFlag) distanceAndIndex.push_back(make_pair(gapDistance, node_rigid));
+	}
       } // loop through all rigid nodes
+
+      // If we only want a n number of neighbors
+      if (_useNumberNeighborFlag) {
+	sort(distanceAndIndex.begin(), distanceAndIndex.end());
+	_rigidNeighbors[n].clear();
+	for (int addNumNeighbors = 0; addNumNeighbors < _numberNearestNeighborsToUse; addNumNeighbors++) {
+	  if (addNumNeighbors < distanceAndIndex.size())
+	    _rigidNeighbors[n].push_back(distanceAndIndex[addNumNeighbors].second);
+	}
+      }
     } // loop through all surface nodes
     cout << "Found Nearest Neighbors" << endl;
   } // end findNearestRigidNeighbors
 
   void MechanicsModel::recomputeAverageMinDistance() {
-    double averageDistance = 0.0;
-    int counter = 0;
-    Vector3d xa_body, xa_rigid;
-    for (int n = 0; n < _rigidNeighbors.size(); n++) {
-      int bodyNodeID = _bodyPotentialBoundaryNodes[n];
-      xa_body << _field[bodyNodeID * 3 + 0], _field[bodyNodeID * 3 + 1], _field[bodyNodeID * 3 + 2];
-      for (int r = 0; r < _rigidNeighbors[n].size(); r++) {
-	xa_rigid << _rigidPotentialBoundaryMesh->getX(_rigidNeighbors[n][r])(0), _rigidPotentialBoundaryMesh->getX(_rigidNeighbors[n][r])(1), _rigidPotentialBoundaryMesh->getX(_rigidNeighbors[n][r])(2);
-	Vector3d gapVector = xa_body - xa_rigid;
-	averageDistance += gapVector.norm();
-	counter++;
+    int dim = _rigidPotentialBoundaryMesh->getDimension();
+    int numMainNodes = _myMesh->getNumberOfNodes();
+    // If all nodes should have the same minimum distance, then loop through each epicardium node and calculate the normal distance to the rigid surface and average
+    if (_useConstantMinimumDistance) {
+      double averageDistance = 0.0;
+      int counter = 0;
+      Vector3d xa_body, xa_rigid;
+      for (int n = 0; n < _rigidNeighbors.size(); n++) {
+        int bodyNodeID = _bodyPotentialBoundaryNodes[n];
+        xa_body << _field[bodyNodeID * 3 + 0], _field[bodyNodeID * 3 + 1], _field[bodyNodeID * 3 + 2];
+        for (int r = 0; r < _rigidNeighbors[n].size(); r++) {
+	  if (_makeFlexible)
+            xa_rigid << _field[numMainNodes * dim + _rigidNeighbors[n][r] * dim + 0], _field[numMainNodes * dim + _rigidNeighbors[n][r] * dim + 1], _field[numMainNodes * dim + _rigidNeighbors[n][r] * dim + 2];
+	  else
+	    xa_rigid << _rigidPotentialBoundaryMesh->getX(_rigidNeighbors[n][r])(0), _rigidPotentialBoundaryMesh->getX(_rigidNeighbors[n][r])(1), _rigidPotentialBoundaryMesh->getX(_rigidNeighbors[n][r])(2);
+	  Vector3d gapVector = xa_rigid - xa_body;
+          Real r_e = gapVector.dot(_rigidSurfaceNormals[_rigidNeighbors[n][r]]);
+	  averageDistance += abs(r_e);
+	  counter++;
+        }
       }
+      averageDistance /= counter;
+      cout << "Resetting every rigid node BC Minimum Distance to " << averageDistance << endl;
+      _minDistance = averageDistance;
+      _minDistancePerRigidNode.clear();
+      _minDistancePerRigidNode.resize(_rigidPotentialBoundaryMesh->getNumberOfNodes(), _minDistance);
     }
-    averageDistance /= counter;
-    cout << "Resetting Potential BC Minimum Distance to " << averageDistance << endl;
-    _minDistance = averageDistance;
+    else { // Else - if every rigid node has a different minimum distance
+      double totalAverage = 0.0;
+      Vector3d xa_body, xa_rigid;
+      int numSurfaceNodes = _bodyPotentialBoundaryNodes.size();
+      // cout << "Number of Rigid body nodes: " << _rigidPotentialBoundaryMesh->getNumberOfNodes() << endl;
+      // cout << "Vec 1st element " << _minDistancePerRigidNode[0] << endl;
+      // cout << "Size of minDistance Vector: " << _minDistancePerRigidNode.size() << endl; 
+      for (int rigid_node_iter = 0; rigid_node_iter < _rigidPotentialBoundaryMesh->getNumberOfNodes(); rigid_node_iter++) {
+	if (_makeFlexible)
+          xa_rigid << _field[numMainNodes * dim + rigid_node_iter * dim + 0], _field[numMainNodes * dim + rigid_node_iter * dim + 1], _field[numMainNodes * dim + rigid_node_iter * dim + 2];
+	else
+	  xa_rigid << _rigidPotentialBoundaryMesh->getX(rigid_node_iter)(0), _rigidPotentialBoundaryMesh->getX(rigid_node_iter)(1), _rigidPotentialBoundaryMesh->getX(rigid_node_iter)(2);
+        double averageDistance = 0.0;
+        int counter = 0;
+        for (int body_node_iter = 0; body_node_iter < numSurfaceNodes; body_node_iter++) {
+	  int bodyNodeID = _bodyPotentialBoundaryNodes[body_node_iter];
+	  xa_body << _field[bodyNodeID * 3 + 0], _field[bodyNodeID * 3 + 1], _field[bodyNodeID * 3 + 2];
+
+          // Check if within search radius
+          Vector3d gapVector = xa_rigid - xa_body;
+          double gapDistance = gapVector.norm();
+          
+          if (gapDistance <= _searchRadius) {
+	    averageDistance += gapVector.dot(_rigidSurfaceNormals[rigid_node_iter]);
+	    counter++;
+          }
+        }
+	if (counter > 0) {
+	  averageDistance /= counter;
+          _minDistancePerRigidNode[rigid_node_iter] = averageDistance;
+        }
+	totalAverage += _minDistancePerRigidNode[rigid_node_iter];
+      }
+      totalAverage /= _rigidPotentialBoundaryMesh->getNumberOfNodes();
+      cout << "Resetting each rigid node BC's Minimum Distance. Average turns out to be " << totalAverage << endl;
+    }
   } // end recomputeAverageMinDistance
 
 
@@ -1171,6 +1479,7 @@ namespace voom {
 
     // Compute Residual
     uint PbDoF = ( _myMesh->getNumberOfNodes())*this->getDoFperNode();
+    if (_makeFlexible) PbDoF += _rigidPotentialBoundaryMesh->getNumberOfNodes() * this->getDoFperNode();
     EigenResult myResults(PbDoF, 2);
     int myRequest = 2;
     myResults.setRequest(myRequest);
@@ -1412,8 +1721,11 @@ namespace voom {
       writeLinearSpringPolyData(OutputFile, step);
     if (_torsionalSpringBCflag)
       writeTorsionalSpringPolyData(OutputFile, step);
-    if (_lennardJonesBCFlag)
+    if (_lennardJonesBCFlag) {
        writeLJBCPolyData(OutputFile, step);
+       if (_makeFlexible)
+	  writeFlexibleMembraneBCPolyData(OutputFile, step);
+    }
   } // writeOutput
 
   void MechanicsModel::writePressurePolyData(string OutputFile, int step) {
@@ -1506,6 +1818,7 @@ namespace voom {
     LinearSpringForces->SetName("LinearSpring_Force");
   
     uint PbDoF = ( _myMesh->getNumberOfNodes())*this->getDoFperNode();
+    if (_makeFlexible) PbDoF += _rigidPotentialBoundaryMesh->getNumberOfNodes() * this->getDoFperNode();
     EigenResult myResults(PbDoF, 0);
     myResults.resetResidualToZero();
     ComputeRequest myRequest = FORCE;
@@ -1618,6 +1931,7 @@ namespace voom {
     LJForces->SetName("LJ_Force");
 
     uint PbDoF = ( _myMesh->getNumberOfNodes())*this->getDoFperNode();
+    if (_makeFlexible) PbDoF += _rigidPotentialBoundaryMesh->getNumberOfNodes() * this->getDoFperNode();
     EigenResult myResults(PbDoF, 0);
     myResults.resetResidualToZero();
     ComputeRequest myRequest = FORCE;
@@ -1659,6 +1973,156 @@ namespace voom {
     // Write File
     vtkSmartPointer<vtkXMLUnstructuredGridWriter> NodalPointWriter = vtkSmartPointer<vtkXMLUnstructuredGridWriter>::New();
     NodalPointWriter->SetFileName(LJBCPointDataFileName.c_str());
+    NodalPointWriter->SetInput(NodalPointGrid);
+    NodalPointWriter->Write();
+
+    {
+      string neighborsFileName = OutputFile + "_PlotRigidNeighbors" + boost::lexical_cast<string>(step) + ".vtp";
+      // Create a vtkPoints object and store the points in it
+      vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
+      int numMainNodes = _myMesh->getNumberOfNodes();
+      // Write points from the main mesh
+      for (int i = 0; i < numMainNodes; i++) {
+	double p[3] = {_field[i * dim + 0], _field[i * dim + 1], _field[i * dim + 2]};
+	points->InsertNextPoint(p);
+      }
+      // Write points from the boundary condition mesh
+      for (int i = 0; i < _rigidPotentialBoundaryMesh->getNumberOfNodes(); i++) {
+	double p[3] = {_rigidPotentialBoundaryMesh->getX(i, 0), _rigidPotentialBoundaryMesh->getX(i,1), _rigidPotentialBoundaryMesh->getX(i,2)};
+        if (_makeFlexible) {
+	  p[0] = _field[numMainNodes * dim + i * dim + 0]; p[1] = _field[numMainNodes * dim + i * dim + 1]; p[2] = _field[numMainNodes * dim + i * dim + 2];
+	}
+	points->InsertNextPoint(p);
+      }
+
+      // Create a cell array to store the lines in and add the lines to it
+      vtkSmartPointer<vtkCellArray> cells = vtkSmartPointer<vtkCellArray>::New();
+
+      for (int i = 0; i < _rigidNeighbors.size(); i++) {
+	for (int j = 0; j < _rigidNeighbors[i].size(); j++) {
+          vtkSmartPointer<vtkPolyLine> polyLine = vtkSmartPointer<vtkPolyLine>::New();
+	  polyLine->GetPointIds()->SetNumberOfIds(2);
+	  polyLine->GetPointIds()->SetId(0, _bodyPotentialBoundaryNodes[i]);
+	  polyLine->GetPointIds()->SetId(1, numMainNodes + _rigidNeighbors[i][j]);
+	  cells->InsertNextCell(polyLine);
+	}
+      }
+      
+      // Create a polydata to store everything in
+      vtkSmartPointer<vtkPolyData> polyData = vtkSmartPointer<vtkPolyData>::New();
+ 
+      // Add the points to the dataset
+      polyData->SetPoints(points);
+ 
+      // Add the lines to the dataset
+      polyData->SetLines(cells);
+      
+      vtkSmartPointer<vtkXMLPolyDataWriter> polyDataWriter = vtkSmartPointer<vtkXMLPolyDataWriter>::New();
+      polyDataWriter->SetFileName(neighborsFileName.c_str());
+      polyDataWriter->SetInput(polyData);
+      polyDataWriter->Write();
+    }
+
+  }
+
+  void MechanicsModel::writeFlexibleMembraneBCPolyData(string OutputFile, int step) {
+    int dim = _rigidPotentialBoundaryMesh->getDimension();
+    int numMainNodes = _myMesh->getNumberOfNodes();
+    int numMembraneMeshElements = _rigidPotentialBoundaryMesh->getNumberOfElements();
+
+    string FlexibleBCPointDataFileName = OutputFile + "_FlexibleBC" + boost::lexical_cast<string>(step) + ".vtu";
+
+    vtkSmartPointer<vtkUnstructuredGrid> NodalPointGrid = vtkSmartPointer<vtkUnstructuredGrid>::New();
+    vtkSmartPointer<vtkPoints> NodalPoints = vtkSmartPointer<vtkPoints>::New();
+    vtkSmartPointer<vtkDoubleArray> NodalPointsDisplacements = vtkSmartPointer<vtkDoubleArray>::New();
+    NodalPointsDisplacements->SetNumberOfComponents(3);
+    NodalPointsDisplacements->SetName("Displacements");
+
+    vector <GeomElement*> elementsBC = _rigidPotentialBoundaryMesh->getElements();
+    for (int n = 0; n < _rigidPotentialBoundaryMesh->getNumberOfNodes(); n++) {
+      float tempDisplacement[3] = {0.0}; float tempPoint[3] = {0.0};
+
+      for (int d = 0; d < dim; d++) {
+        tempPoint[d] = _rigidPotentialBoundaryMesh->getX(n)(d);
+        tempDisplacement[d] = _field[numMainNodes * dim + n * dim + d] - tempPoint[d];
+      }
+      NodalPoints->InsertNextPoint(tempPoint);
+      NodalPointsDisplacements->InsertNextTuple(tempDisplacement);
+    }
+          
+    NodalPointGrid->SetPoints(NodalPoints);
+    NodalPointGrid->GetPointData()->AddArray(NodalPointsDisplacements);
+          
+    for (int el_iter = 0; el_iter < numMembraneMeshElements; el_iter++) {
+      vtkSmartPointer<vtkIdList> elConnectivity = vtkSmartPointer<vtkIdList>::New();
+          
+      const vector<int > & NodesID = (elementsBC[el_iter])->getNodesID();
+      for (int n = 0; n < NodesID.size(); n++) {
+        elConnectivity->InsertNextId(NodesID[n]);
+      }
+      NodalPointGrid->InsertNextCell(determineVTKCellType(2, NodesID.size()), elConnectivity);
+    }
+
+    // Compute Node Normals:
+    vtkSmartPointer<vtkDoubleArray> membraneNormals = vtkSmartPointer<vtkDoubleArray>::New();
+    membraneNormals->SetNumberOfComponents(3);
+    membraneNormals->SetName("membraneAverageNodeNormals");
+    
+    for (int n = 0; n < _rigidSurfaceNormals.size(); n++) {
+      double tempNormal[3] = {_rigidSurfaceNormals[n](0), _rigidSurfaceNormals[n](1), _rigidSurfaceNormals[n](2)};
+      membraneNormals->InsertNextTuple(tempNormal);
+    }
+    NodalPointGrid->GetPointData()->AddArray(membraneNormals);
+    
+
+    // *** DELETE FROM HERE *** //
+    // Computes element normals
+    vtkSmartPointer<vtkDoubleArray> membraneElementNormals = vtkSmartPointer<vtkDoubleArray>::New();
+    membraneElementNormals->SetNumberOfComponents(3);
+    membraneElementNormals->SetName("membraneElementNormals");
+
+    const vector<GeomElement* > elements = _rigidPotentialBoundaryMesh->getElements();
+    vector<Vector3d > ElNormals(elements.size(), Vector3d::Zero());
+
+    // Loop over elements
+    for(int e = 0; e < elements.size(); e++)
+    {
+      GeomElement* geomEl = elements[e];
+      const vector<int  >& NodesID = geomEl->getNodesID();
+      const int numQP    = geomEl->getNumberOfQuadPoints();
+      const int numNodes = NodesID.size();
+
+      // Loop over quadrature points
+      for(int q = 0; q < numQP; q++) {
+
+        // Compute normal based on _prevField
+        Vector3d a1 = Vector3d::Zero(), a2 = Vector3d::Zero(), a3 = Vector3d::Zero();
+        for (int a = 0; a < NodesID.size(); a++) {
+          int nodeID = NodesID[a];
+          Vector3d nodalPos;
+          if (_makeFlexible)
+            nodalPos << _field[numMainNodes * dim + nodeID * dim + 0], _field[numMainNodes * dim + nodeID * dim + 1], _field[numMainNodes * dim + nodeID * dim + 2];
+          else
+            nodalPos << _rigidPotentialBoundaryMesh->getX(nodeID)(0), _rigidPotentialBoundaryMesh->getX(nodeID)(1), _rigidPotentialBoundaryMesh->getX(nodeID)(2);
+          a1 += nodalPos*geomEl->getDN(q, a, 0);
+          a2 += nodalPos*geomEl->getDN(q, a, 1);
+        }
+        ElNormals[e] += a1.cross(a2); // Not normalized with respect to area (elements with larger area count more)
+      } // loop over QP
+      double tempNormal[3] = {ElNormals[e](0), ElNormals[e](1),ElNormals[e](2)};
+
+      membraneElementNormals->InsertNextTuple(tempNormal);
+
+
+    } // loop over elements
+    NodalPointGrid->GetCellData()->AddArray(membraneElementNormals);
+
+    // *** DELETE TILL HERE *** //
+
+
+    // Write File
+    vtkSmartPointer<vtkXMLUnstructuredGridWriter> NodalPointWriter = vtkSmartPointer<vtkXMLUnstructuredGridWriter>::New();
+    NodalPointWriter->SetFileName(FlexibleBCPointDataFileName.c_str());
     NodalPointWriter->SetInput(NodalPointGrid);
     NodalPointWriter->Write();
 

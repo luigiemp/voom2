@@ -23,9 +23,14 @@
 #include <vtkXMLUnstructuredGridWriter.h>
 #include <vtkCellType.h>
 #include <vtkCellArray.h>
+#include <vtkPolyLine.h>
 #include <vtkDoubleArray.h>
 
 namespace voom{
+
+  enum BCPotentialType {
+    QUADRATIC, QUARTIC
+  };
 
   // Model Results
   class MechanicsModel: public Model {
@@ -79,7 +84,8 @@ namespace voom{
 
     //! Linearized update
     void linearizedUpdate(const Real* localValues, Real fact) {
-      const int nLocalDof = (_myMesh->getNumberOfNodes())*_nodeDoF;
+      // const int nLocalDof = (_myMesh->getNumberOfNodes())*_nodeDoF;
+      const int nLocalDof = _field.size(); // Doing it this way for flexible membrane. Bad! Go back to the other way.
       for(uint i = 0; i < nLocalDof; i++)
 	_field[i] += fact*localValues[i];
     };
@@ -191,6 +197,7 @@ namespace voom{
 
     //! Write VTK output for LJ Boundary Condition
     void writeLJBCPolyData(string OutputFile, int step);
+    void writeFlexibleMembraneBCPolyData(string OutputFile, int step);
  
     //! Solve the system
     void compute(Result * R);
@@ -232,12 +239,20 @@ namespace voom{
     Real computeCurrentVolume();
 
     // Functions for a Lennard-Jones type boundary condition
-    void initializeLennardJonesBC(const string bodyPotentialBoundaryNodesFile, Mesh* rigidPotentialBoundaryMesh, Mesh* bodyPotentialBoundaryMesh, Real searchRadius, Real depthPotentialWell, Real minDistance);
+    void initializeLennardJonesBC(BCPotentialType BCType, const string bodyPotentialBoundaryNodesFile, Mesh* rigidPotentialBoundaryMesh, Mesh* bodyPotentialBoundaryMesh, Real searchRadius, Real depthPotentialWell, Real minDistance);
+    void initializeMembraneStiffness(double membraneStiffness);
     vector<Triplet<Real> > imposeLennardJones(Result& R);
+    vector<Triplet<Real> > imposeFlexibleMembrane(Result & R);
     void computeLJNormals();
     void findNearestRigidNeighbors();
     void setLJStiffness(double stiffness){_depthPotentialWell = stiffness;};
     void recomputeAverageMinDistance();
+    void toggleConstantMinimumDistanceFlag(bool constminDistFlag) {_useConstantMinimumDistance = constminDistFlag;};
+    void toggleNumberNeighborFlag(bool useNumberNeighborFlag, int numberNearestNeighborsToUse=1) {
+      _useNumberNeighborFlag = useNumberNeighborFlag;
+      _numberNearestNeighborsToUse = numberNearestNeighborsToUse;
+      this->findNearestRigidNeighbors();
+    };
 
   protected:
     //! Compute Deformation Gradient
@@ -263,7 +278,6 @@ namespace voom{
     vector<Real > * _forces;
 
     vector<Real > _prevField;
-
     int _resetFlag;
 
     // Spring BC
@@ -283,15 +297,23 @@ namespace voom{
 
     // Members for imposing Lennard-Jones type boundary condition
     int _lennardJonesBCFlag;
+    BCPotentialType _potentialType;			// Quadratic, Quartic, LJ
     Mesh* _rigidPotentialBoundaryMesh;
     vector<int> _bodyPotentialBoundaryNodes;
     Mesh* _bodyPotentialBoundaryMesh;
     Real _searchRadius;
     Real _depthPotentialWell;
     Real _minDistance;
-    vector<vector<int> > _LJNodesToEle; // Stores the elements which are connected to a specific node
+    vector<vector<int> > _LJNodesToEle; 	// Stores the elements which are connected to a specific node
     vector<Vector3d> _rigidSurfaceNormals;
     vector<vector<int> > _rigidNeighbors;	// Stores each node and its rigid neighbors within a search radius
+    bool _useNumberNeighborFlag;		// Flag if true, uses the nearest single neighbor rather than a set of neighbors
+    int _numberNearestNeighborsToUse;		// Number of Neighbors to use
+    vector<double> _minDistancePerRigidNode;	// For a new formulation where the minimum distance is different for each rigid node
+    bool _useConstantMinimumDistance;		// Flag if true, uses the same minimum distance for every node
+    bool _makeFlexible;				// Makes the boundary condition flexible
+    double _membraneStiffnessCoefficient;		// Used for surface in plane membrane stiffness
+    vector<Real> _membraneField;		// Field vector of just the membrane nodes
   };
 
 } // namespace voom
