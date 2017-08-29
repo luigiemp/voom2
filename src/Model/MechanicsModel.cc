@@ -23,10 +23,11 @@ namespace voom {
       _lennardJonesBCFlag = 0;
       _makeFlexible = false;
 
-      // if (_pressureFlag == 1) {
       _prevField.resize( _field.size() );
       this->setPrevField();
-      // }
+
+      // Start with no Lagrange multiplier formulation
+      _lagrangeMultiplierFlag = false;
     }
 
 
@@ -128,7 +129,7 @@ namespace voom {
 
       // Loop over quadrature points
       for(int q = 0; q < numQP; q++) {
-	// cout << "Element: " << e << "\tQuadrature: " << q << endl;
+	// cout << "Element: " << e << "\tQuadrature: " << q << Flist[q] << endl;
         _materials[e*numQP + q]->compute(FKres, Flist[q]);
 
         // Volume associated with QP q
@@ -229,6 +230,11 @@ namespace voom {
       vector<Triplet<Real> > KtripletList_FromLJ = this->imposeLennardJones(*R);
       KtripletList.insert(KtripletList.end(), KtripletList_FromLJ.begin(), KtripletList_FromLJ.end());
     }
+    if (_lagrangeMultiplierFlag) {
+      R->resizeDoFDataStructures(_field.size());
+      vector<Triplet<Real> > KtripletList_FromLagrangeMultiplier = this->imposeLagrangeMultiplier(*R);
+      KtripletList.insert(KtripletList.end(), KtripletList_FromLagrangeMultiplier.begin(), KtripletList_FromLagrangeMultiplier.end());
+    }
 
     // Sum up all stiffness entries with the same indices
     if ( R->getRequest() & STIFFNESS ) {
@@ -290,11 +296,13 @@ namespace voom {
   } // Compute Mechanics Model
 
   void MechanicsModel::finalizeCompute() {
+
+    this->setPrevField();
     // The following code keeps track of \bar{x} which is used as the anchor point
     // for the linear springs
     if (_springBCflag) {
       // Compute new normals
-      computeNormals();
+      computeSpringNormals();
       computeAnchorPoints(); 
     }
 
@@ -373,7 +381,7 @@ namespace voom {
     // this->setPrevField();
 
     // Recompute normals - no change if _prevField has not changed.
-    // this->computeNormals();
+    // this->computeSpringNormals();
 
     // Loop through _spNodes
     for(int n = 0; n < _spNodes.size(); n++)
@@ -413,7 +421,7 @@ namespace voom {
 
 
 
-  void MechanicsModel::computeNormals() {
+  void MechanicsModel::computeSpringNormals() {
 
     // First compute normal of any element in _spMesh
     const vector<GeomElement* > elements = _spMesh->getElements();
@@ -520,7 +528,7 @@ namespace voom {
 
     _spNormals.resize(_spNodes.size(), Vector3d::Zero());
     // Compute initial node normals
-    this->computeNormals();
+    this->computeSpringNormals();
     this->computeAnchorPoints();
 
   } // InitSpringBC
@@ -896,7 +904,7 @@ namespace voom {
     assert(numLJNodes == _bodyPotentialBoundaryNodes.size());
     cout << "** Applying the Lennard-Jones Potential BC to " << numLJNodes << " nodes." << endl;
 
-    // Compute normals - For now we can use the computeNormals function from the linear spring methods
+    // Compute normals
     const vector<GeomElement* > elements = _rigidPotentialBoundaryMesh->getElements();
 
     for (int n = 0; n < _rigidPotentialBoundaryMesh->getNumberOfNodes(); n++) {
@@ -926,6 +934,7 @@ namespace voom {
   void MechanicsModel::initializeMembraneStiffness(double membraneStiffness) {
     _makeFlexible = true;
     _membraneStiffnessCoefficient = membraneStiffness;
+    _preTensionFactor = 1.0;
 
     // Steps:
     // - Get number of nodes from mesh
@@ -1114,7 +1123,7 @@ namespace voom {
           double tempEnergy = 0.0;
 	
 	  for (int edge_iter = 0; edge_iter < currentEdgeVectors.size(); edge_iter++)
-	    tempEnergy += _membraneStiffnessCoefficient/2.0 * pow(currentEdgeVectors[edge_iter].norm() - referenceEdgeVectors[edge_iter].norm(), 2.0);
+	    tempEnergy += _membraneStiffnessCoefficient/2.0 * pow(currentEdgeVectors[edge_iter].norm() - _preTensionFactor * referenceEdgeVectors[edge_iter].norm(), 2.0);
           R.addEnergy(tempEnergy);
         } // End ENERGY
 	if (R.getRequest() & FORCE) {
@@ -1123,8 +1132,8 @@ namespace voom {
 	      int nodeID1 = elNodeIds[vertexes[edge_iter].first];
               int nodeID2 = elNodeIds[vertexes[edge_iter].second];
 
-	      R.addResidual(numMainNodes * _nodeDoF + nodeID1 * _nodeDoF + i,  1.0 * _membraneStiffnessCoefficient * (currentEdgeVectors[edge_iter](i) - referenceEdgeVectors[edge_iter].norm() * currentEdgeVectors[edge_iter](i) / currentEdgeVectors[edge_iter].norm()));
-              R.addResidual(numMainNodes * _nodeDoF + nodeID2 * _nodeDoF + i, -1.0 * _membraneStiffnessCoefficient * (currentEdgeVectors[edge_iter](i) - referenceEdgeVectors[edge_iter].norm() * currentEdgeVectors[edge_iter](i) / currentEdgeVectors[edge_iter].norm()));
+	      R.addResidual(numMainNodes * _nodeDoF + nodeID1 * _nodeDoF + i,  1.0 * _membraneStiffnessCoefficient * (currentEdgeVectors[edge_iter](i) - _preTensionFactor * referenceEdgeVectors[edge_iter].norm() * currentEdgeVectors[edge_iter](i) / currentEdgeVectors[edge_iter].norm()));
+              R.addResidual(numMainNodes * _nodeDoF + nodeID2 * _nodeDoF + i, -1.0 * _membraneStiffnessCoefficient * (currentEdgeVectors[edge_iter](i) - _preTensionFactor * referenceEdgeVectors[edge_iter].norm() * currentEdgeVectors[edge_iter](i) / currentEdgeVectors[edge_iter].norm()));
 
 	    }
 	  }
@@ -1136,13 +1145,13 @@ namespace voom {
 		int nodeID1 = elNodeIds[vertexes[edge_iter].first];
                 int nodeID2 = elNodeIds[vertexes[edge_iter].second];
 
-	        KtripletList_FromFlexibleBoundary.push_back(Triplet<Real >( numMainNodes * _nodeDoF + nodeID1 * _nodeDoF + i, numMainNodes * _nodeDoF + nodeID1 * _nodeDoF + j, _membraneStiffnessCoefficient * (identityMat(i,j) - referenceEdgeVectors[edge_iter].norm() * (identityMat(i,j) / currentEdgeVectors[edge_iter].norm() - currentEdgeVectors[edge_iter](i) * currentEdgeVectors[edge_iter](j)/ pow(currentEdgeVectors[edge_iter].norm(),3)))));
+	        KtripletList_FromFlexibleBoundary.push_back(Triplet<Real >( numMainNodes * _nodeDoF + nodeID1 * _nodeDoF + i, numMainNodes * _nodeDoF + nodeID1 * _nodeDoF + j, _membraneStiffnessCoefficient * (identityMat(i,j) - _preTensionFactor * referenceEdgeVectors[edge_iter].norm() * (identityMat(i,j) / currentEdgeVectors[edge_iter].norm() - currentEdgeVectors[edge_iter](i) * currentEdgeVectors[edge_iter](j)/ pow(currentEdgeVectors[edge_iter].norm(),3)))));
 
-	        KtripletList_FromFlexibleBoundary.push_back(Triplet<Real >( numMainNodes * _nodeDoF + nodeID2 * _nodeDoF + i, numMainNodes * _nodeDoF + nodeID2 * _nodeDoF + j, _membraneStiffnessCoefficient * (identityMat(i,j) - referenceEdgeVectors[edge_iter].norm() * (identityMat(i,j) / currentEdgeVectors[edge_iter].norm() - currentEdgeVectors[edge_iter](i) * currentEdgeVectors[edge_iter](j)/ pow(currentEdgeVectors[edge_iter].norm(),3)))));
+	        KtripletList_FromFlexibleBoundary.push_back(Triplet<Real >( numMainNodes * _nodeDoF + nodeID2 * _nodeDoF + i, numMainNodes * _nodeDoF + nodeID2 * _nodeDoF + j, _membraneStiffnessCoefficient * (identityMat(i,j) - _preTensionFactor * referenceEdgeVectors[edge_iter].norm() * (identityMat(i,j) / currentEdgeVectors[edge_iter].norm() - currentEdgeVectors[edge_iter](i) * currentEdgeVectors[edge_iter](j)/ pow(currentEdgeVectors[edge_iter].norm(),3)))));
 
-		KtripletList_FromFlexibleBoundary.push_back(Triplet<Real >( numMainNodes * _nodeDoF + nodeID1 * _nodeDoF + i, numMainNodes * _nodeDoF + nodeID2 * _nodeDoF + j, -1.0 * _membraneStiffnessCoefficient * (identityMat(i,j) - referenceEdgeVectors[edge_iter].norm() * (identityMat(i,j) / currentEdgeVectors[edge_iter].norm() - currentEdgeVectors[edge_iter](i) * currentEdgeVectors[edge_iter](j)/ pow(currentEdgeVectors[edge_iter].norm(),3)))));
+		KtripletList_FromFlexibleBoundary.push_back(Triplet<Real >( numMainNodes * _nodeDoF + nodeID1 * _nodeDoF + i, numMainNodes * _nodeDoF + nodeID2 * _nodeDoF + j, -1.0 * _membraneStiffnessCoefficient * (identityMat(i,j) - _preTensionFactor * referenceEdgeVectors[edge_iter].norm() * (identityMat(i,j) / currentEdgeVectors[edge_iter].norm() - currentEdgeVectors[edge_iter](i) * currentEdgeVectors[edge_iter](j)/ pow(currentEdgeVectors[edge_iter].norm(),3)))));
 
-		KtripletList_FromFlexibleBoundary.push_back(Triplet<Real >( numMainNodes * _nodeDoF + nodeID2 * _nodeDoF + i, numMainNodes * _nodeDoF + nodeID1 * _nodeDoF + j, -1.0 * _membraneStiffnessCoefficient * (identityMat(i,j) - referenceEdgeVectors[edge_iter].norm() * (identityMat(i,j) / currentEdgeVectors[edge_iter].norm() - currentEdgeVectors[edge_iter](i) * currentEdgeVectors[edge_iter](j)/ pow(currentEdgeVectors[edge_iter].norm(),3)))));
+		KtripletList_FromFlexibleBoundary.push_back(Triplet<Real >( numMainNodes * _nodeDoF + nodeID2 * _nodeDoF + i, numMainNodes * _nodeDoF + nodeID1 * _nodeDoF + j, -1.0 * _membraneStiffnessCoefficient * (identityMat(i,j) - _preTensionFactor * referenceEdgeVectors[edge_iter].norm() * (identityMat(i,j) / currentEdgeVectors[edge_iter].norm() - currentEdgeVectors[edge_iter](i) * currentEdgeVectors[edge_iter](j)/ pow(currentEdgeVectors[edge_iter].norm(),3)))));
 
 	      } // End edgeLoop Iter
 	    } // End j loop
@@ -1178,7 +1187,7 @@ namespace voom {
 	    // Because edges get counted twice, we need to count midside nodes twice by multiplying x2
 	    double tempMembraneStiffnessCoefficient = (edge_iter < 6) ? _membraneStiffnessCoefficient : _membraneStiffnessCoefficient * 2.0;
  	    // cout << "Energy: " << tempMembraneStiffnessCoefficient/2.0 * pow(currentEdgeVectors[edge_iter].norm() - referenceEdgeVectors[edge_iter].norm(), 2.0) << "\t" << currentEdgeVectors[edge_iter].norm() << "\t" << referenceEdgeVectors[edge_iter].norm() << endl;
-            tempEnergy += tempMembraneStiffnessCoefficient/2.0 * pow(currentEdgeVectors[edge_iter].norm() - referenceEdgeVectors[edge_iter].norm(), 2.0);
+            tempEnergy += tempMembraneStiffnessCoefficient/2.0 * pow(currentEdgeVectors[edge_iter].norm() - _preTensionFactor * referenceEdgeVectors[edge_iter].norm(), 2.0);
 	  }
           R.addEnergy(tempEnergy);
         } // End ENERGY
@@ -1190,8 +1199,8 @@ namespace voom {
 	      double tempMembraneStiffnessCoefficient = (edge_iter < 6) ? _membraneStiffnessCoefficient : _membraneStiffnessCoefficient * 2.0;
               int nodeID1 = elNodeIds[vertexes[edge_iter].first];
               int nodeID2 = elNodeIds[vertexes[edge_iter].second];
-              R.addResidual(numMainNodes * _nodeDoF + nodeID1 * _nodeDoF + i,  1.0 * tempMembraneStiffnessCoefficient * (currentEdgeVectors[edge_iter](i) - referenceEdgeVectors[edge_iter].norm() * currentEdgeVectors[edge_iter](i) / currentEdgeVectors[edge_iter].norm()));
-              R.addResidual(numMainNodes * _nodeDoF + nodeID2 * _nodeDoF + i, -1.0 * tempMembraneStiffnessCoefficient * (currentEdgeVectors[edge_iter](i) - referenceEdgeVectors[edge_iter].norm() * currentEdgeVectors[edge_iter](i) / currentEdgeVectors[edge_iter].norm()));
+              R.addResidual(numMainNodes * _nodeDoF + nodeID1 * _nodeDoF + i,  1.0 * tempMembraneStiffnessCoefficient * (currentEdgeVectors[edge_iter](i) - _preTensionFactor * referenceEdgeVectors[edge_iter].norm() * currentEdgeVectors[edge_iter](i) / currentEdgeVectors[edge_iter].norm()));
+              R.addResidual(numMainNodes * _nodeDoF + nodeID2 * _nodeDoF + i, -1.0 * tempMembraneStiffnessCoefficient * (currentEdgeVectors[edge_iter](i) - _preTensionFactor * referenceEdgeVectors[edge_iter].norm() * currentEdgeVectors[edge_iter](i) / currentEdgeVectors[edge_iter].norm()));
             }
           }
         }
@@ -1204,13 +1213,13 @@ namespace voom {
                 int nodeID1 = elNodeIds[vertexes[edge_iter].first];
                 int nodeID2 = elNodeIds[vertexes[edge_iter].second];
 
-                KtripletList_FromFlexibleBoundary.push_back(Triplet<Real >( numMainNodes * _nodeDoF + nodeID1 * _nodeDoF + i, numMainNodes * _nodeDoF + nodeID1 * _nodeDoF + j, tempMembraneStiffnessCoefficient * (identityMat(i,j) - referenceEdgeVectors[edge_iter].norm() * (identityMat(i,j) / currentEdgeVectors[edge_iter].norm() - currentEdgeVectors[edge_iter](i) * currentEdgeVectors[edge_iter](j)/ pow(currentEdgeVectors[edge_iter].norm(),3)))));
+                KtripletList_FromFlexibleBoundary.push_back(Triplet<Real >( numMainNodes * _nodeDoF + nodeID1 * _nodeDoF + i, numMainNodes * _nodeDoF + nodeID1 * _nodeDoF + j, tempMembraneStiffnessCoefficient * (identityMat(i,j) - _preTensionFactor * referenceEdgeVectors[edge_iter].norm() * (identityMat(i,j) / currentEdgeVectors[edge_iter].norm() - currentEdgeVectors[edge_iter](i) * currentEdgeVectors[edge_iter](j)/ pow(currentEdgeVectors[edge_iter].norm(),3)))));
 
-                KtripletList_FromFlexibleBoundary.push_back(Triplet<Real >( numMainNodes * _nodeDoF + nodeID2 * _nodeDoF + i, numMainNodes * _nodeDoF + nodeID2 * _nodeDoF + j, tempMembraneStiffnessCoefficient * (identityMat(i,j) - referenceEdgeVectors[edge_iter].norm() * (identityMat(i,j) / currentEdgeVectors[edge_iter].norm() - currentEdgeVectors[edge_iter](i) * currentEdgeVectors[edge_iter](j)/ pow(currentEdgeVectors[edge_iter].norm(),3)))));
+                KtripletList_FromFlexibleBoundary.push_back(Triplet<Real >( numMainNodes * _nodeDoF + nodeID2 * _nodeDoF + i, numMainNodes * _nodeDoF + nodeID2 * _nodeDoF + j, tempMembraneStiffnessCoefficient * (identityMat(i,j) - _preTensionFactor * referenceEdgeVectors[edge_iter].norm() * (identityMat(i,j) / currentEdgeVectors[edge_iter].norm() - currentEdgeVectors[edge_iter](i) * currentEdgeVectors[edge_iter](j)/ pow(currentEdgeVectors[edge_iter].norm(),3)))));
 
-                KtripletList_FromFlexibleBoundary.push_back(Triplet<Real >( numMainNodes * _nodeDoF + nodeID1 * _nodeDoF + i, numMainNodes * _nodeDoF + nodeID2 * _nodeDoF + j, -1.0 * tempMembraneStiffnessCoefficient * (identityMat(i,j) - referenceEdgeVectors[edge_iter].norm() * (identityMat(i,j) / currentEdgeVectors[edge_iter].norm() - currentEdgeVectors[edge_iter](i) * currentEdgeVectors[edge_iter](j)/ pow(currentEdgeVectors[edge_iter].norm(),3)))));
+                KtripletList_FromFlexibleBoundary.push_back(Triplet<Real >( numMainNodes * _nodeDoF + nodeID1 * _nodeDoF + i, numMainNodes * _nodeDoF + nodeID2 * _nodeDoF + j, -1.0 * tempMembraneStiffnessCoefficient * (identityMat(i,j) - _preTensionFactor * referenceEdgeVectors[edge_iter].norm() * (identityMat(i,j) / currentEdgeVectors[edge_iter].norm() - currentEdgeVectors[edge_iter](i) * currentEdgeVectors[edge_iter](j)/ pow(currentEdgeVectors[edge_iter].norm(),3)))));
 
-                KtripletList_FromFlexibleBoundary.push_back(Triplet<Real >( numMainNodes * _nodeDoF + nodeID2 * _nodeDoF + i, numMainNodes * _nodeDoF + nodeID1 * _nodeDoF + j, -1.0 * tempMembraneStiffnessCoefficient * (identityMat(i,j) - referenceEdgeVectors[edge_iter].norm() * (identityMat(i,j) / currentEdgeVectors[edge_iter].norm() - currentEdgeVectors[edge_iter](i) * currentEdgeVectors[edge_iter](j)/ pow(currentEdgeVectors[edge_iter].norm(),3)))));
+                KtripletList_FromFlexibleBoundary.push_back(Triplet<Real >( numMainNodes * _nodeDoF + nodeID2 * _nodeDoF + i, numMainNodes * _nodeDoF + nodeID1 * _nodeDoF + j, -1.0 * tempMembraneStiffnessCoefficient * (identityMat(i,j) - _preTensionFactor * referenceEdgeVectors[edge_iter].norm() * (identityMat(i,j) / currentEdgeVectors[edge_iter].norm() - currentEdgeVectors[edge_iter](i) * currentEdgeVectors[edge_iter](j)/ pow(currentEdgeVectors[edge_iter].norm(),3)))));
 
               }
             }
@@ -1383,6 +1392,444 @@ namespace voom {
       cout << "Resetting each rigid node BC's Minimum Distance. Average turns out to be " << totalAverage << endl;
     }
   } // end recomputeAverageMinDistance
+
+
+  // Lagrange Multiplier method
+  void MechanicsModel::initializeLagrangeMultiplierMethod(Mesh* EndocardialSurfMesh, Mesh* surfaceCapMesh, vector<int> endoBaseRingNodeSet, double vd) {
+    _lagrangeMultiplierFlag = true;
+    _EndocardialSurfMesh = EndocardialSurfMesh;
+    _surfaceCapMesh = surfaceCapMesh;
+    _endoBaseRingNodeSet = endoBaseRingNodeSet;
+    _vd = vd;
+
+    // Pushing 0.0 as the initial Lagrange multiplier value
+    _field.push_back(0.0);
+
+    // Loop through the ring nodes and map them to a midnode:
+    int baseCenterNodeId = _endoBaseRingNodeSet.size();
+    vector<GeomElement*> surfaceCapElements = _surfaceCapMesh->getElements();
+    for (int el_iter = 0; el_iter < surfaceCapElements.size(); el_iter++) {
+      vector<int> el_nodeIds = surfaceCapElements[el_iter]->getNodesID();
+
+      if (el_nodeIds.size() > 3) {
+        if (el_nodeIds.size() > 6) {
+          cout << "ERROR: LagrangeMultiplier method only works for linear or quadratic triangles at the moment." << endl;
+          exit(EXIT_FAILURE);
+        }
+        // Node 0 and Node 1
+        if (el_nodeIds[0] == baseCenterNodeId || el_nodeIds[1] == baseCenterNodeId) {
+          int edgeVertex = (el_nodeIds[0] == baseCenterNodeId) ? el_nodeIds[1] : el_nodeIds[0];
+	  int midNode = el_nodeIds[3];
+
+	  bool AlreadyExists = false;
+	  for (int pair_iter = 0; pair_iter < _ringAndMidsideNodePairs.size(); pair_iter++) {
+	    if (_ringAndMidsideNodePairs[pair_iter].first == edgeVertex) { AlreadyExists = true; break;}
+	  }
+	  if (!AlreadyExists) {
+	    pair <int,int> tempPair = make_pair(edgeVertex, midNode);
+	    _ringAndMidsideNodePairs.push_back(tempPair);
+	  }
+        }
+        if (el_nodeIds[1] == baseCenterNodeId || el_nodeIds[2] == baseCenterNodeId) {
+          int edgeVertex = (el_nodeIds[1] == baseCenterNodeId) ? el_nodeIds[2] : el_nodeIds[1];
+	  int midNode = el_nodeIds[4];
+	  
+	  bool AlreadyExists = false;
+	  for (int pair_iter = 0; pair_iter < _ringAndMidsideNodePairs.size(); pair_iter++) {
+	    if (_ringAndMidsideNodePairs[pair_iter].first == edgeVertex) { AlreadyExists = true; break;}
+	  }
+	  if (!AlreadyExists) {
+	    pair <int,int> tempPair = make_pair(edgeVertex, midNode);
+	    _ringAndMidsideNodePairs.push_back(tempPair);
+	  }
+        }
+        if (el_nodeIds[2] == baseCenterNodeId || el_nodeIds[0] == baseCenterNodeId) {
+          int edgeVertex = (el_nodeIds[2] == baseCenterNodeId) ? el_nodeIds[0] : el_nodeIds[2];
+	  int midNode = el_nodeIds[5];
+
+	  bool AlreadyExists = false;
+	  for (int pair_iter = 0; pair_iter < _ringAndMidsideNodePairs.size(); pair_iter++) {
+	    if (_ringAndMidsideNodePairs[pair_iter].first == edgeVertex) { AlreadyExists = true; break;}
+	  }
+	  if (!AlreadyExists) {
+	    pair <int,int> tempPair = make_pair(edgeVertex, midNode);
+	    _ringAndMidsideNodePairs.push_back(tempPair);
+	  }
+        }
+      }
+    }
+  } // end initializeLagrangeMultiplierMethod
+
+  vector<Triplet<Real> > MechanicsModel::imposeLagrangeMultiplier(Result & R) {
+    vector<Triplet<Real > > KtripletList_FromLagrangeMultiplier;
+    
+    // Store lambda in a variable for easy access
+    int dimMainMesh = _myMesh->getDimension();
+    int lagrangeMultiplierIndex = _myMesh->getNumberOfNodes() * dimMainMesh;
+    if (_makeFlexible) lagrangeMultiplierIndex += _rigidPotentialBoundaryMesh->getNumberOfNodes() * _rigidPotentialBoundaryMesh->getDimension();
+    double lagrangeMultiplier = _field[lagrangeMultiplierIndex];
+
+    // Compute current volume
+    double currentCavityVolume = computeCavityVolume();
+
+    // Compute energy
+    if (R.getRequest() & ENERGY)
+      R.addEnergy(-1.0 * lagrangeMultiplier * (currentCavityVolume - _vd));
+
+    if (R.getRequest() & FORCE | STIFFNESS) {
+      // Loop through endocardial surface elements
+      int numEndocardialSurfElements = _EndocardialSurfMesh->getNumberOfElements();
+      vector<GeomElement*> endocardialSurfElements = _EndocardialSurfMesh->getElements();
+      int dim = _EndocardialSurfMesh->getDimension();
+
+      if (R.getRequest() & FORCE) // Have to put it here because we don't want it in the quadrature point/element loop, \frac{\partial \Pi}{\partial \lambda}
+        R.addResidual(lagrangeMultiplierIndex, -1.0 * (currentCavityVolume - _vd));
+      
+      for(int e = 0; e < numEndocardialSurfElements; e++)
+      {
+        GeomElement* geomEl = endocardialSurfElements[e];
+        const vector<int  >& NodesID = geomEl->getNodesID();
+        const int numQP    = geomEl->getNumberOfQuadPoints();
+        const int numNodes = NodesID.size();
+
+        // Loop over quadrature points
+        for(int q = 0; q < numQP; q++) {
+          // Quadrature weight associated with QP q
+          Real wq = geomEl->getQPweights(q);
+	  if (R.getRequest() & FORCE | STIFFNESS) { // Using both because we want to use components from the residual vector to fill the Stiffness matrix for d\pi/(dx d\lambda)
+            for (int d = 0; d < numNodes; d++) {
+	      for (int l = 0; l < dim; l++) {
+		int dl = NodesID[d] * dimMainMesh + l;
+	        double tempResidual = 0.0;
+		for (int b = 0; b < numNodes; b++) {
+		  for (int j = 0; j < dim; j++) {
+		    for (int c = 0; c < numNodes; c++) {
+		      for (int k = 0; k < dim; k++) {
+			int bj = NodesID[b] * dimMainMesh + j;
+			int ck = NodesID[c] * dimMainMesh + k;
+			tempResidual += _field[bj] * _field[ck] * (geomEl->getN(q,d) * LeviCivitaSymbol3(l,j,k) * geomEl->getDN(q,b,0) * geomEl->getDN(q,c,1)
+								 + geomEl->getN(q,b) * LeviCivitaSymbol3(j,l,k) * geomEl->getDN(q,d,0) * geomEl->getDN(q,c,1)
+								 + geomEl->getN(q,b) * LeviCivitaSymbol3(j,k,l) * geomEl->getDN(q,c,0) * geomEl->getDN(q,d,1));
+		      } // k loop
+		    } // c loop
+		  } // j loop
+		} // b loop
+		if (R.getRequest() & FORCE) R.addResidual(dl, -1./3. * lagrangeMultiplier * (tempResidual) * wq);
+		if (R.getRequest() & STIFFNESS) {
+		  // Fill in the d\pi/(dx d\lambda) terms:
+		  KtripletList_FromLagrangeMultiplier.push_back(Triplet<Real>(dl, lagrangeMultiplierIndex, -1./3. * (tempResidual) * wq));
+                  KtripletList_FromLagrangeMultiplier.push_back(Triplet<Real>(lagrangeMultiplierIndex, dl, -1./3. * (tempResidual) * wq));
+	        }
+	      } // l loop
+            } // d loop
+	  } // end FORCE & PART OF STIFFNESS
+	  if (R.getRequest() & STIFFNESS) {
+	    for (int d = 0; d < numNodes; d++) {
+              for (int l = 0; l < dim; l++) {
+		int dl = NodesID[d] * dimMainMesh + l;
+                for (int f = 0; f < numNodes; f++) {
+                  for (int m = 0; m < dim; m++) { 
+		    double tempStiffness = 0.0;
+		    for (int c = 0; c < numNodes; c++) {
+		      for (int k = 0; k < dim; k++) {
+		        int ck = NodesID[c] * dimMainMesh + k;
+			tempStiffness += _field[ck] * (geomEl->getN(q,d) * (LeviCivitaSymbol3(l,m,k) * geomEl->getDN(q,f,0) * geomEl->getDN(q,c,1) + LeviCivitaSymbol3(l,k,m) * geomEl->getDN(q,c,0) * geomEl->getDN(q,f,1))
+						     + geomEl->getN(q,f) * (LeviCivitaSymbol3(m,l,k) * geomEl->getDN(q,d,0) * geomEl->getDN(q,c,1) + LeviCivitaSymbol3(m,k,l) * geomEl->getDN(q,c,0) * geomEl->getDN(q,d,1))
+						     + geomEl->getN(q,c) * (LeviCivitaSymbol3(k,l,m) * geomEl->getDN(q,d,0) * geomEl->getDN(q,f,1) + LeviCivitaSymbol3(k,m,l) * geomEl->getDN(q,f,0) * geomEl->getDN(q,d,1)));
+		      } // k loop
+		    } // c loop
+		    KtripletList_FromLagrangeMultiplier.push_back(Triplet<Real>(NodesID[d] * dim + l, NodesID[f] * dim + m, -1./3. * lagrangeMultiplier * tempStiffness * wq));
+		  } // m loop
+		} // f loop
+	      } // l loop
+	    } // d loop
+          } // end STIFFNESS
+        } // end loop over quadrature points
+      } // end loop over elements
+      
+
+      // ******* Now let's loop over surface cap elements
+      int numSurfaceCapElements = _surfaceCapMesh->getNumberOfElements();
+      vector<GeomElement*> surfaceCapElements = _surfaceCapMesh->getElements();
+      dim = _surfaceCapMesh->getDimension();
+      vector <double> auxiliarySurfaceResidual(_surfaceCapMesh->getNumberOfNodes() * dim, 0.0);
+      MatrixXd auxiliarySurfaceStiffness = MatrixXd::Zero(_surfaceCapMesh->getNumberOfNodes() * dim + 1, _surfaceCapMesh->getNumberOfNodes() * dim + 1); // +1 for including Lagrange Multiplier terms
+      int auxiliaryLagrangeMultiplierIndex = _surfaceCapMesh->getNumberOfNodes() * dim;
+      for (int e = 0; e < numSurfaceCapElements; e++)
+      {
+        GeomElement* geomEl = surfaceCapElements[e];
+        const vector<int  >& NodesID = geomEl->getNodesID();
+        const int numQP    = geomEl->getNumberOfQuadPoints();
+        const int numNodes = NodesID.size();
+	
+	// Loop through quadrature points
+	for (int q = 0; q < numQP; q++) {
+	  Real wq = geomEl->getQPweights(q);
+	    if (R.getRequest() & FORCE | STIFFNESS) { // Using both because we want to use components from the residual vector to fill the Stiffness matrix for d\pi/(dx d\lambda)
+	    for (int d = 0; d < numNodes; d++) {
+              for (int l = 0; l < dim; l++) {
+                int dl = NodesID[d] * dimMainMesh + l;
+                double tempResidual = 0.0;
+                for (int b = 0; b < numNodes; b++) {
+                  for (int j = 0; j < dim; j++) { 
+                    for (int c = 0; c < numNodes; c++) {
+                      for (int k = 0; k < dim; k++) {
+                        int bj = NodesID[b] * dimMainMesh + j;
+                        int ck = NodesID[c] * dimMainMesh + k;
+                        tempResidual += _surfaceCapMesh->getX(NodesID[b],j) * _surfaceCapMesh->getX(NodesID[c],k) * (geomEl->getN(q,d) * LeviCivitaSymbol3(l,j,k) * geomEl->getDN(q,b,0) * geomEl->getDN(q,c,1)
+                                                                 + geomEl->getN(q,b) * LeviCivitaSymbol3(j,l,k) * geomEl->getDN(q,d,0) * geomEl->getDN(q,c,1)
+                                                                 + geomEl->getN(q,b) * LeviCivitaSymbol3(j,k,l) * geomEl->getDN(q,c,0) * geomEl->getDN(q,d,1));
+                      } // k loop
+                    } // c loop
+                  } // j loop
+                } // b loop
+                if (R.getRequest() & FORCE) auxiliarySurfaceResidual[dl] += -1./3. * lagrangeMultiplier * (tempResidual) * wq;
+		if (R.getRequest() & STIFFNESS) {
+                  // Fill in the d\pi/(dx d\lambda) terms:
+                  auxiliarySurfaceStiffness(dl, auxiliaryLagrangeMultiplierIndex) += -1./3. * (tempResidual) * wq;
+                  auxiliarySurfaceStiffness(auxiliaryLagrangeMultiplierIndex, dl) += -1./3. * (tempResidual) * wq;
+                }
+              } // l loop
+            } // d loop
+	  } // End Force and part ofStiffness Request
+	  if (R.getRequest() & STIFFNESS) {
+            for (int d = 0; d < numNodes; d++) {
+              for (int l = 0; l < dim; l++) {
+                int dl = NodesID[d] * dimMainMesh + l;
+                for (int f = 0; f < numNodes; f++) {
+                  for (int m = 0; m < dim; m++) {
+		    int fm = NodesID[f] * dim + m;
+                    double tempStiffness = 0.0;
+                    for (int c = 0; c < numNodes; c++) {
+                      for (int k = 0; k < dim; k++) {
+                        int ck = NodesID[c] * dimMainMesh + k;
+                        tempStiffness += _surfaceCapMesh->getX(NodesID[c],k) * (geomEl->getN(q,d) * (LeviCivitaSymbol3(l,m,k) * geomEl->getDN(q,f,0) * geomEl->getDN(q,c,1) + LeviCivitaSymbol3(l,k,m) * geomEl->getDN(q,c,0) * geomEl->getDN(q,f,1))
+                                                     + geomEl->getN(q,f) * (LeviCivitaSymbol3(m,l,k) * geomEl->getDN(q,d,0) * geomEl->getDN(q,c,1) + LeviCivitaSymbol3(m,k,l) * geomEl->getDN(q,c,0) * geomEl->getDN(q,d,1))
+                                                     + geomEl->getN(q,c) * (LeviCivitaSymbol3(k,l,m) * geomEl->getDN(q,d,0) * geomEl->getDN(q,f,1) + LeviCivitaSymbol3(k,m,l) * geomEl->getDN(q,f,0) * geomEl->getDN(q,d,1)));
+                      } // k loop
+                    } // c loop
+                    auxiliarySurfaceStiffness(dl, fm) += -1./3. * lagrangeMultiplier * tempStiffness * wq;
+                  } // m loop
+                } // f loop
+              } // l loop
+            } // d loop
+          } // end STIFFNESS
+        } // end loop over quadrature points
+      } // Loop over surface cap elements
+
+      if (R.getRequest() & FORCE) {
+	// Add the auxiliarySurfaceResidual to the Results residual
+	int centerNodeIndex = _endoBaseRingNodeSet.size();
+	// First, add all the force contribution from the midside surface cap nodes
+	for (int pair_iter = 0; pair_iter < _ringAndMidsideNodePairs.size(); pair_iter++) {
+	  int edgeVertex = _ringAndMidsideNodePairs[pair_iter].first;
+	  int midSideNode = _ringAndMidsideNodePairs[pair_iter].second;
+	  for (int dimIter = 0; dimIter < dim; dimIter++) {
+	    for (int ringNodeIter = 0; ringNodeIter < _endoBaseRingNodeSet.size(); ringNodeIter++)
+	      auxiliarySurfaceResidual[ringNodeIter * dim + dimIter] += 0.5/_endoBaseRingNodeSet.size() * auxiliarySurfaceResidual[midSideNode * dim + dimIter];
+	    auxiliarySurfaceResidual[edgeVertex * dim + dimIter] += 0.5 * auxiliarySurfaceResidual[midSideNode * dim + dimIter];
+	  }
+	}
+	
+        // Next start by adding the center node contribution to all the ring node
+	// And at the same time add the auxiliarySurfaceResidual to the full residual vector
+	for (int ringNodeIter = 0; ringNodeIter < _endoBaseRingNodeSet.size(); ringNodeIter++) {
+          for (int dimIter = 0; dimIter < dim; dimIter++) {
+            auxiliarySurfaceResidual[ringNodeIter * dim + dimIter] += 1.0/_endoBaseRingNodeSet.size() * auxiliarySurfaceResidual[centerNodeIndex * dim + dimIter];
+	    R.addResidual(_endoBaseRingNodeSet[ringNodeIter] * dim + dimIter, auxiliarySurfaceResidual[ringNodeIter * dim + dimIter]);
+          } // dimension iter
+        } // Ring node iter
+      } // end force request
+
+      if (R.getRequest() & STIFFNESS) {
+	// Add the auxiliarySurfaceResidual to the Results residual
+	int centerNodeIndex = _endoBaseRingNodeSet.size();
+	// Center Node Contributions to the global stiffness:
+	for (int d = 0; d < _endoBaseRingNodeSet.size(); d++) {
+	  for (int l = 0; l < dim; l++) {
+	    int dl = d * dim + l;
+	    for (int f = 0; f < _endoBaseRingNodeSet.size(); f++) {
+	      for (int m = 0; m < dim; m++) {
+		int fm = f * dim + m;
+		auxiliarySurfaceStiffness(dl,fm) += 1.0/pow(_endoBaseRingNodeSet.size(), 2) * auxiliarySurfaceStiffness(centerNodeIndex * dim + l, centerNodeIndex * dim + m);
+	      } // m loop
+	    } // f loop
+	    // These are contributions from the d2v/(dlambda dx) terms:
+	    auxiliarySurfaceStiffness(dl, auxiliaryLagrangeMultiplierIndex) += auxiliarySurfaceStiffness(centerNodeIndex * dim + l, auxiliaryLagrangeMultiplierIndex) * 1.0/_endoBaseRingNodeSet.size();
+            auxiliarySurfaceStiffness(auxiliaryLagrangeMultiplierIndex, dl) += auxiliarySurfaceStiffness(auxiliaryLagrangeMultiplierIndex, centerNodeIndex * dim + l) * 1.0/_endoBaseRingNodeSet.size();
+	  } // l loop
+	} // d loop
+	
+	// Midside node contributions
+	for (int d = 0; d < _ringAndMidsideNodePairs.size(); d++) {
+	  int d_edgeVertex = _ringAndMidsideNodePairs[d].first;
+          int d_midSideNode = _ringAndMidsideNodePairs[d].second;
+	  for (int l = 0; l < dim; l++) {
+	    for (int m = 0; m < dim; m++) {
+	      auxiliarySurfaceStiffness(d_edgeVertex * dim + l, d_edgeVertex * dim + m) += 0.25 * auxiliarySurfaceStiffness(d_midSideNode * dim + l, d_midSideNode * dim + m);
+	      for (int f_ringNodeIter = 0; f_ringNodeIter < _endoBaseRingNodeSet.size(); f_ringNodeIter++) {
+		auxiliarySurfaceStiffness(d_edgeVertex * dim + l, f_ringNodeIter * dim + m) += 0.25/_endoBaseRingNodeSet.size() * auxiliarySurfaceStiffness(d_midSideNode * dim + l, d_midSideNode * dim + m);
+		auxiliarySurfaceStiffness(f_ringNodeIter * dim + m, d_edgeVertex * dim + l) += 0.25/_endoBaseRingNodeSet.size() * auxiliarySurfaceStiffness(d_midSideNode * dim + m, d_midSideNode * dim + l);
+  	      } // end f_ringNodeIter loop
+	    } // end m loop
+	    // These are contributions from the d2v/(dlambda dx) terms:
+	    auxiliarySurfaceStiffness(d_edgeVertex * dim + l, auxiliaryLagrangeMultiplierIndex) += 0.5 * auxiliarySurfaceStiffness(d_midSideNode * dim + l, auxiliaryLagrangeMultiplierIndex);
+	    auxiliarySurfaceStiffness(auxiliaryLagrangeMultiplierIndex, d_edgeVertex * dim + l) += 0.5 * auxiliarySurfaceStiffness(auxiliaryLagrangeMultiplierIndex, d_midSideNode * dim + l);
+	    for (int d_ringNodeIter = 0; d_ringNodeIter < _endoBaseRingNodeSet.size(); d_ringNodeIter++) {
+	      for (int f_ringNodeIter = 0; f_ringNodeIter < _endoBaseRingNodeSet.size(); f_ringNodeIter++) {
+		for (int m = 0; m < dim; m++) {
+		  // Contributions from mid node on ring nodes
+		  auxiliarySurfaceStiffness(d_ringNodeIter * dim + l, f_ringNodeIter * dim + m) += 0.25/pow(_endoBaseRingNodeSet.size(), 2) * auxiliarySurfaceStiffness(d_midSideNode * dim + l, d_midSideNode * dim + m);
+		} // end m loop
+	      } // end loop f_ringNodeIter
+	      // These are contributions from the d2v/(dlambda dx) terms:
+              auxiliarySurfaceStiffness(d_ringNodeIter * dim + l, auxiliaryLagrangeMultiplierIndex) += 0.5/_endoBaseRingNodeSet.size() * auxiliarySurfaceStiffness(d_midSideNode * dim + l, auxiliaryLagrangeMultiplierIndex);
+	      auxiliarySurfaceStiffness(auxiliaryLagrangeMultiplierIndex, d_ringNodeIter * dim + l) += 0.5/_endoBaseRingNodeSet.size() * auxiliarySurfaceStiffness(auxiliaryLagrangeMultiplierIndex, d_midSideNode * dim + l);
+	    } // loop over ring nodes
+	  } // l loop
+	} // d loop
+
+	// Push back everything as triplets
+	// 1. The meshDoF
+	for (int d = 0; d < _endoBaseRingNodeSet.size(); d++) {
+	  for (int l = 0; l < dim; l++) {
+	    for (int f = 0; f < _endoBaseRingNodeSet.size(); f++) {
+	      for (int m = 0; m < dim; m++) {
+		KtripletList_FromLagrangeMultiplier.push_back(Triplet<Real>(_endoBaseRingNodeSet[d] * dim + l, _endoBaseRingNodeSet[f] * dim + m, auxiliarySurfaceStiffness(d * dim + l, f * dim + m)));		
+	      } // m loop
+	    } // f loop
+	    // 2. The Lagrange multiplier derivative terms
+	    KtripletList_FromLagrangeMultiplier.push_back(Triplet<Real>(_endoBaseRingNodeSet[d] * dim + l, lagrangeMultiplierIndex, auxiliarySurfaceStiffness(d * dim + l, auxiliaryLagrangeMultiplierIndex)));
+            KtripletList_FromLagrangeMultiplier.push_back(Triplet<Real>(lagrangeMultiplierIndex, _endoBaseRingNodeSet[d] * dim + l, auxiliarySurfaceStiffness(auxiliaryLagrangeMultiplierIndex, d * dim + l)));
+	  } // l loop
+	} // d loop
+	
+	
+	
+      } // EndIf request is stiffness
+    } // EndIf request is force or stiffness
+
+    return KtripletList_FromLagrangeMultiplier;
+  } // end imposeLagrangeMultiplier
+
+  // Compute Cavity Volume  
+  double MechanicsModel::computeCavityVolume() {
+    double volume = 0.0;
+  
+    // First deform the surfaceCapMesh
+    vector <VectorXd> surfaceCapMeshNewX;
+    VectorXd baseCenterNode(3);
+    baseCenterNode << 0.0, 0.0, 0.0;
+
+    // Preallocate the vector of vectorXd
+    for (int node_iter = 0; node_iter < _surfaceCapMesh->getNumberOfNodes(); node_iter++) {
+      VectorXd tempVecXd(3);
+      tempVecXd << _surfaceCapMesh->getX(node_iter, 0), _surfaceCapMesh->getX(node_iter, 1), _surfaceCapMesh->getX(node_iter, 2);
+      surfaceCapMeshNewX.push_back(tempVecXd);
+    }
+
+    vector<GeomElement*> surfaceCapElements = _surfaceCapMesh->getElements();
+
+    for (int surfCapNode_Iter = 0; surfCapNode_Iter < _endoBaseRingNodeSet.size(); surfCapNode_Iter++) {
+      surfaceCapMeshNewX[surfCapNode_Iter](0) = _field[_endoBaseRingNodeSet[surfCapNode_Iter] * 3 + 0];
+      surfaceCapMeshNewX[surfCapNode_Iter](1) = _field[_endoBaseRingNodeSet[surfCapNode_Iter] * 3 + 1];
+      surfaceCapMeshNewX[surfCapNode_Iter](2) = _field[_endoBaseRingNodeSet[surfCapNode_Iter] * 3 + 2];
+      baseCenterNode = baseCenterNode + surfaceCapMeshNewX[surfCapNode_Iter];
+    }
+
+    // Compute the center node of the base
+    baseCenterNode = baseCenterNode/_endoBaseRingNodeSet.size();
+    surfaceCapMeshNewX[_endoBaseRingNodeSet.size()] = baseCenterNode;
+    int baseCenterNodeId = _endoBaseRingNodeSet.size();
+  
+    // Compute positions of midside nodes
+    for (int pair_iter = 0; pair_iter < _ringAndMidsideNodePairs.size(); pair_iter++) {
+      int edgeVertex = _ringAndMidsideNodePairs[pair_iter].first;
+      int midSideNode = _ringAndMidsideNodePairs[pair_iter].second;
+      VectorXd midsideNodePosition = 0.5 * (surfaceCapMeshNewX[edgeVertex] + baseCenterNode);
+      surfaceCapMeshNewX[midSideNode] = midsideNodePosition;
+    }
+
+    /* // DELETE FROM HERE
+    for (int el_iter = 0; el_iter < surfaceCapElements.size(); el_iter++) {
+      vector<int> el_nodeIds = surfaceCapElements[el_iter]->getNodesID();
+
+      if (el_nodeIds.size() > 3) {
+	if (el_nodeIds.size() > 6) {
+	  cout << "ERROR: Can only compute midside node for a Quad triangle." << endl;
+	  return EXIT_FAILURE;
+	}
+	// Node 0 and Node 1
+	if (el_nodeIds[0] == baseCenterNodeId || el_nodeIds[1] == baseCenterNodeId) {
+	  int edgeVertex = (el_nodeIds[0] == baseCenterNodeId) ? el_nodeIds[1] : el_nodeIds[0];
+	  VectorXd midsideNode = 0.5 * (surfaceCapMeshNewX[edgeVertex] + baseCenterNode);
+	  surfaceCapMeshNewX[el_nodeIds[3]] = midsideNode;
+	}
+	if (el_nodeIds[1] == baseCenterNodeId || el_nodeIds[2] == baseCenterNodeId) {
+	  int edgeVertex = (el_nodeIds[1] == baseCenterNodeId) ? el_nodeIds[2] : el_nodeIds[1];
+	  VectorXd midsideNode = 0.5 * (surfaceCapMeshNewX[edgeVertex] + baseCenterNode);
+	  surfaceCapMeshNewX[el_nodeIds[4]] = midsideNode;
+	}
+	if (el_nodeIds[2] == baseCenterNodeId || el_nodeIds[0] == baseCenterNodeId) {
+	  int edgeVertex = (el_nodeIds[2] == baseCenterNodeId) ? el_nodeIds[0] : el_nodeIds[2];
+	  VectorXd midsideNode = 0.5 * (surfaceCapMeshNewX[edgeVertex] + baseCenterNode);
+	  surfaceCapMeshNewX[el_nodeIds[5]] = midsideNode;
+	}        
+      }
+    }
+    */ // DELETE TILL HERE
+
+    _surfaceCapMesh->setX(surfaceCapMeshNewX);
+
+    // Compute first the volume associated with myocardiumModel
+    vector<GeomElement*> endocardialElements = _EndocardialSurfMesh->getElements();
+    for (int el_iter = 0; el_iter < _EndocardialSurfMesh->getNumberOfElements(); el_iter++) {
+      vector <int> el_nodeIds = endocardialElements[el_iter]->getNodesID();
+
+      int numQP = endocardialElements[el_iter]->getNumberOfQuadPoints();
+      for (int quadPt_iter = 0; quadPt_iter < numQP; quadPt_iter++) {
+	Vector3d a1 = Vector3d::Zero(), a2 = Vector3d::Zero(), a3 = Vector3d::Zero();
+	Vector3d quadPtLocation = Vector3d::Zero();
+
+	for (int a = 0; a < el_nodeIds.size(); a++) {
+	  int nodeID = el_nodeIds[a];
+	  Vector3d current_x;
+	  current_x << _field[nodeID * 3], _field[nodeID * 3 + 1], _field[nodeID * 3 + 2];
+	  quadPtLocation += current_x * endocardialElements[el_iter]->getN(quadPt_iter, a);
+
+	  a1 += current_x * endocardialElements[el_iter]->getDN(quadPt_iter, a, 0);
+	  a2 += current_x * endocardialElements[el_iter]->getDN(quadPt_iter, a, 1);
+	}
+	a3 = a1.cross(a2);
+	volume += 1./3. * quadPtLocation.dot(a3) * endocardialElements[el_iter]->getQPweights(quadPt_iter);
+      }
+    } // End of for loop endocardial elements
+
+    // Compute the volume associated with surfaceCapMesh
+    for (int el_iter = 0; el_iter < _surfaceCapMesh->getNumberOfElements(); el_iter++) {
+      vector <int> el_nodeIds = surfaceCapElements[el_iter]->getNodesID();
+
+      int numQP = surfaceCapElements[el_iter]->getNumberOfQuadPoints();
+      for (int quadPt_iter = 0; quadPt_iter < numQP; quadPt_iter++) {
+	Vector3d a1 = Vector3d::Zero(), a2 = Vector3d::Zero(), a3 = Vector3d::Zero();
+	Vector3d quadPtLocation = Vector3d::Zero();
+
+	for (int a = 0; a < el_nodeIds.size(); a++) {
+	  int nodeID = el_nodeIds[a];
+	  Vector3d current_x;
+	  current_x << surfaceCapMeshNewX[nodeID](0), surfaceCapMeshNewX[nodeID](1), surfaceCapMeshNewX[nodeID](2);
+	  quadPtLocation += current_x * surfaceCapElements[el_iter]->getN(quadPt_iter, a);
+
+	  a1 += current_x * surfaceCapElements[el_iter]->getDN(quadPt_iter, a, 0);
+	  a2 += current_x * surfaceCapElements[el_iter]->getDN(quadPt_iter, a, 1);
+	}
+	a3 = a1.cross(a2);
+	volume += 1./3. * quadPtLocation.dot(a3) * surfaceCapElements[el_iter]->getQPweights(quadPt_iter);
+      }
+    } // End of for loop endocardial elements
+    return volume;
+  } // End computeCavityVolume
+
 
 
   // Writing output

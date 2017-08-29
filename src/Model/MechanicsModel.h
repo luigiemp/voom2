@@ -224,7 +224,7 @@ namespace voom{
     // Functions for applying spring BC
     // Initialize _springNodes (nodes at which spring BC are applied) and _springElements (elements connected to spring nodes)
     void initSpringBC(const string SpNodes, Mesh* SpMesh, Real SpringK);
-    void computeNormals();
+    void computeSpringNormals();
     vector<Triplet<Real > > applySpringBC(Result & R);
     void computeAnchorPoints();		// This is for \bar{x} formulation
 
@@ -253,6 +253,25 @@ namespace voom{
       _numberNearestNeighborsToUse = numberNearestNeighborsToUse;
       this->findNearestRigidNeighbors();
     };
+    void initiatePreTensionInMembrane(double preTensionFactor) {_preTensionFactor = preTensionFactor;};
+
+    //! Lagrange multiplier method
+    void initializeLagrangeMultiplierMethod(Mesh* EndocardialSurfMesh, Mesh* surfaceCapMesh, vector<int> endoBaseRingNodeSet, double vd);
+    void setLagrangeMultiplier(double lambda) {
+      int dimMainMesh = _myMesh->getDimension();
+      int lagrangeMultiplierIndex = _myMesh->getNumberOfNodes() * dimMainMesh;
+      if (_makeFlexible) lagrangeMultiplierIndex += _rigidPotentialBoundaryMesh->getNumberOfNodes() * _rigidPotentialBoundaryMesh->getDimension();
+      _field[lagrangeMultiplierIndex] = lambda;
+    };
+    double getLagrangeMultiplier() {
+      int dimMainMesh = _myMesh->getDimension();
+      int lagrangeMultiplierIndex = _myMesh->getNumberOfNodes() * dimMainMesh;
+      if (_makeFlexible) lagrangeMultiplierIndex += _rigidPotentialBoundaryMesh->getNumberOfNodes() * _rigidPotentialBoundaryMesh->getDimension();
+      return _field[lagrangeMultiplierIndex];
+    };
+    vector<Triplet<Real> > imposeLagrangeMultiplier(Result & R);
+    double computeCavityVolume();
+    void setTargetVolume(double vd){_vd = vd;};
 
   protected:
     //! Compute Deformation Gradient
@@ -314,6 +333,17 @@ namespace voom{
     bool _makeFlexible;				// Makes the boundary condition flexible
     double _membraneStiffnessCoefficient;		// Used for surface in plane membrane stiffness
     vector<Real> _membraneField;		// Field vector of just the membrane nodes
+    double _preTensionFactor;			// preTensionFactor
+
+    // Members for the Lagrange multiplier method and the Windkessel
+    // NOT AT ALL THE BEST WAY TO DO THIS:
+    bool _lagrangeMultiplierFlag;
+    Mesh* _EndocardialSurfMesh;
+    Mesh* _surfaceCapMesh;
+    vector<int> _endoBaseRingNodeSet;
+    vector<pair<int,int> > _ringAndMidsideNodePairs;	// This maps a ring node (first) to it's corresponding midside node (second) in the surfaceCapMesh
+    
+    double _vd;	// End-diastolic volume
   };
 
 } // namespace voom
