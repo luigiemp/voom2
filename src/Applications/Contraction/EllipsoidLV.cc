@@ -19,7 +19,8 @@
 using namespace voom;
 
 double calculateCavityVolume(const vector<double> currentMyocardiumField, FEMesh* EndocardialSurfMesh, FEMesh* surfaceCapMesh, const vector<int> &endoBaseRingNodeSet);
-double calculateEjectionFraction(MechanicsModel* cavityModel, const MechanicsModel* myocardiumModel, const vector<int> surfaceNodes, const vector<double> currentMyocardiumField);
+void preConditionBoundaryCondition(MechanicsModel* myocardiumModel, int PbDoF, vector<MechanicsMaterial*>& plmaterials, EigenNRsolver* mySolver, double stiffness, int numSteps);
+double Interpolate(double Field_i, double Time_i, double Field_ip1, double Time_ip1, double Time);
 
 int main(int argc, char** argv)
 {
@@ -33,7 +34,7 @@ int main(int argc, char** argv)
   bool activationSequence = false;
 
   // Constant Activation?
-  bool constantActivation = true;
+  bool constantActivation = false;
   double activationValue = 0.0;
   double minActivationFactor = 0.0;
 
@@ -50,7 +51,7 @@ int main(int argc, char** argv)
   double cv = 0.06;
 
   // Pressure File
-  bool pressureFlag = true;
+  bool pressureFlag = false;
   string pressureFile = "InputFiles/Pressure_1ms_Inflation.dat";
   double pressureDivider = -1.0; // Divides the pressure by this value;
   
@@ -61,7 +62,7 @@ int main(int argc, char** argv)
   double deltaT = 0.01;
 
   // OutputString
-  string outputString = "/u/project/cardio/adityapo/ScratchResults/PressureOnly3/S9_";
+  string outputString = "/u/project/cardio/adityapo/ScratchResults/Scratch/Ellipsoid_";
   // string outputString = "/u/project/cardio/adityapo/ScratchResults/ContractionOnly/Ellipsoid";
 
   // Fiber Visualization String
@@ -78,42 +79,70 @@ int main(int argc, char** argv)
   // Torsional Spring BC:
   int torsionalSpringBCflag = 1;
   // Torsional Spring Stiffness:
-  int TorsionalSpringK = 1.0e3;
+  int TorsionalSpringK = 1.0e2;
 
   
   // LJ Type Boundary Condition
   bool LJBoundaryConditionFlag = true;
+  BCPotentialType potentialType = QUARTIC;		// QUADRATIC or QUARTIC
   FEMesh* LJBoundaryConditionMesh;
   if (LJBoundaryConditionFlag)
-    LJBoundaryConditionMesh = new FEMesh("Mesh/S9/S9_LJBoundaryCondition0_25.node", "Mesh/S9/S9_LJBoundaryCondition0_25.ele");
-  double LJsearchRadius = 0.2;
-  double LJdepthPotentialWell = 1.0e-1;
-  double LJminDistance = 0.25;
+    LJBoundaryConditionMesh = new FEMesh("Mesh/EllipsoidMeshCoarse_Quadratic/EllipsoidCoarseQuadratic_LJBoundaryCondition0_5.node", "Mesh/EllipsoidMeshCoarse_Quadratic/EllipsoidCoarseQuadratic_LJBoundaryCondition0_5.ele");
+  string LJBoundaryConditionEBCFile = "Mesh/EllipsoidMeshCoarse_Quadratic/EllipsoidCoarseQuadratic_LJBoundaryCondition0_5.EBCNodeSet";
+  double LJsearchRadius = 1.50;
+  double LJdepthPotentialWell = 1.0E3; // 4.0E2;
+  double LJminDistance = 0.50;
+  int numPreconditionSteps = 0;
+  bool numNeighborFlag = true; int numNeighbors = 3;
+  
+  // Flexible:
+  bool makeFlexible = false;
+  double membraneStiffness = 1.0E2;
+  double preTensionFactor = 0.98;                // Factor which controls pretension
+  if (makeFlexible == true && LJBoundaryConditionFlag == false) {
+    cout << "LJ Boundary Condition Flag needs to be on to make the BC Flexible" << endl;
+    exit(EXIT_FAILURE);
+  }
+
+  // Lagrange Multiplier?
+  bool LagrangeMultiplierApproach = true;
+  double LagrangeMultiplier = 1.0;
+  double vd = 0.5;
+
+  // Windkessel Parameters
+  bool windkesselFlag = true;
+  double C = 5.16;
+  double R1 = 0.030 * 1000;
+  double R2 = 0.63 * 1000;
+  double gamma = 0.15;
+  double V_d = 85.0;
+  double V_s = 60.0;
+  double K = 1.0E4; // Bulk modulus of blood
+  double P_LA = 15.0;	// mmHg (Left Atrial Pressure Constant)
+  vector<double> P_LV; P_LV.push_back(15.0);	// mmHg (Initial left ventricular pressure)
+  vector<double> V_LV; 
+
 
   // Initialize Mesh
   // Assumptions to use this main as is: strip has a face at z=0; tetrahedral mesh
-  FEMesh Cube("Mesh/S9/S9.node", "Mesh/S9/S9.ele");
-  FEMesh surfMesh("Mesh/S9/S9.node", "Mesh/S9/S9.EpicardiumElset");
-  FEMesh innerSurfMesh("Mesh/S9/S9.node", "Mesh/S9/S9.EndocardiumElset");
+  FEMesh Cube("Mesh/EllipsoidMeshCoarse_Quadratic/EllipsoidCoarseQuadratic.node", "Mesh/EllipsoidMeshCoarse_Quadratic/EllipsoidCoarseQuadratic.ele");
+  FEMesh surfMesh("Mesh/EllipsoidMeshCoarse_Quadratic/EllipsoidCoarseQuadratic.node", "Mesh/EllipsoidMeshCoarse_Quadratic/EllipsoidCoarseQuadratic.EpicardiumElset");
+  FEMesh innerSurfMesh("Mesh/EllipsoidMeshCoarse_Quadratic/EllipsoidCoarseQuadratic.node", "Mesh/EllipsoidMeshCoarse_Quadratic/EllipsoidCoarseQuadratic.EndocardiumElset");
   
-  FEMesh surfaceCapMesh("Mesh/S9/S9_TopCapMesh.node", "Mesh/S9/S9_TopCapMesh.ele");
-  string EndoBaseRingNodeSet = "Mesh/S9/S9_TopCapMesh.EndoBaseRingNodeset";
+  FEMesh surfaceCapMesh("Mesh/EllipsoidMeshCoarse_Quadratic/EllipsoidCoarseQuadratic_TopCapMesh.node", "Mesh/EllipsoidMeshCoarse_Quadratic/EllipsoidCoarseQuadratic_TopCapMesh.ele");
+  string EndoBaseRingNodeSet = "Mesh/EllipsoidMeshCoarse_Quadratic/EllipsoidCoarseQuadratic_TopCapMesh.EndoBaseRingNodeset";
 
-  string FiberFile = "Mesh/S9/S9.fiber";
-  string BCfile = "Mesh/S9/S9.Null.bc";
-  // string BCfile = "Mesh/S9/S9.BaseNodeset";
-  string torsionalSpringBC = "Mesh/S9/S9.BaseNodeset";
+  string FiberFile = "Mesh/EllipsoidMeshCoarse_Quadratic/EllipsoidCoarseQuadratic.fiber";
+  string BCfile = "Mesh/EllipsoidMeshCoarse_Quadratic/EllipsoidCoarseQuadratic.Null.bc";
+  // string BCfile = "Mesh/EllipsoidMeshCoarse_Quadratic/EllipsoidCoarseQuadratic.Apex.bc";
+  // string BCfile = "Mesh/EllipsoidMeshCoarse_Quadratic/EllipsoidCoarseQuadratic.BaseNodeset";
+  string torsionalSpringBC = "Mesh/EllipsoidMeshCoarse_Quadratic/EllipsoidCoarseQuadratic.BaseNodeset";
   string ActivationTimeFile = "Mesh/EllipsoidMeshFiner/Small_B.activationTime";   // This is the Element Activation Time File
   string ActivationFile = "InputFiles/ActFunc_600ms_1msInterval.dat";  // This is the Calcium Transient
   ifstream FiberInp(FiberFile.c_str());
   ifstream ActTime(ActivationTimeFile.c_str());
 
   // Code for calculating Ejection Fraction
-  MechanicsModel* cavityModel = NULL;
-  vector<MechanicsMaterial * > cavityMaterials;
-  FEMesh* cavityMesh;
-  vector <int> surfaceNodes;
-
   vector <int> EndoBaseRingNodeSetVec;
 
   if (calculateEjectionFractionFlag)
@@ -138,48 +167,6 @@ int main(int argc, char** argv)
       EndoBaseRingNodeSetVec.push_back(tempEndoBaseRingNode);
     }
     EndoBaseRingNodeSetFileStream.close();
-
-    /*
-    // Setup mesh for calculating ejection fraction
-    cavityMesh = new FEMesh("Mesh/EllipsoidMesh/Small_A_Cavity.node", 
-      		            "Mesh/EllipsoidMesh/Small_A_Cavity.ele");
-    string outerSurfFile = "Mesh/EllipsoidMesh/Small_A.innerSurfNode";
-
-    ifstream cavityNodeFileStream (outerSurfFile.c_str());
-
-    if (cavityNodeFileStream.is_open())
-	cout << "** Opened Cavity Surface File Successfully." << endl;
-    else
-    {
-	cout << "** Cannot Open Cavity Surface File." << endl;
-	exit(1);
-    }
-
-    double numSurfaceNodes;
-    cavityNodeFileStream >> numSurfaceNodes;
-
-    for (int i = 0; i < numSurfaceNodes; i++)
-    {
-      double tempSurfaceCavityNode;
-      cavityNodeFileStream >> tempSurfaceCavityNode;
-      surfaceNodes.push_back(tempSurfaceCavityNode);
-    }
-    cavityNodeFileStream.close();
-
-    // Initialize Cavity Model
-    uint cavityNodeDoF = 3;
-    uint cavityNumQP = 1;
-  
-    uint NumMatCavity = cavityMesh->getNumberOfElements()*cavityNumQP;
-    cavityMaterials.reserve(NumMatCavity);
-  
-    for (int k = 0; k < NumMatCavity; k++) {
-      Jacobian* Mat = new Jacobian(k);
-      cavityMaterials.push_back(Mat);
-    }
-  
-    cavityModel = new MechanicsModel(cavityMesh, cavityMaterials, cavityNodeDoF);
-    */
   }
 
   double z_min = 0.0;
@@ -205,7 +192,7 @@ int main(int argc, char** argv)
   PLmaterials.reserve(NumEl * numQuadPoints);
 
 
-  APForceVelPotential TestPotential(4.0, 1000.0, 3.0);	// 50.0 for 2nd parameter, force
+  APForceVelPotential TestPotential(4.0, 1000.0 * 3.0, 3.0);	// 50.0 for 2nd parameter, force
   BlankViscousPotential ViscPotential;
   // NewtonianViscousPotential ViscPotential(0.005, 0.5);
   Vector3d HardParam(1.,1.,1.);
@@ -332,20 +319,22 @@ int main(int argc, char** argv)
       }
       else
       {
-	el_vectors[0] << 1., 0., 0.;
-	el_vectors[1] << 0., 1., 0.;
-	el_vectors[2] << 0., 0., 1.;
+	el_vectors[0] << 0., 0., 1.;
+	el_vectors[1] << 1., 0., 0.;
+	el_vectors[2] << 0., 1., 0.;
       }
       fiberVectors.push_back(el_vectors[0]);
       sheetVectors.push_back(el_vectors[1]);
       sheetNormalVectors.push_back(el_vectors[2]);
-      
-      Humphrey_Compressible* PassiveMat = new Humphrey_Compressible(0, 15.98, 55.85, 0.0, -33.27, 30.21, 30.590, 640.62, el_vectors);
-      LinYinActive_Compressible* ActiveMat = new LinYinActive_Compressible(0, -38.70, 40.83, 25.12, 90.51, 171.18, el_vectors);
-      
-      // CompNeoHookean* PassiveMat = new CompNeoHookean(0, 1.0e5, 1.0e5);
+
+      // CompNeoHookean* PassiveMat = new CompNeoHookean(0, 1.0e4, 1.0e4);
+      // CompNeoHookean* ActiveMat = new CompNeoHookean(0, 1.0e4, 1.0e4);
       // PLmaterials.push_back(PassiveMat);
       
+      
+      Humphrey_Compressible* PassiveMat = new Humphrey_Compressible(0, 15.98, 55.85, 0.0, -33.27, 30.21, 300.590, 6400.62, el_vectors);
+      LinYinActive_Compressible* ActiveMat = new LinYinActive_Compressible(0, -38.70, 40.83, 25.12, 90.51, 1710.18, el_vectors);
+
       
       PlasticMaterial* PlMat = new PlasticMaterial(el_iter, ActiveMat, PassiveMat, &TestPotential, &ViscPotential);
       PlMat->setDirectionVectors(el_vectors);
@@ -385,19 +374,37 @@ int main(int argc, char** argv)
   cout << "** Applying Boundary Conditions" << endl;
   
   if (SpringBCflag)
-    myModel.initSpringBC("Mesh/S9/S9.EpicardiumNodeset", &surfMesh, SpringK);
+    myModel.initSpringBC("Mesh/EllipsoidMeshCoarse_Quadratic/EllipsoidCoarseQuadratic.EpicardiumNodeset", &surfMesh, SpringK);
 
   if (torsionalSpringBCflag)
     myModel.initTorsionalSpringBC(torsionalSpringBC, TorsionalSpringK);
   
-  if (LJBoundaryConditionFlag)
-    myModel.initializeLennardJonesBC("Mesh/S9/S9.EpicardiumNodeset", LJBoundaryConditionMesh, &surfMesh, LJsearchRadius, LJdepthPotentialWell, LJminDistance);
+  if (LJBoundaryConditionFlag) {
+    myModel.initializeLennardJonesBC(potentialType, "Mesh/EllipsoidMeshCoarse_Quadratic/EllipsoidCoarseQuadratic.EpicardiumNodeset", LJBoundaryConditionMesh, &surfMesh, LJsearchRadius, LJdepthPotentialWell, LJminDistance);
+    myModel.toggleNumberNeighborFlag(numNeighborFlag, numNeighbors);
+    if (makeFlexible) {
+      myModel.initializeMembraneStiffness(membraneStiffness);
+      myModel.initiatePreTensionInMembrane(preTensionFactor);
+    }
+  }
+
+  // Impose a Lagrange Multiplier
+  if (LagrangeMultiplierApproach) {
+    cout << "Setting up Lagrange multiplier approach" << endl;
+    myModel.initializeLagrangeMultiplierMethod(&innerSurfMesh, &surfaceCapMesh, EndoBaseRingNodeSetVec, vd);
+    cout << "CAVITY VOLUME: " << myModel.computeCavityVolume() << endl;
+    myModel.setLagrangeMultiplier(LagrangeMultiplier);
+    myModel.setTargetVolume(myModel.computeCavityVolume());
+  }
 
   cout << "Model Setup" << endl;
 
   // Initialize Result
   uint myRequest;
   uint PbDoF = (Cube.getNumberOfNodes())*myModel.getDoFperNode();
+  uint mainDoF = PbDoF; // This is for adding EBC's in case it's flexible
+  if (makeFlexible) PbDoF += LJBoundaryConditionMesh->getNumberOfNodes() * myModel.getDoFperNode();
+  if (LagrangeMultiplierApproach) PbDoF++;
   EigenResult myResults(PbDoF, 0);
 
   // Run Consistency check
@@ -411,7 +418,6 @@ int main(int argc, char** argv)
   // set to the current deformation state.
 
   // myModel.checkConsistency(myResults, perturbationFactor, myRequest, myH, myTol);
-
 
   // Print initial configuration
   myModel.writeOutputVTK(outputString, 0);
@@ -440,9 +446,37 @@ int main(int argc, char** argv)
     for (int j = 0; j < 3; j++) {
       BCid.push_back(node*3 + j);
       BCvalues.push_back(Cube.getX(node, j));
-      cout << BCid[ind] << " " <<  BCvalues[ind] << endl;
+      // cout << BCid[ind] << " " <<  BCvalues[ind] << endl;
       ind++;
     }
+  }
+  BCinp.close();
+
+  // Setting EBC for LJ Boundary Condition
+  if (makeFlexible) {
+    cout << "********" << " Setting Membrane EBCs " << "********" << endl;
+    ifstream MembraneBCinp(LJBoundaryConditionEBCFile.c_str());
+
+    if (MembraneBCinp.is_open())
+      cout << "Membrane BC File Opened Successfully!" << endl;
+    else
+      cout << "ERROR: BC File Failed to Open!" << endl;
+
+   MembraneBCinp >> NumBC;
+    cout << "Number of Nodes with MembraneEBC: " << NumBC << endl;
+    BCid.reserve(NumBC*3);
+    BCvalues.reserve(NumBC*3);
+    for(int i = 0; i < NumBC; i++) {
+      MembraneBCinp >> node;
+      BCnodes.push_back(node);
+      for (int j = 0; j < 3; j++) {
+        BCid.push_back(mainDoF + node*3 + j);
+        BCvalues.push_back(LJBoundaryConditionMesh->getX(node, j));
+        // cout << BCid[ind] << " " <<  BCvalues[ind] << endl;
+        ind++;
+      }
+    }
+    MembraneBCinp.close();
   }
 
   // Solver
@@ -456,13 +490,17 @@ int main(int argc, char** argv)
   ind = 0;
   myModel.finalizeCompute();
 
+  // Precondition
+  if (LJBoundaryConditionFlag && numPreconditionSteps > 0)
+    preConditionBoundaryCondition(&myModel, PbDoF, PLmaterials, &mySolver, LJdepthPotentialWell, numPreconditionSteps);
+
   ofstream outVolume;
   outVolume.open(volumeFile.c_str());
 
   for (int s = 0; s < simTime/deltaT; s++)
   {
     cout << endl << "*** Step " << s << " ***" << endl;
-    if (SpringBCflag) myModel.computeNormals();
+    if (SpringBCflag) myModel.computeSpringNormals();
 
     // Update pressure:
     if (pressureFlag) {
@@ -500,15 +538,13 @@ int main(int argc, char** argv)
 
     if (calculateEjectionFractionFlag)
     {
-      vector <double> currentMyocardiumField(Cube.getNumberOfNodes() * Cube.getDimension(), 0.0);
+      vector <double> currentMyocardiumField(PbDoF, 0.0);
+      // vector <double> currentMyocardiumField(Cube.getNumberOfNodes() * Cube.getDimension(), 0.0);
       myModel.getField(currentMyocardiumField);
       double cavityVolume = calculateCavityVolume(currentMyocardiumField, &innerSurfMesh, &surfaceCapMesh, EndoBaseRingNodeSetVec);
       outVolume << "\t" << cavityVolume;
       cout << "Cavity Volume: " << cavityVolume << endl;
-      /*
-      outVolume << "\t" << calculateEjectionFraction(cavityModel, &myModel, surfaceNodes, currentMyocardiumField);
-      cavityModel->writeOutputVTK(outputString + "Cavity_", ind);
-      */
+      if (LagrangeMultiplierApproach) outVolume << "\t" << myModel.getLagrangeMultiplier();
     }
     outVolume << endl;
 
@@ -526,6 +562,7 @@ int main(int argc, char** argv)
     myModel.writeOutputVTK(outputString, ind);
     cout << "Output Written for step." << endl;
     cout << "Reference Volume: " << myModel.computeRefVolume() << "\t Current Volume: " << myModel.computeCurrentVolume() << endl;
+    if (LagrangeMultiplierApproach) cout << "Internal Pressure (Lagrange Multiplier): " << myModel.getLagrangeMultiplier() << endl;
   }
   outVolume.close();
 
@@ -646,46 +683,64 @@ double calculateCavityVolume(const vector<double> currentMyocardiumField, FEMesh
   return volume;
 }
 
-double calculateEjectionFraction(MechanicsModel* cavityModel, const MechanicsModel* myocardiumModel, const vector<int> surfaceNodes, const vector<double> currentMyocardiumField)
-{
-  if (cavityModel == NULL)
-  {
-    cout << "** Trying to calculate ejection fraction without turning the flag on." << endl;
-    exit(1);
-  }
+void preConditionBoundaryCondition(MechanicsModel* myocardiumModel, int PbDoF, vector<MechanicsMaterial*>& plmaterials, EigenNRsolver* mySolver, double stiffness, int numSteps) {
+  // myocardiumModel->toggleConstantMinimumDistanceFlag(false);
+  cout << " **Preconditioning the pericardium boundary condition..." << endl;
+  for (int iter = 0; iter < numSteps; iter++) {
+    // double currentStiffness = stiffness/numSteps * (iter + 1);
+    double currentStiffness = pow(10, (log10(stiffness)/numSteps * (iter + 1))) - 1.0;
+    // double currentStiffness = stiffness/numSteps * (1+1);
+    cout << "** Preconditioning with stiffness = " << currentStiffness << endl;
 
-  double referenceVolume = cavityModel->computeRefVolume();
- 
-  // Set the field of the cavity surface nodes 
-  for (int i = 0; i < surfaceNodes.size(); i++)
-  {
-    for (int dim_iter = 0; dim_iter < 3; dim_iter++)
-      cavityModel->setField(i * 3 + dim_iter, currentMyocardiumField[surfaceNodes[i] * 3 + dim_iter]);
-  }
+    // Compute reference configuration
+    // 1. Set stiffness
+    myocardiumModel->setLJStiffness(currentStiffness);
+    
+    // 2. Solve with zero loads
+    mySolver->solve(DISP);
+    myocardiumModel->writeOutputVTK("PreconditionStep_", iter);
+    
+    // 3. Get current field and set it to X
+    Mesh* myMesh = myocardiumModel->getMesh();
+    int numNodes = myMesh->getNumberOfNodes();
+    int dim = myMesh->getDimension();
+    // vector<double> currentField(numNodes * dim);
+    vector<double> currentField(PbDoF, 0.0);
+    myocardiumModel->getField(currentField);
+    
+    vector<VectorXd> newX;
+    for (int node_iter = 0; node_iter < numNodes; node_iter++) {
+      VectorXd nodeX(3);
+      nodeX << currentField[node_iter * dim], currentField[node_iter * dim + 1], currentField[node_iter * dim + 2];
+      newX.push_back(nodeX);
+    }
 
-  // Set the z-field of the nodes along the mid-line
-  // TODO: Hard-coded the values for the top and bottom of the cavities! Fix this ASAP!
-  double cavityMinNode = 4148;
-  double cavityMaxNode = 4068;
-  double bottomMostNode = 1106;
-  double cavityMinPos = currentMyocardiumField[cavityMinNode * 3 + 2];
-  double cavityMaxPos = currentMyocardiumField[cavityMaxNode * 3 + 2];
+    // VectorXd tempX(3);
+    // tempX << myMesh->getX(0,0), myMesh->getX(0,1), myMesh->getX(0,2);
+    // tempX = tempX - newX[0];
+    // cout << "TEMPX: " << tempX.norm() << endl;
 
-  cout << "Min Pos:\t" << cavityMinPos << "\tMax Pos:\t" << cavityMaxPos << endl;
+    myMesh->setX(newX);
+    myocardiumModel->writeOutputVTK("PreconditionStepPostSetX_", iter);
+    
+    // 4. Reset Q, field, and history variables
+    for (int mat_iter = 0; mat_iter < plmaterials.size(); mat_iter++) {
+      plmaterials[mat_iter]->resetState();
+    }
+    myocardiumModel->setPrevField();
 
-  // Linearly interpolate those nodes (assumes last ten nodes are the cavity!)
-  int numberOfVerticalNodes = 10;
-  for (int i = 0; i < numberOfVerticalNodes; i++)
-  {
-    double tempSlope = (cavityMaxPos - cavityMinPos)/(numberOfVerticalNodes-1);
-    cavityModel->setField((bottomMostNode + i) * 3 + 2, tempSlope * (i) + cavityMinPos);
-    // cout << "Node " << bottomMostNode + i << "\t Position: " << tempSlope * (i) + cavityMinPos << endl;
-  }
+   // 5. Call finalize model compute - computes the new nearest neighbors for pericardium boundary condition
+   myocardiumModel->finalizeCompute(); 
+   
+   // 6. Recompute the distance to reset energy to 0. NOT SURE IF WE WANT TO DO THIS YET?
+   // myocardiumModel->recomputeAverageMinDistance();
+  } 
+  cout << "** Finished Preconditioning the pericardium boundary condition." << endl;
+}
 
-  double EF = (referenceVolume - cavityModel->computeCurrentVolume())/referenceVolume;
 
-  cout << "Reference Volume: \t" << referenceVolume << endl;
-  cout << "Current Volume:   \t" << cavityModel->computeCurrentVolume() << endl;
-
-  return EF;
+double Interpolate(double Field_i, double Time_i, double Field_ip1, double Time_ip1, double Time) {
+    double m = (Field_ip1 - Field_i)/(Time_ip1 - Time_i);
+    double c = Field_i - m * Time_i;
+    return m * Time + c;
 }
