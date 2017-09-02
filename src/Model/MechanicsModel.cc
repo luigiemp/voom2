@@ -1750,35 +1750,6 @@ namespace voom {
       surfaceCapMeshNewX[midSideNode] = midsideNodePosition;
     }
 
-    /* // DELETE FROM HERE
-    for (int el_iter = 0; el_iter < surfaceCapElements.size(); el_iter++) {
-      vector<int> el_nodeIds = surfaceCapElements[el_iter]->getNodesID();
-
-      if (el_nodeIds.size() > 3) {
-	if (el_nodeIds.size() > 6) {
-	  cout << "ERROR: Can only compute midside node for a Quad triangle." << endl;
-	  return EXIT_FAILURE;
-	}
-	// Node 0 and Node 1
-	if (el_nodeIds[0] == baseCenterNodeId || el_nodeIds[1] == baseCenterNodeId) {
-	  int edgeVertex = (el_nodeIds[0] == baseCenterNodeId) ? el_nodeIds[1] : el_nodeIds[0];
-	  VectorXd midsideNode = 0.5 * (surfaceCapMeshNewX[edgeVertex] + baseCenterNode);
-	  surfaceCapMeshNewX[el_nodeIds[3]] = midsideNode;
-	}
-	if (el_nodeIds[1] == baseCenterNodeId || el_nodeIds[2] == baseCenterNodeId) {
-	  int edgeVertex = (el_nodeIds[1] == baseCenterNodeId) ? el_nodeIds[2] : el_nodeIds[1];
-	  VectorXd midsideNode = 0.5 * (surfaceCapMeshNewX[edgeVertex] + baseCenterNode);
-	  surfaceCapMeshNewX[el_nodeIds[4]] = midsideNode;
-	}
-	if (el_nodeIds[2] == baseCenterNodeId || el_nodeIds[0] == baseCenterNodeId) {
-	  int edgeVertex = (el_nodeIds[2] == baseCenterNodeId) ? el_nodeIds[0] : el_nodeIds[2];
-	  VectorXd midsideNode = 0.5 * (surfaceCapMeshNewX[edgeVertex] + baseCenterNode);
-	  surfaceCapMeshNewX[el_nodeIds[5]] = midsideNode;
-	}        
-      }
-    }
-    */ // DELETE TILL HERE
-
     _surfaceCapMesh->setX(surfaceCapMeshNewX);
 
     // Compute first the volume associated with myocardiumModel
@@ -1830,6 +1801,24 @@ namespace voom {
     return volume;
   } // End computeCavityVolume
 
+  void MechanicsModel::turnOffLagrangeMultiplier() {
+    if (_lagrangeMultiplierFlag) {
+      _lagrangeMultiplierFlag = false;
+      int dimMainMesh = _myMesh->getDimension();
+      int lagrangeMultiplierIndex = _myMesh->getNumberOfNodes() * dimMainMesh;
+      if (_makeFlexible) lagrangeMultiplierIndex += _rigidPotentialBoundaryMesh->getNumberOfNodes() * _rigidPotentialBoundaryMesh->getDimension();
+      _field.erase(_field.begin() + lagrangeMultiplierIndex);
+      cout << "Lagrange multiplier constraint has been turned off." << endl;
+    }
+  }
+
+  void MechanicsModel::turnOnLagrangeMultiplier() {
+    if (!_lagrangeMultiplierFlag && !_endoBaseRingNodeSet.empty()) {
+      _lagrangeMultiplierFlag = true;
+      _field.push_back(0.0);
+      cout << "Lagrange multiplier constraint has been turned on." << endl;
+    }
+  }
 
 
   // Writing output
@@ -2198,7 +2187,7 @@ namespace voom {
 	for (int d = 0; d < dim; d++) {
 	  for (int n = 0; n < numNodesOfEl; n++) {
 	    tempPoint[d] += _surfaceMesh->getX(NodesID[n])(d) * geomEl->getN(q,n);
-	    tempDisplacement[d] += (_field[NodesID[n]*dim + d] - _surfaceMesh->getX(n)(d)) * geomEl->getN(q, n);
+	    tempDisplacement[d] += (_field[NodesID[n]*dim + d] - _surfaceMesh->getX(NodesID[n])(d)) * geomEl->getN(q, n);
 	  }
 	}
 	IntegrationPoints->InsertNextPoint(tempPoint);

@@ -21,6 +21,9 @@ using namespace voom;
 double calculateCavityVolume(const vector<double> currentMyocardiumField, FEMesh* EndocardialSurfMesh, FEMesh* surfaceCapMesh, const vector<int> &endoBaseRingNodeSet);
 void preConditionBoundaryCondition(MechanicsModel* myocardiumModel, int PbDoF, vector<MechanicsMaterial*>& plmaterials, EigenNRsolver* mySolver, double stiffness, int numSteps);
 double Interpolate(double Field_i, double Time_i, double Field_ip1, double Time_ip1, double Time);
+double Interpolate(vector<double> FieldVec, vector<double> TimeVec, double Time);
+
+enum CardiacCylePhase{FILLING, ISOVOLUMIC_CONTRACTION, EJECTION, ISOVOLUMIC_RELAXATION};
 
 int main(int argc, char** argv)
 {
@@ -62,7 +65,7 @@ int main(int argc, char** argv)
   double deltaT = 0.01;
 
   // OutputString
-  string outputString = "/u/project/cardio/adityapo/ScratchResults/Scratch/Ellipsoid_";
+  string outputString = "/u/project/cardio/adityapo/ScratchResults/Lagrange2/Ellipsoid_";
   // string outputString = "/u/project/cardio/adityapo/ScratchResults/ContractionOnly/Ellipsoid";
 
   // Fiber Visualization String
@@ -79,7 +82,7 @@ int main(int argc, char** argv)
   // Torsional Spring BC:
   int torsionalSpringBCflag = 1;
   // Torsional Spring Stiffness:
-  int TorsionalSpringK = 1.0e2;
+  int TorsionalSpringK = 1.0e0;
 
   
   // LJ Type Boundary Condition
@@ -106,8 +109,9 @@ int main(int argc, char** argv)
 
   // Lagrange Multiplier?
   bool LagrangeMultiplierApproach = true;
-  double LagrangeMultiplier = 1.0;
-  double vd = 0.5;
+  double LagrangeMultiplier = 0.0;
+  double targetVolume = 0.5;
+  int indexOfLagrangeMultiplierInFieldVector; // Initiated later so we can use it as an EBC
 
   // Windkessel Parameters
   bool windkesselFlag = true;
@@ -115,13 +119,22 @@ int main(int argc, char** argv)
   double R1 = 0.030 * 1000;
   double R2 = 0.63 * 1000;
   double gamma = 0.15;
-  double V_d = 85.0;
+  double V_d = 120.0;
   double V_s = 60.0;
   double K = 1.0E4; // Bulk modulus of blood
   double P_LA = 15.0;	// mmHg (Left Atrial Pressure Constant)
   vector<double> P_LV; P_LV.push_back(15.0);	// mmHg (Initial left ventricular pressure)
   vector<double> V_LV; 
 
+  // Pacing:
+  int numCycles = 1;
+  double heartBeatLength = 1000; // In ms
+  double cycleLength = 0.0;      // This is determined by the length of the activation function
+  double timeDelayContraction = 6.0; // This is the factor which delays the beginning of contraction, i.e., for filling.
+  CardiacCylePhase currentPhase = FILLING;
+
+
+  // END PARAMETER DEFINITION
 
   // Initialize Mesh
   // Assumptions to use this main as is: strip has a face at z=0; tetrahedral mesh
@@ -236,7 +249,6 @@ int main(int argc, char** argv)
       cout << "** Failed to Open Pressure File." << endl;
       exit(1);
     }
-    
   }
 
   // Read in Activation File:
@@ -245,34 +257,32 @@ int main(int argc, char** argv)
   tempTime = 0.0;
   double tempActivationFactor = 0.0;
   
-  vector <double> Time;
+  vector <double> ActivationTimeVector;
   vector <double> ActivationFactor;
 
   while(myfile >> tempTime >> tempActivationFactor)
   {
-    Time.push_back(tempTime);
+    ActivationTimeVector.push_back(tempTime);
     if (!constantActivation)
       ActivationFactor.push_back(tempActivationFactor);
     else
       ActivationFactor.push_back(activationValue);
   }
   
-  double cycleLength = Time[Time.size() - 1];
+  cycleLength = ActivationTimeVector[ActivationTimeVector.size() - 1] - ActivationTimeVector[0];
   myfile.close();
-  deltaT = Time[1] - Time[0];
+  deltaT = ActivationTimeVector[1] - ActivationTimeVector[0];
   
 
   // Calculate the activation time for each quadrature point in each element
   vector <double> activationTimesQP;
 
-  if (!useConductionVelocity)
-  {
+  if (!useConductionVelocity){
     if (ActTime.is_open())
-        cout << "** Opened Time Activation File Successfully." << endl;
-    else
-    {
-        cout << "** Cannot Open Time Activation File." << endl;
-        exit(1);
+      cout << "** Opened Time Activation File Successfully." << endl;
+    else {
+      cout << "** Cannot Open Time Activation File." << endl;
+      exit(1);
     }
   }
 
@@ -299,12 +309,12 @@ int main(int argc, char** argv)
       // Activation Time Calculations:
       if(activationSequence) {
 	if (useConductionVelocity)
-	  activationTimesQP.push_back((quadPointZ - z_min)/cv);
+	  activationTimesQP.push_back((quadPointZ - z_min)/cv + timeDelayContraction);
 	else
-	  activationTimesQP.push_back(eleActivationTime);  // THIS IS WRONG BECAUSE ALL OF THE ELEMENT GETS ACTIVATED ONCE AND NOT BY EACH QUADRATURE POINT.
+	  activationTimesQP.push_back(eleActivationTime + timeDelayContraction);  // THIS IS WRONG BECAUSE ALL OF THE ELEMENT GETS ACTIVATED ONCE AND NOT BY EACH QUADRATURE POINT.
       }
       else
-	activationTimesQP.push_back(0.0);  // Everything gets activated right away
+	activationTimesQP.push_back(0.0 + timeDelayContraction);  // Everything gets activated right away
       
       out << quadPointX << " " << quadPointY << " " << quadPointZ << endl;
 
@@ -332,7 +342,7 @@ int main(int argc, char** argv)
       // PLmaterials.push_back(PassiveMat);
       
       
-      Humphrey_Compressible* PassiveMat = new Humphrey_Compressible(0, 15.98, 55.85, 0.0, -33.27, 30.21, 300.590, 6400.62, el_vectors);
+      Humphrey_Compressible* PassiveMat = new Humphrey_Compressible(0, 15.98/10., 55.85/10., 0.0, -33.27/10., 30.21/10., 3.590/10, 6400.62, el_vectors);
       LinYinActive_Compressible* ActiveMat = new LinYinActive_Compressible(0, -38.70, 40.83, 25.12, 90.51, 1710.18, el_vectors);
 
       
@@ -391,10 +401,11 @@ int main(int argc, char** argv)
   // Impose a Lagrange Multiplier
   if (LagrangeMultiplierApproach) {
     cout << "Setting up Lagrange multiplier approach" << endl;
-    myModel.initializeLagrangeMultiplierMethod(&innerSurfMesh, &surfaceCapMesh, EndoBaseRingNodeSetVec, vd);
+    myModel.initializeLagrangeMultiplierMethod(&innerSurfMesh, &surfaceCapMesh, EndoBaseRingNodeSetVec, targetVolume);
     cout << "CAVITY VOLUME: " << myModel.computeCavityVolume() << endl;
     myModel.setLagrangeMultiplier(LagrangeMultiplier);
     myModel.setTargetVolume(myModel.computeCavityVolume());
+    targetVolume = myModel.computeCavityVolume();
   }
 
   cout << "Model Setup" << endl;
@@ -404,7 +415,10 @@ int main(int argc, char** argv)
   uint PbDoF = (Cube.getNumberOfNodes())*myModel.getDoFperNode();
   uint mainDoF = PbDoF; // This is for adding EBC's in case it's flexible
   if (makeFlexible) PbDoF += LJBoundaryConditionMesh->getNumberOfNodes() * myModel.getDoFperNode();
-  if (LagrangeMultiplierApproach) PbDoF++;
+  if (LagrangeMultiplierApproach) {
+    PbDoF++;
+    indexOfLagrangeMultiplierInFieldVector = PbDoF - 1;
+  }
   EigenResult myResults(PbDoF, 0);
 
   // Run Consistency check
@@ -497,6 +511,147 @@ int main(int argc, char** argv)
   ofstream outVolume;
   outVolume.open(volumeFile.c_str());
 
+
+
+  // Implement cardiac cycle:
+  double currentTime = 1.0;
+  double prevTime = 0.0;
+  double currentCavityVolume = 0.0;
+  double currentEndocardialPressure = 0.0;
+
+  // Since the first state is filling, we start with the Lagrange multiplier off
+  if (LagrangeMultiplierApproach) {
+    myModel.turnOffLagrangeMultiplier();
+    LagrangeMultiplierApproach = false;
+    PbDoF--;
+  }
+
+  if (LagrangeMultiplierApproach)
+    currentCavityVolume = myModel.computeCavityVolume();
+  else {
+    vector <double> currentMyocardiumField(PbDoF, 0.0);
+    myModel.getField(currentMyocardiumField);
+    currentCavityVolume = calculateCavityVolume(currentMyocardiumField, &innerSurfMesh, &surfaceCapMesh, EndoBaseRingNodeSetVec);
+  }
+  
+  
+  for (int cycle_iter = 1; cycle_iter <= numCycles; cycle_iter++) {
+    cout << endl << "*** Starting cycle number: " << cycle_iter << endl;
+    currentTime = 1.0;
+    prevTime = 0.0;
+
+    while (currentTime < heartBeatLength) {
+      cout << "*** Time " << currentTime * cycle_iter << "ms ***" << endl;
+      deltaT = currentTime - prevTime;
+
+      if (currentPhase == FILLING) {
+	if (currentCavityVolume >= V_d) {
+	  currentPhase = ISOVOLUMIC_CONTRACTION;
+	  LagrangeMultiplierApproach = true;
+          myModel.turnOnLagrangeMultiplier();
+          myModel.setTargetVolume(V_d);
+	  PbDoF++;
+        }
+	else {
+ 	  /*
+          // INFLATION WITH LAGRANGE MULTIPLIER
+          targetVolume = targetVolume + 1.0;
+          myModel.setTargetVolume(targetVolume);
+          if (targetVolume >= V_d)
+            myModel.setTargetVolume(V_d);
+	  */
+
+          // INFLATION WITH PRESSURE:
+          currentEndocardialPressure -= 0.5;
+          myModel.updatePressure(currentEndocardialPressure);
+          cout << "* Applying " << currentEndocardialPressure << " units of pressure to the endocardium." << endl;
+	}
+      }
+
+      if (currentPhase == ISOVOLUMIC_CONTRACTION) {
+	// End condition is when Pressure is greater than arterial pressure
+      }
+
+      // ACTIVATION:
+      for (int k = 0; k < meshElements.size(); k++)
+      {
+	for (int q = 0; q < numQuadPoints; q++) {
+	  (PLmaterials[k * numQuadPoints + q])->setTimestep(deltaT/1000);
+	
+	  if (currentTime < activationTimesQP[k * numQuadPoints + q] || currentTime > activationTimesQP[k * numQuadPoints + q] + cycleLength)
+	    (PLmaterials[k * numQuadPoints + q])->setActivationMultiplier(minActivationFactor);
+	  else
+	  {
+	    // Figure out time in cycle
+	    double tempNormalizedTime = currentTime - activationTimesQP[k];
+	    double tempActivationMultiplier = Interpolate(ActivationFactor, ActivationTimeVector, tempNormalizedTime);
+	    if (tempActivationMultiplier < minActivationFactor)
+	      tempActivationMultiplier = minActivationFactor;
+	    (PLmaterials[k * numQuadPoints + q])->setActivationMultiplier(tempActivationMultiplier);
+	  }
+	}
+      }
+
+      ind++;
+      mySolver.solve(DISP);
+      myModel.finalizeCompute();  // This sets the previous field for the spring normals.
+    
+      // Print out myocardium volume and ejection fraction (if requested)
+      outVolume << currentTime * cycle_iter << "\t" << myModel.computeCurrentVolume();
+
+      if (calculateEjectionFractionFlag)
+      {
+	vector <double> currentMyocardiumField(PbDoF, 0.0);
+	myModel.getField(currentMyocardiumField);
+	if (LagrangeMultiplierApproach)
+	  currentCavityVolume = myModel.computeCavityVolume();
+	else 
+	  currentCavityVolume = calculateCavityVolume(currentMyocardiumField, &innerSurfMesh, &surfaceCapMesh, EndoBaseRingNodeSetVec);
+      
+	outVolume << "\t" << currentCavityVolume;
+	cout << "Cavity Volume: " << currentCavityVolume << endl;
+	if (LagrangeMultiplierApproach) {
+	  outVolume << "\t" << myModel.getLagrangeMultiplier();
+	  cout << "Internal Pressure (Lagrange Multiplier): " << myModel.getLagrangeMultiplier() << endl;
+	}
+      }
+      cout << "Myocardial Reference Volume: " << myModel.computeRefVolume() << "\t Myocardial Current Volume: " << myModel.computeCurrentVolume() << endl;
+      outVolume << endl;
+
+      // Update State Variables:     
+      for (int k = 0; k < NumMat; k++)
+	(PLmaterials[k])->updateStateVariables();
+      cout << "State Variables Updated." << endl;
+      
+      // Write Output
+      myModel.writeOutputVTK(outputString, ind);
+      cout << "Output Written for step." << endl;
+      cout << endl;
+
+      currentTime = currentTime + 1.0;
+    }
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  /*
+  // START OLD FORMULATION: ********
+
   for (int s = 0; s < simTime/deltaT; s++)
   {
     cout << endl << "*** Step " << s << " ***" << endl;
@@ -564,6 +719,10 @@ int main(int argc, char** argv)
     cout << "Reference Volume: " << myModel.computeRefVolume() << "\t Current Volume: " << myModel.computeCurrentVolume() << endl;
     if (LagrangeMultiplierApproach) cout << "Internal Pressure (Lagrange Multiplier): " << myModel.getLagrangeMultiplier() << endl;
   }
+
+  // **** END OLD FORMULATION
+  */
+  
   outVolume.close();
 
   // Timing
@@ -743,4 +902,16 @@ double Interpolate(double Field_i, double Time_i, double Field_ip1, double Time_
     double m = (Field_ip1 - Field_i)/(Time_ip1 - Time_i);
     double c = Field_i - m * Time_i;
     return m * Time + c;
+}
+
+double Interpolate(vector<double> FieldVec, vector<double> TimeVec, double Time) {
+  assert(FieldVec.size() == TimeVec.size());
+
+  int i = 0;
+  for (i = 0; i < TimeVec.size(); i++) {
+    if (Time > TimeVec[i])
+      break;
+  }
+  if (i == TimeVec.size()) return FieldVec[FieldVec.size() - 1];
+  return Interpolate(FieldVec[i], TimeVec[i], FieldVec[i+1], TimeVec[i+1], Time);
 }

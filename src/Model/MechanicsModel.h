@@ -272,6 +272,8 @@ namespace voom{
     vector<Triplet<Real> > imposeLagrangeMultiplier(Result & R);
     double computeCavityVolume();
     void setTargetVolume(double vd){_vd = vd;};
+    void turnOffLagrangeMultiplier();
+    void turnOnLagrangeMultiplier();
 
   protected:
     //! Compute Deformation Gradient
