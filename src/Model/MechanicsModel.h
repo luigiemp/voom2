@@ -192,8 +192,8 @@ namespace voom{
     //! Write VTK output for linear spring
     void writeLinearSpringPolyData(string OutputFile, int step);
 
-    //! Write VTK output for torsional spring
-    void writeTorsionalSpringPolyData(string OutputFile, int step);
+    //! Write VTK output for the base
+    void writeBasePolyData(string OutputFile, int step);
 
     //! Write VTK output for LJ Boundary Condition
     void writeLJBCPolyData(string OutputFile, int step);
@@ -275,6 +275,10 @@ namespace voom{
     void turnOffLagrangeMultiplier();
     void turnOnLagrangeMultiplier();
 
+    // Constraining Rotation of the Base
+    void initializeConstrainBaseRotation(Mesh* baseMesh, double rotationalPenaltyFactor);
+    vector<Triplet<Real> > imposeConstrainBaseRotation(Result& R);
+
   protected:
     //! Compute Deformation Gradient
     void computeDeformationGradient(vector<Matrix3d > & Flist, GeomElement* geomEl);
@@ -346,6 +350,13 @@ namespace voom{
     vector<pair<int,int> > _ringAndMidsideNodePairs;	// This maps a ring node (first) to it's corresponding midside node (second) in the surfaceCapMesh
     
     double _vd;	// End-diastolic volume
+
+    // Constraining Rotation of the Base
+    bool _constrainBaseRotationFlag;
+    Mesh* _baseMesh;
+    vector<Vector3d> _averageBaseNormal_q; // This stores a quadrature point wise normal
+    Vector3d _averageBaseNormal;	   // This stores a single averaged normal
+    double _rotationalPenaltyFactor;
   };
 
 } // namespace voom

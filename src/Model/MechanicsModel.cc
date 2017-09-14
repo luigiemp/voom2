@@ -26,6 +26,9 @@ namespace voom {
       _prevField.resize( _field.size() );
       this->setPrevField();
 
+      // Impose Base Rotation Constraint
+      _constrainBaseRotationFlag = false;
+
       // Start with no Lagrange multiplier formulation
       _lagrangeMultiplierFlag = false;
     }
@@ -221,6 +224,11 @@ namespace voom {
       KtripletList.insert(KtripletList.end(), KtripletList_FromTorsionalSpring.begin(), KtripletList_FromTorsionalSpring.end());
     }
 
+    if (_constrainBaseRotationFlag) {
+      vector <Triplet<Real> > KtripletList_FromConstrainBaseRotation = this->imposeConstrainBaseRotation(*R);
+      KtripletList.insert(KtripletList.end(), KtripletList_FromConstrainBaseRotation.begin(), KtripletList_FromConstrainBaseRotation.end());
+    }
+
     if (_lennardJonesBCFlag) {
       if (_makeFlexible) {
         R->resizeDoFDataStructures(_field.size());
@@ -305,6 +313,9 @@ namespace voom {
       computeSpringNormals();
       computeAnchorPoints(); 
     }
+
+    if (_torsionalSpringBCflag)
+      computeTangents();
 
     if (_lennardJonesBCFlag) {
       if (_makeFlexible)
@@ -1666,9 +1677,12 @@ namespace voom {
           int d_midSideNode = _ringAndMidsideNodePairs[d].second;
 	  for (int l = 0; l < dim; l++) {
 	    for (int m = 0; m < dim; m++) {
+	      // Eq 54 in Notes
 	      auxiliarySurfaceStiffness(d_edgeVertex * dim + l, d_edgeVertex * dim + m) += 0.25 * auxiliarySurfaceStiffness(d_midSideNode * dim + l, d_midSideNode * dim + m);
 	      for (int f_ringNodeIter = 0; f_ringNodeIter < _endoBaseRingNodeSet.size(); f_ringNodeIter++) {
+		// Eq 56 in Notes
 		auxiliarySurfaceStiffness(d_edgeVertex * dim + l, f_ringNodeIter * dim + m) += 0.25/_endoBaseRingNodeSet.size() * auxiliarySurfaceStiffness(d_midSideNode * dim + l, d_midSideNode * dim + m);
+		// Eq 58 in Notes
 		auxiliarySurfaceStiffness(f_ringNodeIter * dim + m, d_edgeVertex * dim + l) += 0.25/_endoBaseRingNodeSet.size() * auxiliarySurfaceStiffness(d_midSideNode * dim + m, d_midSideNode * dim + l);
   	      } // end f_ringNodeIter loop
 	    } // end m loop
@@ -1678,7 +1692,7 @@ namespace voom {
 	    for (int d_ringNodeIter = 0; d_ringNodeIter < _endoBaseRingNodeSet.size(); d_ringNodeIter++) {
 	      for (int f_ringNodeIter = 0; f_ringNodeIter < _endoBaseRingNodeSet.size(); f_ringNodeIter++) {
 		for (int m = 0; m < dim; m++) {
-		  // Contributions from mid node on ring nodes
+		  // Contributions from mid node on ring nodes Eq 52
 		  auxiliarySurfaceStiffness(d_ringNodeIter * dim + l, f_ringNodeIter * dim + m) += 0.25/pow(_endoBaseRingNodeSet.size(), 2) * auxiliarySurfaceStiffness(d_midSideNode * dim + l, d_midSideNode * dim + m);
 		} // end m loop
 	      } // end loop f_ringNodeIter
@@ -1819,6 +1833,152 @@ namespace voom {
       cout << "Lagrange multiplier constraint has been turned on." << endl;
     }
   }
+
+
+  // Constraining Rotation of the Base
+  void MechanicsModel::initializeConstrainBaseRotation(Mesh* baseMesh, double rotationalPenaltyFactor) {
+    _constrainBaseRotationFlag = true;
+    _rotationalPenaltyFactor = rotationalPenaltyFactor;
+    _baseMesh = baseMesh;
+
+    // Compute the average normal of the base in the reference configuration (_averageBaseNormal)
+    vector<GeomElement*> elements = _baseMesh->getElements();
+    for(int e = 0; e < elements.size(); e++)
+    {
+      GeomElement* geomEl = elements[e];
+      const vector<int  >& NodesID = geomEl->getNodesID();
+      const int numQP    = geomEl->getNumberOfQuadPoints();
+      const int numNodes = NodesID.size();
+
+      // Loop over quadrature points
+      for(int q = 0; q < numQP; q++) {
+
+        // Compute normal based on _prevField and displacement
+        Vector3d a1 = Vector3d::Zero(), a2 = Vector3d::Zero(), a3 = Vector3d::Zero(), u = Vector3d::Zero();
+        for (int a = 0; a < NodesID.size(); a++) {
+          int nodeID = NodesID[a];
+          Vector3d xa;
+	  // We could use getX but I will use _field because I want to initialize this condition after some load steps:
+	  // xa << _baseMesh->getX(nodeID,0), _baseMesh->getX(nodeID,1), _baseMesh->getX(nodeID,2);
+	  xa << _field[nodeID * 3 + 0], _field[nodeID * 3 + 1], _field[nodeID * 3 + 2];
+
+          a1 += xa * geomEl->getDN(q, a, 0);
+          a2 += xa * geomEl->getDN(q, a, 1);
+        }
+        a3 = a1.cross(a2);
+	_averageBaseNormal += a3;
+	_averageBaseNormal_q.push_back(a3/a3.norm());
+	// cout << a3/a3.norm() << "***" << endl;
+      } // end loop over quadrature points q
+    } // end loop over elements e
+    _averageBaseNormal = _averageBaseNormal/_averageBaseNormal.norm();
+    // _averageBaseNormal << 0.0, 1.0, 0.0;
+    cout << "Average Base Normal: " << _averageBaseNormal(0) << "\t" << _averageBaseNormal(1) << "\t" << _averageBaseNormal(2) << endl;
+  }
+
+  // Impose Constrain Base Rotation
+  vector<Triplet<Real> > MechanicsModel::imposeConstrainBaseRotation(Result& R) {
+
+    vector<Triplet<Real > > KtripletList_FromConstrainBaseRotation;
+
+    vector<GeomElement*> elements = _baseMesh->getElements();
+    int dimMainMesh = _myMesh->getDimension();
+    for(int e = 0; e < elements.size(); e++) {
+      GeomElement* geomEl = elements[e];
+      const vector<int  >& NodesID = geomEl->getNodesID();
+      const int numQP    = geomEl->getNumberOfQuadPoints();
+      const int numNodes = NodesID.size();
+
+      // Loop over quadrature points
+      for(int q = 0; q < numQP; q++) {
+	Vector3d el_quad_normal = _averageBaseNormal_q[e * numQP + q];
+	// Compute the normal of the element and quadrature point
+	Vector3d a1 = Vector3d::Zero(), a2 = Vector3d::Zero(), a3 = Vector3d::Zero(), u = Vector3d::Zero();
+        for (int a = 0; a < NodesID.size(); a++) {
+          int nodeID = NodesID[a];
+          Vector3d xa;
+          xa << _field[nodeID * 3 + 0], _field[nodeID * 3 + 1], _field[nodeID * 3 + 2];
+          a1 += xa * geomEl->getDN(q, a, 0);
+          a2 += xa * geomEl->getDN(q, a, 1);
+        }
+        a3 = a1.cross(a2);
+	double a3norm = a3.norm();
+	Vector3d el_normal = a3/a3norm;
+	
+        // Compute energy
+        if (R.getRequest() & ENERGY)
+          R.addEnergy(0.5 * _rotationalPenaltyFactor * pow(el_normal.dot(_averageBaseNormal) - 1.0, 2.0));
+    
+	// Data structure used for force and stiffness
+	vector<MatrixXd> dnedx(3, MatrixXd::Zero(numNodes,dimMainMesh)); // Used for stiffness but computed here
+	if (R.getRequest() & FORCE | STIFFNESS) {
+          for (int a = 0; a < numNodes; a++) {
+            for (int j = 0; j < dimMainMesh; j++) {
+              int aj = NodesID[a] * dimMainMesh + j;
+              double temp1 = 0.0;
+              double temp2 = 0.0;
+              for (int k = 0 ; k < dimMainMesh; k++) {
+                for (int m = 0; m < dimMainMesh; m++) {
+                  for (int b = 0; b < numNodes; b++) {
+                    int bm = NodesID[b] * dimMainMesh + m;
+                    temp1 += _field[bm] * (LeviCivitaSymbol3(k,j,m) * geomEl->getDN(q,a,0) * geomEl->getDN(q,b,1) + LeviCivitaSymbol3(k,m,j) * geomEl->getDN(q,b,0) * geomEl->getDN(q,a,1)) ;
+                    for (int l = 0; l < dimMainMesh; l++) {
+                      temp2 += -1.0 * _field[bm] * el_normal(k) * el_normal(l) * (LeviCivitaSymbol3(l,j,m) * geomEl->getDN(q,a,0) * geomEl->getDN(q,b,1) + LeviCivitaSymbol3(l,m,j) * geomEl->getDN(q,b,0) * geomEl->getDN(q,a,1));
+                    } // end l loop
+                  } // end b loop
+                } // end m loop
+		dnedx[k](a,j) = 1.0/a3norm * (temp1 + temp2);
+		temp1 *= el_quad_normal(k);
+		temp2 *= el_quad_normal(k);
+              } // end k loop
+	      if (R.getRequest() & FORCE) R.addResidual(aj, _rotationalPenaltyFactor * (el_normal.dot(el_quad_normal) - 1.0) / a3norm * (temp1 + temp2));
+            } // end j loop
+          } // end a loop
+        } // end FORCE | STIFFNESS request
+
+	if (R.getRequest() & STIFFNESS) {
+	  double ni_ne_minus1 = el_normal.dot(el_quad_normal) - 1.0;
+	  for (int a = 0; a < numNodes; a++) {
+            for (int j = 0; j < dimMainMesh; j++) {
+              int aj = NodesID[a] * dimMainMesh + j;
+	      for (int c = 0; c < numNodes; c++) {
+		for (int n = 0; n < dimMainMesh; n++) {
+		  int cn = NodesID[c] * dimMainMesh + n;
+		  double temp1 = 0.0;
+		  double temp2 = 0.0;
+		  double temp2_1a = 0.0;
+		  double temp2_1b = 0.0;
+		  double temp2_2 = 0.0;
+		  double temp2_3 = 0.0;
+		  for (int k = 0; k < dimMainMesh; k++) {
+		    for (int i = 0; i < dimMainMesh; i++) {
+		      temp1 += el_quad_normal(k) * dnedx[i](c,n) * dnedx[k](a,j) * el_quad_normal(i);
+		      temp2_1b -= el_quad_normal(k) * el_normal(k) * el_normal(i) * (LeviCivitaSymbol3(i,j,n) * geomEl->getDN(q,a,0) * geomEl->getDN(q,c,1) + LeviCivitaSymbol3(i,n,j) * geomEl->getDN(q,c,0) * geomEl->getDN(q,a,1));
+		    } // end i loop
+		    temp2_1a += el_quad_normal(k) * (LeviCivitaSymbol3(k,j,n) * geomEl->getDN(q,a,0) * geomEl->getDN(q,c,1) + LeviCivitaSymbol3(k,n,j) * geomEl->getDN(q,c,0) * geomEl->getDN(q,a,1));
+
+		    for (int l = 0; l < dimMainMesh; l++) {
+		      for (int m = 0; m < dimMainMesh; m++) {
+                  	for (int b = 0; b < numNodes; b++) {
+                    	  int bm = NodesID[b] * dimMainMesh + m;
+			  temp2_2 += -1.0 * el_quad_normal(k) * _field[bm] * ((dnedx[k](c,n) * el_normal(l) + el_normal(k) * dnedx[l](c,n)) * (LeviCivitaSymbol3(l,j,m) * geomEl->getDN(q,a,0) * geomEl->getDN(q,b,1) + LeviCivitaSymbol3(l,m,j) * geomEl->getDN(q,b,0) * geomEl->getDN(q,a,1)));
+			  temp2_3 += -1.0 * el_quad_normal(k) * _field[bm] * dnedx[k](a,j) * el_normal(l) * (LeviCivitaSymbol3(l,n,m) * geomEl->getDN(q,c,0) * geomEl->getDN(q,b,1) + LeviCivitaSymbol3(l,m,n) * geomEl->getDN(q,b,0) * geomEl->getDN(q,c,1));
+		        } // end b loop
+		      } // end m loop
+		    } // end l loop
+		  } // end k loop
+		  temp2 = temp2_1a + temp2_1b + temp2_2 + temp2_3;
+		  temp2 *= ni_ne_minus1/a3norm;
+		  KtripletList_FromConstrainBaseRotation.push_back(Triplet<Real>(aj, cn, _rotationalPenaltyFactor * (temp1 + temp2))); 
+		} // end n loop
+	      } // end c loop
+	    } // end j loop
+	  } // end a loop
+	} // end STIFFNESS request
+      } // end loop over quadrature points
+    } // end loop over elements
+    return KtripletList_FromConstrainBaseRotation;
+  } 
 
 
   // Writing output
@@ -2156,7 +2316,7 @@ namespace voom {
     if (_springBCflag)
       writeLinearSpringPolyData(OutputFile, step);
     if (_torsionalSpringBCflag)
-      writeTorsionalSpringPolyData(OutputFile, step);
+      writeBasePolyData(OutputFile, step);
     if (_lennardJonesBCFlag) {
        writeLJBCPolyData(OutputFile, step);
        if (_makeFlexible)
@@ -2309,10 +2469,10 @@ namespace voom {
     IntegrationPointWriter->Write();
   }
 
-  void MechanicsModel::writeTorsionalSpringPolyData(string OutputFile, int step) {
+  void MechanicsModel::writeBasePolyData(string OutputFile, int step) {
     int dim = _myMesh->getDimension();
 
-    string outputIntegrationPointDataFileName = OutputFile + "_TorsionalSpring" + boost::lexical_cast<string>(step) + ".vtp";
+    string outputIntegrationPointDataFileName = OutputFile + "_BaseData" + boost::lexical_cast<string>(step) + ".vtp";
     vtkSmartPointer<vtkPolyData> IntegrationPointGrid = vtkSmartPointer<vtkPolyData>::New();
     vtkSmartPointer<vtkPoints> IntegrationPoints = vtkSmartPointer<vtkPoints>::New();
     vtkSmartPointer<vtkDoubleArray> IntegrationPointsDisplacements = vtkSmartPointer<vtkDoubleArray>::New();
@@ -2343,14 +2503,102 @@ namespace voom {
     }
 
     IntegrationPointGrid->GetPointData()->AddArray(spNormal);
+   
+
+    if (_constrainBaseRotationFlag) {
+      vtkSmartPointer<vtkDoubleArray> baseConstraintForceVector = vtkSmartPointer<vtkDoubleArray>::New();
+      baseConstraintForceVector->SetNumberOfComponents(3);
+      baseConstraintForceVector->SetName("BaseConstraintForceVector");
+
+      // Compute Residual
+      uint PbDoF = ( _myMesh->getNumberOfNodes())*this->getDoFperNode();
+      if (_makeFlexible) PbDoF += _rigidPotentialBoundaryMesh->getNumberOfNodes() * this->getDoFperNode();
+      EigenResult myResults(PbDoF, 2);
+      int myRequest = 2;
+      myResults.setRequest(myRequest);
+      this->imposeConstrainBaseRotation(myResults);
+      VectorXd R = *(myResults._residual);
+
+      for (int n = 0; n < _torsionalSpringNodes.size(); n++) {
+        double residualBaseConstraint[3] = {R(_torsionalSpringNodes[n]*3 + 0), R(_torsionalSpringNodes[n]*3 + 1), R(_torsionalSpringNodes[n]*3 + 2)};
+        baseConstraintForceVector->InsertNextTuple(residualBaseConstraint);
+      }
+      IntegrationPointGrid->GetPointData()->AddArray(baseConstraintForceVector);
+
+      // QUADRATURE POINT DATA
+      string outputBaseQuadPointDataFileName = OutputFile + "_BaseQuadraturePointData" + boost::lexical_cast<string>(step) + ".vtp";
+      vtkSmartPointer<vtkPolyData> BaseQuadPointDataGrid = vtkSmartPointer<vtkPolyData>::New();
+      vtkSmartPointer<vtkPoints> QuadPoints = vtkSmartPointer<vtkPoints>::New();
+      vtkSmartPointer<vtkDoubleArray> QuadPointDisplacements = vtkSmartPointer<vtkDoubleArray>::New();
+      QuadPointDisplacements->SetNumberOfComponents(3);
+      QuadPointDisplacements->SetName("Displacements");
+
+      vtkSmartPointer<vtkDoubleArray> baseConstraintReferenceNormalVector = vtkSmartPointer<vtkDoubleArray>::New();
+      baseConstraintReferenceNormalVector->SetNumberOfComponents(3);
+      baseConstraintReferenceNormalVector->SetName("BaseConstraintReferenceNormalVector");
+
+      vtkSmartPointer<vtkDoubleArray> baseConstraintCurrentNormalVector = vtkSmartPointer<vtkDoubleArray>::New();
+      baseConstraintCurrentNormalVector->SetNumberOfComponents(3);
+      baseConstraintCurrentNormalVector->SetName("BaseConstraintCurrentNormalVector");
+
+      vector<GeomElement*> elements = _baseMesh->getElements();
+      for (int e = 0; e < _baseMesh->getNumberOfElements(); e++) {
+	GeomElement* geomEl = elements[e];
+	const vector<int  >& NodesID = geomEl->getNodesID();
+        const int numQP    = geomEl->getNumberOfQuadPoints();
+        const int numNodes = NodesID.size();
+        for (int q = 0; q < numQP; q++) {
+	  double quadPointLocation[3] = {0.0, 0.0, 0.0};
+	  double quadPointDisplacement[3] = {0.0, 0.0, 0.0};
+
+	  Vector3d a1 = Vector3d::Zero(), a2 = Vector3d::Zero(), a3 = Vector3d::Zero(), u = Vector3d::Zero();
+	  for (int a = 0; a < NodesID.size(); a++) {
+	    // Compute the location
+	    quadPointLocation[0] += _baseMesh->getX(NodesID[a],0) * geomEl->getN(q,a);
+	    quadPointLocation[1] += _baseMesh->getX(NodesID[a],1) * geomEl->getN(q,a);
+	    quadPointLocation[2] += _baseMesh->getX(NodesID[a],2) * geomEl->getN(q,a);
+
+	    // Compute the displacement
+	    quadPointDisplacement[0] += (_field[NodesID[a] * dim + 0] * geomEl->getN(q,a)) - quadPointLocation[0];
+            quadPointDisplacement[1] += (_field[NodesID[a] * dim + 1] * geomEl->getN(q,a)) - quadPointLocation[1];
+            quadPointDisplacement[2] += (_field[NodesID[a] * dim + 2] * geomEl->getN(q,a)) - quadPointLocation[2];
+
+	    // Compute the current normal vector
+	    int nodeID = NodesID[a];
+            Vector3d xa;
+            xa << _field[nodeID * 3 + 0], _field[nodeID * 3 + 1], _field[nodeID * 3 + 2];
+            a1 += xa * geomEl->getDN(q, a, 0);
+            a2 += xa * geomEl->getDN(q, a, 1);
+	  }
+	  a3 = a1.cross(a2);
+          double a3norm = a3.norm();
+          double currentQuadPointVector[3] = {a3[0]/a3norm, a3[1]/a3norm, a3[2]/a3norm};
+          baseConstraintCurrentNormalVector->InsertNextTuple(currentQuadPointVector);
+
+	  QuadPoints->InsertNextPoint(quadPointLocation);
+	  QuadPointDisplacements->InsertNextTuple(quadPointDisplacement);
+	  double baseRefNormVec[3] = {_averageBaseNormal_q[e * numQP + q](0), _averageBaseNormal_q[e * numQP + q](1), _averageBaseNormal_q[e * numQP + q](2)};
+	  baseConstraintReferenceNormalVector->InsertNextTuple(baseRefNormVec);
+	} // end quadrature point loop q
+      } // end element loop e
+      BaseQuadPointDataGrid->SetPoints(QuadPoints);
+      BaseQuadPointDataGrid->GetPointData()->AddArray(QuadPointDisplacements);
+      BaseQuadPointDataGrid->GetPointData()->AddArray(baseConstraintReferenceNormalVector);
+      BaseQuadPointDataGrid->GetPointData()->AddArray(baseConstraintCurrentNormalVector);
+
+      // Write Quadrature point data
+      vtkSmartPointer<vtkXMLPolyDataWriter> QuadPointWriter = vtkSmartPointer<vtkXMLPolyDataWriter>::New();
+      QuadPointWriter->SetFileName(outputBaseQuadPointDataFileName.c_str());
+      QuadPointWriter->SetInput(BaseQuadPointDataGrid);
+      QuadPointWriter->Write();
+    } // end _constrainBaseRotationFlag
 
     // Write File
     vtkSmartPointer<vtkXMLPolyDataWriter> IntegrationPointWriter = vtkSmartPointer<vtkXMLPolyDataWriter>::New();
     IntegrationPointWriter->SetFileName(outputIntegrationPointDataFileName.c_str());
     IntegrationPointWriter->SetInput(IntegrationPointGrid);
     IntegrationPointWriter->Write();
-  }
-
+  } 
   void MechanicsModel::writeLJBCPolyData(string OutputFile, int step) {
     int dim = _myMesh->getDimension();
 
