@@ -22,6 +22,7 @@ namespace voom {
       _torsionalSpringBCflag = 0;
       _lennardJonesBCFlag = 0;
       _makeFlexible = false;
+      _membraneBendingStiffnessFlag = false;
 
       _prevField.resize( _field.size() );
       this->setPrevField();
@@ -1241,7 +1242,121 @@ namespace voom {
 	cout << "ERROR: Not sure what element to impose for the Flexible Membrane." << endl;
 	exit(EXIT_FAILURE);
       }
-    }
+
+    } // End element iter
+
+    // Impose Bending stiffness as defined by Szeliski and Tonnesen
+    if (_membraneBendingStiffnessFlag) {
+      vector<GeomElement*> elements = _rigidPotentialBoundaryMesh->getElements();
+      int dimMainMesh = _myMesh->getDimension();
+      for (int currentEl = 0; currentEl < _rigidPotentialBoundaryMesh->getNumberOfElements(); currentEl++) {
+	GeomElement* geomEl = elements[currentEl];
+        const vector<int  >& NodesID = geomEl->getNodesID();
+        const int numQP    = 1; // ONLY ONE QUAD POINT ALLOWED geomEl->getNumberOfQuadPoints();
+	int q = 0;
+        const int numNodes = NodesID.size();
+
+	// Compute the normal of the current element:
+        Vector3d a1 = Vector3d::Zero(), a2 = Vector3d::Zero(), a3 = Vector3d::Zero(), u = Vector3d::Zero();
+        for (int a = 0; a < NodesID.size(); a++) {
+          int nodeID = NodesID[a];
+          Vector3d xa;
+          xa << _field[nodeID * 3 + 0], _field[nodeID * 3 + 1], _field[nodeID * 3 + 2];
+          a1 += xa * geomEl->getDN(q, a, 0);
+          a2 += xa * geomEl->getDN(q, a, 1);
+        }
+        a3 = a1.cross(a2);
+        double a3norm = a3.norm();
+        Vector3d el_normal = a3/a3norm; // Element a normal
+
+	// Compute dn/dx for this element:
+        vector<MatrixXd> dnedx(3, MatrixXd::Zero(numNodes,dimMainMesh)); // Used for stiffness but computed here
+	if (R.getRequest() & FORCE | STIFFNESS) {
+          for (int a = 0; a < numNodes; a++) {
+            for (int j = 0; j < dimMainMesh; j++) {
+              int aj = NodesID[a] * dimMainMesh + j;
+              for (int k = 0 ; k < dimMainMesh; k++) {
+	        double temp1 = 0.0;
+		double temp2 = 0.0;
+                for (int m = 0; m < dimMainMesh; m++) {
+                  for (int b = 0; b < numNodes; b++) {
+                    int bm = NodesID[b] * dimMainMesh + m;
+                    temp1 += _field[bm] * (LeviCivitaSymbol3(k,j,m) * geomEl->getDN(q,a,0) * geomEl->getDN(q,b,1) + LeviCivitaSymbol3(k,m,j) * geomEl->getDN(q,b,0) * geomEl->getDN(q,a,1)) ;
+                    for (int l = 0; l < dimMainMesh; l++) {
+                      temp2 += -1.0 * _field[bm] * el_normal(k) * el_normal(l) * (LeviCivitaSymbol3(l,j,m) * geomEl->getDN(q,a,0) * geomEl->getDN(q,b,1) + LeviCivitaSymbol3(l,m,j) * geomEl->getDN(q,b,0) * geomEl->getDN(q,a,1));
+                    } // end l loop
+                  } // end b loop
+                } // end m loop
+	        dnedx[k](a,j) = 1.0/a3norm * (temp1 + temp2);
+              } // end k loop
+            } // end j loop
+          } // end a loop
+        } // end FORCE | STIFFNESS request
+
+
+	// Loop through element neighbors
+ 	for (int neighboringEl = 0; neighboringEl < _membraneNeighboringElements[currentEl].size(); neighboringEl++) {
+          GeomElement* geomEl_n = elements[_membraneNeighboringElements[currentEl][neighboringEl]];
+	  const vector<int>& NodesID_n = geomEl_n->getNodesID();
+	  const int numQP_n = 1; // Again, only one quad point
+	  int q_n = 0;
+	  const int numNodes_n = NodesID_n.size();
+
+	  // Compute the normal of the neighboring element
+	  Vector3d a1_neighboringEl = Vector3d::Zero(), a2_neighboringEl = Vector3d::Zero(), a3_neighboringEl = Vector3d::Zero();
+          for (int a = 0; a < NodesID_n.size(); a++) {
+            int nodeID = NodesID_n[a];
+            Vector3d xa;
+            xa << _field[nodeID * 3 + 0], _field[nodeID * 3 + 1], _field[nodeID * 3 + 2];
+            a1_neighboringEl += xa * geomEl_n->getDN(q, a, 0);
+            a2_neighboringEl += xa * geomEl_n->getDN(q, a, 1);
+          }
+          a3_neighboringEl = a1_neighboringEl.cross(a2_neighboringEl);
+          double a3norm_neighboringEl = a3_neighboringEl.norm();
+          Vector3d el_normal_neighboringEl = a3_neighboringEl/a3norm_neighboringEl; // Element a normal
+
+
+	  // Compute Energy:
+	  Vector3d normalDifference = el_normal - el_normal_neighboringEl;
+	  if (R.getRequest() & ENERGY)
+	    R.addEnergy(0.5 * _membraneBendingStiffness * pow(normalDifference.norm(), 2.0));
+
+	  vector<MatrixXd> dnedx_n(3, MatrixXd::Zero(numNodes_n,dimMainMesh)); // Used for stiffness but computed here
+          if (R.getRequest() & FORCE | STIFFNESS) {
+            for (int a = 0; a < numNodes_n; a++) {
+              for (int j = 0; j < dimMainMesh; j++) {
+                int aj_n = NodesID_n[a] * dimMainMesh + j;
+		int aj = NodesID[a] * dimMainMesh + j;
+
+		double ResTerm1 = 0.0;
+		double ResTerm2 = 0.0;
+                for (int k = 0 ; k < dimMainMesh; k++) {
+                  double temp1 = 0.0;
+                  double temp2 = 0.0;
+                  for (int m = 0; m < dimMainMesh; m++) {
+                    for (int b = 0; b < numNodes_n; b++) {
+                      int bm = NodesID_n[b] * dimMainMesh + m;
+                      temp1 += _field[bm] * (LeviCivitaSymbol3(k,j,m) * geomEl_n->getDN(q,a,0) * geomEl_n->getDN(q,b,1) + LeviCivitaSymbol3(k,m,j) * geomEl_n->getDN(q,b,0) * geomEl_n->getDN(q,a,1)) ;
+                      for (int l = 0; l < dimMainMesh; l++) {
+                        temp2 += -1.0 * _field[bm] * el_normal_neighboringEl(k) * el_normal_neighboringEl(l) * (LeviCivitaSymbol3(l,j,m) * geomEl_n->getDN(q,a,0) * geomEl_n->getDN(q,b,1) + LeviCivitaSymbol3(l,m,j) * geomEl_n->getDN(q,b,0) * geomEl_n->getDN(q,a,1));
+                      } // end l loop
+                    } // end b loop
+                  } // end m loop
+                  dnedx_n[k](a,j) = 1.0/a3norm_neighboringEl * (temp1 + temp2);
+		  ResTerm1 += dnedx[k](a,j) * normalDifference(k);
+		  ResTerm2 -= dnedx_n[k](a,j) * normalDifference(k);
+                } // end k loop
+		if (R.getRequest() & FORCE) {
+		  R.addResidual(aj, _membraneBendingStiffness * ResTerm1);
+		  R.addResidual(aj_n, _membraneBendingStiffness * ResTerm2);
+		}
+              } // end j loop
+            } // end a loop
+          } // end FORCE | STIFFNESS request
+
+	} // End loop n through neighboring elements
+      } // End loop e through flexible mesh elements
+    } // end _membraneBendingStiffnessFlag
     return KtripletList_FromFlexibleBoundary;
   } // End imposeFlexibleMembrane
 
@@ -1296,7 +1411,6 @@ namespace voom {
   }
 
   void MechanicsModel::findNearestRigidNeighbors() {
-    // Loop through every surface node
     int numSurfaceNodes = _bodyPotentialBoundaryNodes.size();
     int dim = _rigidPotentialBoundaryMesh->getDimension();
     int numMainNodes = _myMesh->getNumberOfNodes();
@@ -1403,6 +1517,40 @@ namespace voom {
       cout << "Resetting each rigid node BC's Minimum Distance. Average turns out to be " << totalAverage << endl;
     }
   } // end recomputeAverageMinDistance
+
+  // Method which initializes the bending stiffness for the membrane
+  void MechanicsModel::initializeMembraneBendingStiffness(double membraneBendingStiffness) {
+    _membraneBendingStiffnessFlag = true;
+    _membraneBendingStiffness = membraneBendingStiffness;
+
+    // Find neighboring elements which share at least two nodes in common
+    // CURRENTLY ONLY WORKS FOR LINEAR TRI ELEMENTS
+    int numEl = _rigidPotentialBoundaryMesh->getNumberOfElements();
+    vector <GeomElement*> elements = _rigidPotentialBoundaryMesh->getElements();
+    for (int e1 = 0; e1 < numEl; e1++) {
+      GeomElement* geomEl1 = elements[e1];
+      const vector<int  >& NodesID1 = geomEl1->getNodesID();
+      const int numNodes1 = NodesID1.size();
+      vector <int> e1_neighboringElements;
+      for (int e2 = 0; e2 < numEl; e2++) {
+	int nodesInCommon = 0;
+	if (e1 == e2) continue;
+
+	GeomElement* geomEl2 = elements[e2];
+	const vector<int> & NodesID2 = geomEl2->getNodesID();
+	const int numNodes2 = NodesID2.size();
+
+	for (int n1 = 0; n1 < numNodes1; n1++) {
+	  for (int n2 = 0; n2 < numNodes2; n2++) {
+	    if (NodesID1[n1] == NodesID2[n2]) nodesInCommon++;
+	  } // end n2 loop
+	} // end n1 loop
+      
+	if (nodesInCommon >= 2) e1_neighboringElements.push_back(e2);
+      } // loop over elements e2
+      _membraneNeighboringElements.push_back(e1_neighboringElements);
+    } // loop over elements e
+  }
 
 
   // Lagrange Multiplier method
@@ -1836,11 +1984,12 @@ namespace voom {
 
 
   // Constraining Rotation of the Base
-  void MechanicsModel::initializeConstrainBaseRotation(Mesh* baseMesh, double rotationalPenaltyFactor) {
+  void MechanicsModel::initializeConstrainBaseRotation(BaseConstrainRotationType BCType, Mesh* baseMesh, double rotationalPenaltyFactor) {
+    _baseConstrainRotationType = BCType;
     _constrainBaseRotationFlag = true;
     _rotationalPenaltyFactor = rotationalPenaltyFactor;
     _baseMesh = baseMesh;
-
+    
     // Compute the average normal of the base in the reference configuration (_averageBaseNormal)
     vector<GeomElement*> elements = _baseMesh->getElements();
     for(int e = 0; e < elements.size(); e++)
@@ -1904,77 +2053,151 @@ namespace voom {
         a3 = a1.cross(a2);
 	double a3norm = a3.norm();
 	Vector3d el_normal = a3/a3norm;
-	
-        // Compute energy
-        if (R.getRequest() & ENERGY)
-          R.addEnergy(0.5 * _rotationalPenaltyFactor * pow(el_normal.dot(_averageBaseNormal) - 1.0, 2.0));
-    
-	// Data structure used for force and stiffness
-	vector<MatrixXd> dnedx(3, MatrixXd::Zero(numNodes,dimMainMesh)); // Used for stiffness but computed here
-	if (R.getRequest() & FORCE | STIFFNESS) {
-          for (int a = 0; a < numNodes; a++) {
-            for (int j = 0; j < dimMainMesh; j++) {
-              int aj = NodesID[a] * dimMainMesh + j;
-              double temp1 = 0.0;
-              double temp2 = 0.0;
-              for (int k = 0 ; k < dimMainMesh; k++) {
-                for (int m = 0; m < dimMainMesh; m++) {
-                  for (int b = 0; b < numNodes; b++) {
-                    int bm = NodesID[b] * dimMainMesh + m;
-                    temp1 += _field[bm] * (LeviCivitaSymbol3(k,j,m) * geomEl->getDN(q,a,0) * geomEl->getDN(q,b,1) + LeviCivitaSymbol3(k,m,j) * geomEl->getDN(q,b,0) * geomEl->getDN(q,a,1)) ;
-                    for (int l = 0; l < dimMainMesh; l++) {
-                      temp2 += -1.0 * _field[bm] * el_normal(k) * el_normal(l) * (LeviCivitaSymbol3(l,j,m) * geomEl->getDN(q,a,0) * geomEl->getDN(q,b,1) + LeviCivitaSymbol3(l,m,j) * geomEl->getDN(q,b,0) * geomEl->getDN(q,a,1));
-                    } // end l loop
-                  } // end b loop
-                } // end m loop
-		dnedx[k](a,j) = 1.0/a3norm * (temp1 + temp2);
-		temp1 *= el_quad_normal(k);
-		temp2 *= el_quad_normal(k);
-              } // end k loop
-	      if (R.getRequest() & FORCE) R.addResidual(aj, _rotationalPenaltyFactor * (el_normal.dot(el_quad_normal) - 1.0) / a3norm * (temp1 + temp2));
-            } // end j loop
-          } // end a loop
-        } // end FORCE | STIFFNESS request
 
-	if (R.getRequest() & STIFFNESS) {
-	  double ni_ne_minus1 = el_normal.dot(el_quad_normal) - 1.0;
-	  for (int a = 0; a < numNodes; a++) {
-            for (int j = 0; j < dimMainMesh; j++) {
-              int aj = NodesID[a] * dimMainMesh + j;
-	      for (int c = 0; c < numNodes; c++) {
-		for (int n = 0; n < dimMainMesh; n++) {
-		  int cn = NodesID[c] * dimMainMesh + n;
+	if (_baseConstrainRotationType == NORMALS_DOT_PRODUCT) {
+          // Compute energy
+          if (R.getRequest() & ENERGY)
+            R.addEnergy(0.5 * _rotationalPenaltyFactor * pow(el_normal.dot(_averageBaseNormal) - 1.0, 2.0));
+    
+	  // Data structure used for force and stiffness
+	  vector<MatrixXd> dnedx(3, MatrixXd::Zero(numNodes,dimMainMesh)); // Used for stiffness but computed here
+	  if (R.getRequest() & FORCE | STIFFNESS) {
+            for (int a = 0; a < numNodes; a++) {
+              for (int j = 0; j < dimMainMesh; j++) {
+                int aj = NodesID[a] * dimMainMesh + j;
+                for (int k = 0 ; k < dimMainMesh; k++) {
 		  double temp1 = 0.0;
 		  double temp2 = 0.0;
-		  double temp2_1a = 0.0;
-		  double temp2_1b = 0.0;
-		  double temp2_2 = 0.0;
-		  double temp2_3 = 0.0;
-		  for (int k = 0; k < dimMainMesh; k++) {
-		    for (int i = 0; i < dimMainMesh; i++) {
-		      temp1 += el_quad_normal(k) * dnedx[i](c,n) * dnedx[k](a,j) * el_quad_normal(i);
-		      temp2_1b -= el_quad_normal(k) * el_normal(k) * el_normal(i) * (LeviCivitaSymbol3(i,j,n) * geomEl->getDN(q,a,0) * geomEl->getDN(q,c,1) + LeviCivitaSymbol3(i,n,j) * geomEl->getDN(q,c,0) * geomEl->getDN(q,a,1));
-		    } // end i loop
-		    temp2_1a += el_quad_normal(k) * (LeviCivitaSymbol3(k,j,n) * geomEl->getDN(q,a,0) * geomEl->getDN(q,c,1) + LeviCivitaSymbol3(k,n,j) * geomEl->getDN(q,c,0) * geomEl->getDN(q,a,1));
+                  for (int m = 0; m < dimMainMesh; m++) {
+                    for (int b = 0; b < numNodes; b++) {
+                      int bm = NodesID[b] * dimMainMesh + m;
+                      temp1 += _field[bm] * (LeviCivitaSymbol3(k,j,m) * geomEl->getDN(q,a,0) * geomEl->getDN(q,b,1) + LeviCivitaSymbol3(k,m,j) * geomEl->getDN(q,b,0) * geomEl->getDN(q,a,1)) ;
+                      for (int l = 0; l < dimMainMesh; l++) {
+                        temp2 += -1.0 * _field[bm] * el_normal(k) * el_normal(l) * (LeviCivitaSymbol3(l,j,m) * geomEl->getDN(q,a,0) * geomEl->getDN(q,b,1) + LeviCivitaSymbol3(l,m,j) * geomEl->getDN(q,b,0) * geomEl->getDN(q,a,1));
+                      } // end l loop
+                    } // end b loop
+                  } // end m loop
+		  dnedx[k](a,j) = 1.0/a3norm * (temp1 + temp2);
+		  temp1 *= el_quad_normal(k);
+		  temp2 *= el_quad_normal(k);
+		  if (R.getRequest() & FORCE) R.addResidual(aj, _rotationalPenaltyFactor * (el_normal.dot(_averageBaseNormal) - 1.0) * dnedx[k](a,j) * _averageBaseNormal(k));
+                } // end k loop
+              } // end j loop
+            } // end a loop
+          } // end FORCE | STIFFNESS request
 
-		    for (int l = 0; l < dimMainMesh; l++) {
-		      for (int m = 0; m < dimMainMesh; m++) {
-                  	for (int b = 0; b < numNodes; b++) {
-                    	  int bm = NodesID[b] * dimMainMesh + m;
-			  temp2_2 += -1.0 * el_quad_normal(k) * _field[bm] * ((dnedx[k](c,n) * el_normal(l) + el_normal(k) * dnedx[l](c,n)) * (LeviCivitaSymbol3(l,j,m) * geomEl->getDN(q,a,0) * geomEl->getDN(q,b,1) + LeviCivitaSymbol3(l,m,j) * geomEl->getDN(q,b,0) * geomEl->getDN(q,a,1)));
-			  temp2_3 += -1.0 * el_quad_normal(k) * _field[bm] * dnedx[k](a,j) * el_normal(l) * (LeviCivitaSymbol3(l,n,m) * geomEl->getDN(q,c,0) * geomEl->getDN(q,b,1) + LeviCivitaSymbol3(l,m,n) * geomEl->getDN(q,b,0) * geomEl->getDN(q,c,1));
-		        } // end b loop
-		      } // end m loop
-		    } // end l loop
-		  } // end k loop
-		  temp2 = temp2_1a + temp2_1b + temp2_2 + temp2_3;
-		  temp2 *= ni_ne_minus1/a3norm;
-		  KtripletList_FromConstrainBaseRotation.push_back(Triplet<Real>(aj, cn, _rotationalPenaltyFactor * (temp1 + temp2))); 
-		} // end n loop
-	      } // end c loop
-	    } // end j loop
-	  } // end a loop
-	} // end STIFFNESS request
+	  if (R.getRequest() & STIFFNESS) {
+	    double ni_ne_minus1 = el_normal.dot(el_quad_normal) - 1.0;
+	    for (int a = 0; a < numNodes; a++) {
+              for (int j = 0; j < dimMainMesh; j++) {
+                int aj = NodesID[a] * dimMainMesh + j;
+	        for (int c = 0; c < numNodes; c++) {
+	          for (int n = 0; n < dimMainMesh; n++) {
+		    int cn = NodesID[c] * dimMainMesh + n;
+		    double temp1 = 0.0;
+		    double temp2 = 0.0;
+		    double temp2_1a = 0.0;
+		    double temp2_1b = 0.0;
+		    double temp2_2 = 0.0;
+		    double temp2_3 = 0.0;
+		    for (int k = 0; k < dimMainMesh; k++) {
+		      for (int i = 0; i < dimMainMesh; i++) {
+		        temp1 += el_quad_normal(k) * dnedx[i](c,n) * dnedx[k](a,j) * el_quad_normal(i);
+		        temp2_1b -= el_quad_normal(k) * el_normal(k) * el_normal(i) * (LeviCivitaSymbol3(i,j,n) * geomEl->getDN(q,a,0) * geomEl->getDN(q,c,1) + LeviCivitaSymbol3(i,n,j) * geomEl->getDN(q,c,0) * geomEl->getDN(q,a,1));
+		      } // end i loop
+		      temp2_1a += el_quad_normal(k) * (LeviCivitaSymbol3(k,j,n) * geomEl->getDN(q,a,0) * geomEl->getDN(q,c,1) + LeviCivitaSymbol3(k,n,j) * geomEl->getDN(q,c,0) * geomEl->getDN(q,a,1));
+
+		      for (int l = 0; l < dimMainMesh; l++) {
+		        for (int m = 0; m < dimMainMesh; m++) {
+                  	  for (int b = 0; b < numNodes; b++) {
+                    	    int bm = NodesID[b] * dimMainMesh + m;
+			    temp2_2 += -1.0 * el_quad_normal(k) * _field[bm] * ((dnedx[k](c,n) * el_normal(l) + el_normal(k) * dnedx[l](c,n)) * (LeviCivitaSymbol3(l,j,m) * geomEl->getDN(q,a,0) * geomEl->getDN(q,b,1) + LeviCivitaSymbol3(l,m,j) * geomEl->getDN(q,b,0) * geomEl->getDN(q,a,1)));
+			    temp2_3 += -1.0 * el_quad_normal(k) * _field[bm] * dnedx[k](a,j) * el_normal(l) * (LeviCivitaSymbol3(l,n,m) * geomEl->getDN(q,c,0) * geomEl->getDN(q,b,1) + LeviCivitaSymbol3(l,m,n) * geomEl->getDN(q,b,0) * geomEl->getDN(q,c,1));
+		          } // end b loop
+		        } // end m loop
+		      } // end l loop
+		    } // end k loop
+		    temp2 = temp2_1a + temp2_1b + temp2_2 + temp2_3;
+		    temp2 *= ni_ne_minus1/a3norm;
+		    KtripletList_FromConstrainBaseRotation.push_back(Triplet<Real>(aj, cn, _rotationalPenaltyFactor * (temp1 + temp2))); 
+		  } // end n loop
+	        } // end c loop
+	      } // end j loop
+	    } // end a loop
+	  } // end STIFFNESS request
+        } // end NORMALS_DOT_PRODUCT
+	else if (_baseConstrainRotationType == SZELISKI) {
+	  Vector3d normalDifference = el_normal - el_quad_normal;
+	  // Compute energy
+          if (R.getRequest() & ENERGY)
+            R.addEnergy(0.5 * _rotationalPenaltyFactor * pow(normalDifference.norm(), 2.0));
+    
+	  // Data structure used for force and stiffness
+	  vector<MatrixXd> dnedx(3, MatrixXd::Zero(numNodes,dimMainMesh)); // Used for stiffness but computed here
+	  if (R.getRequest() & FORCE | STIFFNESS) {
+            for (int a = 0; a < numNodes; a++) {
+              for (int j = 0; j < dimMainMesh; j++) {
+                int aj = NodesID[a] * dimMainMesh + j;
+		double tempResidual = 0.0;
+                for (int k = 0 ; k < dimMainMesh; k++) {
+		  double temp1 = 0.0; double temp2 = 0.0;
+                  for (int m = 0; m < dimMainMesh; m++) {
+                    for (int b = 0; b < numNodes; b++) {
+                      int bm = NodesID[b] * dimMainMesh + m;
+                      temp1 += _field[bm] * (LeviCivitaSymbol3(k,j,m) * geomEl->getDN(q,a,0) * geomEl->getDN(q,b,1) + LeviCivitaSymbol3(k,m,j) * geomEl->getDN(q,b,0) * geomEl->getDN(q,a,1)) ;
+                      for (int l = 0; l < dimMainMesh; l++) {
+                        temp2 += -1.0 * _field[bm] * el_normal(k) * el_normal(l) * (LeviCivitaSymbol3(l,j,m) * geomEl->getDN(q,a,0) * geomEl->getDN(q,b,1) + LeviCivitaSymbol3(l,m,j) * geomEl->getDN(q,b,0) * geomEl->getDN(q,a,1));
+                      } // end l loop
+                    } // end b loop
+                  } // end m loop
+		  dnedx[k](a,j) = 1.0/a3norm * (temp1 + temp2);
+		  tempResidual += dnedx[k](a,j) * normalDifference(k);
+                } // end k loop
+	        if (R.getRequest() & FORCE) R.addResidual(aj, _rotationalPenaltyFactor * tempResidual);
+              } // end j loop
+            } // end a loop
+          } // end FORCE | STIFFNESS request
+
+	  if (R.getRequest() & STIFFNESS) {
+	    for (int a = 0; a < numNodes; a++) {
+              for (int j = 0; j < dimMainMesh; j++) {
+                int aj = NodesID[a] * dimMainMesh + j;
+	        for (int c = 0; c < numNodes; c++) {
+	          for (int n = 0; n < dimMainMesh; n++) {
+		    int cn = NodesID[c] * dimMainMesh + n;
+		    double temp1 = 0.0;
+		    double temp2 = 0.0;
+		    double temp2_1a = 0.0;
+		    double temp2_1b = 0.0;
+		    double temp2_2 = 0.0;
+		    double temp2_3 = 0.0;
+		    for (int k = 0; k < dimMainMesh; k++) {
+		      temp1 += dnedx[k](c,n) * dnedx[k](a,j);
+		      temp2_1a += normalDifference(k) * (LeviCivitaSymbol3(k,j,n) * geomEl->getDN(q,a,0) * geomEl->getDN(q,c,1) + LeviCivitaSymbol3(k,n,j) * geomEl->getDN(q,c,0) * geomEl->getDN(q,a,1));
+		      for (int l = 0; l < dimMainMesh; l++) {
+			temp2_1b -= normalDifference(k) * el_normal(k) * el_normal(l) * (LeviCivitaSymbol3(l,j,n) * geomEl->getDN(q,a,0) * geomEl->getDN(q,c,1) + LeviCivitaSymbol3(l,n,j) * geomEl->getDN(q,c,0) * geomEl->getDN(q,a,1));
+		        for (int m = 0; m < dimMainMesh; m++) {
+                  	  for (int b = 0; b < numNodes; b++) {
+                    	    int bm = NodesID[b] * dimMainMesh + m;
+			    temp2_2 += -1.0 * normalDifference(k) * _field[bm] * ((dnedx[k](c,n) * el_normal(l) + el_normal(k) * dnedx[l](c,n)) * (LeviCivitaSymbol3(l,j,m) * geomEl->getDN(q,a,0) * geomEl->getDN(q,b,1) + LeviCivitaSymbol3(l,m,j) * geomEl->getDN(q,b,0) * geomEl->getDN(q,a,1)));
+			    temp2_3 += -1.0 * normalDifference(k) * _field[bm] * dnedx[k](a,j) * el_normal(l) * (LeviCivitaSymbol3(l,n,m) * geomEl->getDN(q,c,0) * geomEl->getDN(q,b,1) + LeviCivitaSymbol3(l,m,n) * geomEl->getDN(q,b,0) * geomEl->getDN(q,c,1));
+		          } // end b loop
+		        } // end m loop
+		      } // end l loop
+		    } // end k loop
+		    temp2 = temp2_1a + temp2_1b + temp2_2 + temp2_3;
+		    temp2 *= 1.0/a3norm;
+		    KtripletList_FromConstrainBaseRotation.push_back(Triplet<Real>(aj, cn, _rotationalPenaltyFactor * (temp1 + temp2))); 
+		  } // end n loop
+	        } // end c loop
+	      } // end j loop
+	    } // end a loop
+	  } // end STIFFNESS request
+	} // end SZELISKI
+        else {
+	  cout << "Unknown _baseConstrainRotationType" << endl;
+	  exit(EXIT_FAILURE);
+	} // else _baseConstrainRotationType
       } // end loop over quadrature points
     } // end loop over elements
     return KtripletList_FromConstrainBaseRotation;

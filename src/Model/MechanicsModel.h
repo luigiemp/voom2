@@ -32,6 +32,10 @@ namespace voom{
     QUADRATIC, QUARTIC
   };
 
+  enum BaseConstrainRotationType {
+    NORMALS_DOT_PRODUCT, SZELISKI
+  };
+
   // Model Results
   class MechanicsModel: public Model {
 
@@ -254,6 +258,7 @@ namespace voom{
       this->findNearestRigidNeighbors();
     };
     void initiatePreTensionInMembrane(double preTensionFactor) {_preTensionFactor = preTensionFactor;};
+    void initializeMembraneBendingStiffness(double membraneBendingStiffness);
 
     //! Lagrange multiplier method
     void initializeLagrangeMultiplierMethod(Mesh* EndocardialSurfMesh, Mesh* surfaceCapMesh, vector<int> endoBaseRingNodeSet, double vd);
@@ -276,7 +281,7 @@ namespace voom{
     void turnOnLagrangeMultiplier();
 
     // Constraining Rotation of the Base
-    void initializeConstrainBaseRotation(Mesh* baseMesh, double rotationalPenaltyFactor);
+    void initializeConstrainBaseRotation(BaseConstrainRotationType BCType, Mesh* baseMesh, double rotationalPenaltyFactor);
     vector<Triplet<Real> > imposeConstrainBaseRotation(Result& R);
 
   protected:
@@ -340,6 +345,10 @@ namespace voom{
     double _membraneStiffnessCoefficient;		// Used for surface in plane membrane stiffness
     vector<Real> _membraneField;		// Field vector of just the membrane nodes
     double _preTensionFactor;			// preTensionFactor
+    bool _membraneBendingStiffnessFlag;		// Membrane bending stiffness flag
+    double _membraneBendingStiffness;		// Membrane bending stiffness
+    vector <vector<int> > _membraneNeighboringElements;	// n x m vector where n is the number of elements in _rigidPotentialBoundaryMesh and m is the number of neighboring elements
+
 
     // Members for the Lagrange multiplier method and the Windkessel
     // NOT AT ALL THE BEST WAY TO DO THIS:
@@ -353,6 +362,7 @@ namespace voom{
 
     // Constraining Rotation of the Base
     bool _constrainBaseRotationFlag;
+    BaseConstrainRotationType _baseConstrainRotationType;
     Mesh* _baseMesh;
     vector<Vector3d> _averageBaseNormal_q; // This stores a quadrature point wise normal
     Vector3d _averageBaseNormal;	   // This stores a single averaged normal
