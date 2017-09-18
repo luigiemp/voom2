@@ -150,4 +150,15 @@ namespace voom {
            exp(SAES.eigenvalues()[2])*( v2*v2.transpose() );
   }
 
+  int LeviCivitaSymbol3(int i, int j, int k) {
+    if (i == j || j == k || k == i) return 0;
+    else if ((i == 0 && j == 1 && k == 2) || (i == 1 && j == 2 && k == 0) || (i == 2 && j == 0 && k == 1)) return 1;
+    else if ((i == 0 && j == 2 && k == 1) || (i == 1 && j == 0 && k == 2) || (i == 2 && j == 1 && k == 0)) return -1;
+    else {
+      // For debugging
+      cout << "Something went wrong with LeviCivitaSymbol3 Function" << endl;
+      exit(EXIT_FAILURE);
+    }
+  }
+
 };

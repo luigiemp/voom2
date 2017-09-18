@@ -24,6 +24,8 @@ namespace voom
   void inv(const MatrixXd & A, MatrixXd & B);
 
   Matrix3d VoomExpSymmMatrix(const Matrix3d &A);
+
+  int LeviCivitaSymbol3(int i, int j, int k);
 };
 
 #endif // _VOOM_MATH_
