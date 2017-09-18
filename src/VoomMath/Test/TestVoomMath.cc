@@ -121,7 +121,53 @@ int main()
     }
     t = clock() - t;
     std::cout << "Time using VoomExpSymmMatrix = " << ((float)t)/CLOCKS_PER_SEC << endl;
+    cout << endl;
   }
+
+  // Testing Levi-Civita 3D Symbol
+  {
+    Matrix3d IdentityMat = Matrix3d::Identity();
+    std::cout << "Testing Levi Civita 3D Symbol." << endl;
+    std::cout << "Test 1. \\delta_{ij} \\epsilon_{ijk} = {0 0 0} " << endl;
+    Vector3d test1(0.0, 0.0, 0.0);
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        for (int k = 0; k < 3; k++) {
+	  test1(i) += IdentityMat(i,j) * LeviCivitaSymbol3(i,j,k);
+	}
+      }
+    }
+    if (test1.norm() == 0) cout << "Test 1 PASSED." << endl;
+    else cout << "Test 1 FAILED." << endl;
+
+    cout << endl << "Test 2. \\epsilon_{ipq} \\epsilon_{jpq} = 2 \\delta_{ij} " << endl;
+    Matrix3d test2 = Matrix3d::Zero();
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+	for (int p = 0; p < 3; p++) {
+	  for (int q = 0; q < 3; q++) {
+	    test2(i,j) += LeviCivitaSymbol3(i,p,q) * LeviCivitaSymbol3(j,p,q);
+	  }
+	}
+      }
+    }
+    test2 = test2 - 2 * IdentityMat;
+    if (test2.norm() == 0) cout << "Test 2 PASSED." << endl;
+    else cout << "Test 2 FAILED." << endl;
+
+    cout << endl << "Test 3. \\epsilon_{ijk} \\epsilon_{ijk} = 6" << endl;
+    int test3 = 0;
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        for (int k = 0; k < 3; k++) {
+          test3 += LeviCivitaSymbol3(i,j,k) * LeviCivitaSymbol3(i,j,k);
+        }
+      }
+    }
+    if (test3 == 6) cout << "Test 3 PASSED." << endl;
+    else cout << "Test 3 FAILED." << endl;
+  }
+  
 
   cout << endl << "....................... " << endl;
   cout << "Test of VoomMath class completed" << endl;
