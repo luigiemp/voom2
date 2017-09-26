@@ -1,4 +1,3 @@
-
 #include "TetQuadrature.h"
 
 namespace voom {
