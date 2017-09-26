@@ -57,7 +57,7 @@ AC_CONFIG_FILES([
 		  doc/Makefile
 		  src/Makefile
 		  src/VoomMath/Makefile
-		  src/VoomMath/Test/Makefile
+		  src/VoomMath/Test/Makefile        
 		  src/Mesh/Makefile
 		  src/Mesh/Test/Makefile
 		  src/HalfEdgeMesh/Makefile
@@ -68,6 +68,8 @@ AC_CONFIG_FILES([
 		  src/Material/MechanicsMaterial/Makefile
 		  src/Material/ViscousMaterial/Makefile
 		  src/Material/ViscousMaterial/Test/Makefile
+		  src/Material/PairMaterial/Makefile
+		  src/Material/PairMaterial/Test/Makefile
 		  src/Source/IonicSource/Makefile
 		  src/Source/MechanicsLoad/Makefile
 		  src/Quadrature/Makefile
@@ -86,7 +88,8 @@ AC_CONFIG_FILES([
 		  src/Applications/TestBVP/Makefile
 		  src/Applications/PassiveLV/Makefile
 		  src/Applications/Contraction/Makefile
-	          src/Utils/inpParser/Makefile
+	          src/Applications/CylPhantom/Makefile
+		  src/Utils/inpParser/Makefile
 		  src/Output/Makefile
 		  src/Output/Test/Makefile
 		])
