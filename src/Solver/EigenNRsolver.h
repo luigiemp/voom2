@@ -8,10 +8,13 @@
 #define __EigenNRsolver_h__
 
 #include "voom.h"
+#include "State.h"
+#include "EigenResult.h"
 #include "Mesh.h"
 #include "Model.h"
-#include "EigenResult.h"
-#include "MechanicsModel.h"
+#include "MechanicsMaterial.h"
+#include "MechanicsBody.h"
+
 
 namespace voom{
 			    
@@ -32,12 +35,13 @@ namespace voom{
   {
   public:
     //! Constructor
-    EigenNRsolver( MechanicsModel *myModel, 
-		   vector<int > & DoFid,
-		   vector<Real > & DoFvalues,
-		   SolverType LinSolType = CHOL,
-		   Real NRtol = 1.0e-8, uint NRmaxIter = 100):
-      _myModel(myModel),
+    EigenNRsolver(State *myState,
+		  Model *myModel, 
+		  vector<int > & DoFid,
+		  vector<Real > & DoFvalues,
+		  SolverType LinSolType = CHOL,
+		  Real NRtol = 1.0e-8, int NRmaxIter = 100):
+      _myState(myState), _myModel(myModel),
       _DoFid(DoFid), _DoFvalues(DoFvalues),
       _linSolType(LinSolType),
       _NRtol(NRtol), _NRmaxIter(NRmaxIter) {};
@@ -49,15 +53,16 @@ namespace voom{
     void solve(SolveFor = DISP);
 
     //! Apply essential BC
-    void applyEBC(EigenResult & myResults);
+    void applyEBC(EigenResult & R);
 
   protected:
-    MechanicsModel*  _myModel;
-    vector<int > &  _DoFid;
+    State*          _myState;
+    Model*          _myModel;
+    vector<int  > & _DoFid;
     vector<Real > & _DoFvalues;
     SolverType      _linSolType;
     Real            _NRtol; 
-    uint            _NRmaxIter;
+    int             _NRmaxIter;
     
   };
 

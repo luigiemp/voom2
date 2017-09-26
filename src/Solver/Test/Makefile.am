@@ -1,20 +1,48 @@
-bin_PROGRAMS = TestEigen # TestLB
-INCLUDES =		-I./ -I./../ -I./../../	-I./../../Mesh -I./../Element		\
-	 		-I./../../VoomMath/ -I./../../Shape -I./../../Quadrature	\
-			-I./../../Model -I./../../Material -I./../../Element		\
-			-I/u/local/apps/eigen/3.2.4/gcc-4.4.7/include/eigen3\
-			-I./../../Geometry -I./../../HalfEdgeMesh
-AM_LDFLAGS = -L./ -L./../ -L./../../VoomMath/ -L./../../Model           	\
-             -L./../../Element -L./../../Shape -L./../../Quadrature     	\
-	     -L./../../VoomMath -L./../../Material -L./../../Mesh -L./../../Geometry\
-             -L./../../HalfEdgeMesh  
-LDADD = -lSolver -lModel -lMesh -lElement              \
-	-lShape -lQuadrature -lVoomMath                \
-	-lMaterials -lGeometry	-lHEMesh	       \
-	-lgfortran
+bin_PROGRAMS = TestEigen TestSingleCube TestDoubleCube TestContractingCube
+INCLUDES = -I./							\
+	   -I./../ 						\
+	   -I./../../  						\
+	   -I./../../Body 						\
+	   -I./../../VoomMath					\
+	   -I./../../Solver/Results				\
+	   -I./../../Model					\
+	   -I./../../Quadrature					\
+	   -I./../../Shape 					\
+	   -I./../../Material 					\
+	   -I./../../Material/MechanicsMaterial			\
+	   -I./../../Material/PairMaterial			\
+	   -I./../../Element					\
+	   -I./../../Mesh					\
+           -I./../../Geometry 					\
+	   -I./../../HalfEdgeMesh				\
+	   -I/u/local/apps/eigen/3.2.4/gcc-4.4.7/include/eigen3	\
+	   -I/u/local/apps/vtk/5.8.0/include/vtk-5.8	
+
+AM_LDFLAGS = 	-L./ 								\
+	     	-L./../ 							\
+		-L./../../Model							\
+	     	-L./../../Body					 		\
+		-L./../../Mesh							\
+		-L./../../Element 						\
+		-L./../../Material 						\
+		-L./../../Material/MechanicsMaterial				\
+		-L./../../Material/PairMaterial					\
+		-L./../../Quadrature 						\
+		-L./../../Shape 						\
+		-L./../../VoomMath 						\
+		-L./../../Geometry						\
+		-L./../../HalfEdgeMesh						\
+		-L/u/local/apps/vtk/5.8.0/lib/vtk-5.8
+
+LDADD   = 	-lSolver -lModel -lBody -lMesh -lElement -lQuadrature -lShape -lMaterials -lVoomMath  	\
+		-lGeometry -lHEMesh -lMechanicsMaterial	-lPairMaterial -lgfortran			\
+	 	-lvtkIO -lvtkGraphics -lvtkGenericFiltering -lvtkFiltering -lvtkCommon 			\
+		-lvtksys -ldl -lpthread -lvtkzlib -lvtkDICOMParser -lvtkNetCDF -lvtkmetaio 		\
+		-lvtkNetCDF_cxx -lvtksqlite -lvtkpng -lvtkjpeg -lvtktiff -lvtkexpat -lvtkverdict	
 
 TestEigen_SOURCES = TestEigen.cc
-# TestBVP_SOURCES = TestBVP.cc
-# TestLV_SOURCES = TestLV.cc
-# TestPressure_SOURCES = TestPressure.cc
+TestSingleCube_SOURCES = TestSingleCube.cc
+TestDoubleCube_SOURCES = TestDoubleCube.cc
+TestContractingCube_SOURCES = TestContractingCube.cc
 # TestLB_SOURCES = TestLB.cc
+

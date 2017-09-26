@@ -29,23 +29,23 @@ namespace voom
 {
 
   //! Constructor
-  LBFGSB::LBFGSB( Model *myModel,
-		  EigenResult* myResults, 
-		  int m,
-		  double factr, double pgtol,
-		  int iprint, int maxIterations):
-    _myModel(myModel), _myResults(myResults),
+  LBFGSB::LBFGSB(State* myState,
+		 Model* myModel,
+		 Result* myResults, 
+		 int m,
+		 double factr, double pgtol,
+		 int iprint, int maxIterations):
+    _myState(myState), _myModel(myModel), _myResults(myResults),
     _m(m),
     _factr(factr), _pgtol(pgtol),
     _iprint(iprint), _maxIterations(maxIterations), _iterNo(0) {
     
-    _counter = 0; //********************** Temporary *********************
-    _n = ( (_myModel->getMesh())->getNumberOfNodes() )*( _myModel->getDoFperNode() );
+    _n = _myState->getDOFcount();
     this->resize(_n);
     _projg = 0.0;
 
     // Initialize x vector
-    _myModel->getField(_x);
+    _myState->getPhi(_x);
   }; // Constructor
 
 

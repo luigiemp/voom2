@@ -2,31 +2,36 @@
 
 namespace voom
 {
-  void EigenNRsolver::solve(SolveFor UKN)
+  void EigenNRsolver::solve(SolveFor UNK)
   { 
-    // Identify number of DoF and unique material models
-    uint PbDoF = ( (_myModel->getMesh())->getNumberOfNodes() )*( _myModel->getDoFperNode() );
-
-    // Initialize field vector
+    // Initialize field vector with BC
     for (int i = 0; i < _DoFid.size(); i++) {
-      _myModel->setField(_DoFid[i], _DoFvalues[i]); // Set known displacements
+      _myState->setPhi(_DoFid[i], _DoFvalues[i]); // Set known displacements
     }
 
     // Find unique material parameters
-    vector<MechanicsMaterial *> materials = _myModel->getMaterials();
+    vector<MechanicsMaterial *> materials;
+    vector<Body* > Bodies = _myModel->getBodies();
+    for (int b=0; b<Bodies.size(); b++) {
+      MechanicsBody* TempBody = dynamic_cast<MechanicsBody*>(Bodies[b]);
+      if (TempBody != NULL) {
+	vector<MechanicsMaterial *> TempMaterials = TempBody->getMaterials();
+	materials.insert(materials.end(), TempMaterials.begin(), TempMaterials.end());
+      }
+    }
     set<MechanicsMaterial *> UNIQUEmaterials;
     for (uint i = 0; i < materials.size(); i++) 
       UNIQUEmaterials.insert(materials[i]);
-    uint TotNumMatProp =  UNIQUEmaterials.size()*(materials[0]->getMaterialParameters()).size();
+    int TotNumMatProp =  UNIQUEmaterials.size()*(materials[0]->getMaterialParameters()).size();
 
     // Create Eigen results
-    EigenResult myResults( PbDoF, TotNumMatProp );
+    EigenResult myResults(_myState->getDOFcount(), TotNumMatProp );
 
-    switch (UKN)
+    switch (UNK)
     {
-    case 0: // Displacements
+    case DISP: // Displacements
       {	
-	myResults.setRequest(1); 
+	myResults.setRequest(ENERGY); 
 	_myModel->compute(&myResults);
 	cout << "Model energy before solving " << myResults.getEnergy() << endl << endl;
 	
@@ -38,7 +43,7 @@ namespace voom
 	while (iter < _NRmaxIter && error > _NRtol)
 	{
 	  // Compute stiffness and residual
-	  myResults.setRequest(6);
+	  myResults.setRequest(FORCE | STIFFNESS);
 	  _myModel->compute(&myResults);
 	  
 	  // Apply essential boundary conditions
@@ -50,33 +55,34 @@ namespace voom
 	  // cout << "BC applied" << endl;
 	  
 	  VectorXd Deltax;
+
 	  // Solve
 	  switch (_linSolType)
 	  {
-	  case 0: 
+	  case CHOL: 
 	    {
 	      SimplicialCholesky<SparseMatrix<Real > > chol(*(myResults._stiffness));  // performs a Cholesky factorization of _stiffness
-	      Deltax = chol.solve(*(myResults._residual));                             // use the factorization to solve for the given right hand side
+	      Deltax = chol.solve(myResults._residual);                                // use the factorization to solve for the given right hand side
 	      break;
 	    }
-	  case 1:
+	  case CG:
 	    {
 	      ConjugateGradient<SparseMatrix<Real> > cg;
 	      // cg.setTolerance(1.0e-8);
 	      // cg.setMaxIterations(100000);
 	      cg.compute(*(myResults._stiffness));
 	      // Deltax; 
-	      Deltax = cg.solve(*(myResults._residual));
+	      Deltax = cg.solve(myResults._residual);
 	      // std::cout << "#iterations:     " << cg.iterations() << std::endl;
 	      // std::cout << "estimated error: " << cg.error()      << std::endl;
 	      break;
 	    }
-	  case 2:
+	  case LU:
 	    {
 	      SparseLU<SparseMatrix<Real, ColMajor> > solver;
 	      solver.analyzePattern(*(myResults._stiffness)); 
 	      solver.factorize(*(myResults._stiffness));
-	      Deltax = solver.solve(*(myResults._residual)); 
+	      Deltax = solver.solve(myResults._residual); 
 	      break;
 	    }
 	  default: 
@@ -89,18 +95,9 @@ namespace voom
 	  for (int i = 0; i < _DoFid.size(); i++) {
 	    Deltax(_DoFid[i]) = 0.0; // So we do not add the known EBC mutiple times
 	  }
+
 	  // Update field in the body
-	  _myModel->linearizedUpdate(Deltax.data(),-1.0);
-	  
-          /* // Compute Ax - b
-	  vector <Real> tempField(Deltax.size());
-	  VectorXd tempFieldXd(Deltax.size());
-	  _myModel->getField(tempField);
-          for (int nodeIter = 0; nodeIter < tempField.size(); nodeIter++)
-	    tempFieldXd(nodeIter) = tempField[nodeIter];
-	  VectorXd AxminusB = *(myResults._stiffness) * Deltax - *(myResults._residual);
-	  Real AxminusBNorm = AxminusB.norm();
-	  */	  
+	  _myState->linearizedUpdate(Deltax.data(), -1.0); 
 
 	  // Update iter and error
 	  iter++;
@@ -111,7 +108,7 @@ namespace voom
 
 	  cout << "Energy = " << myResults.getEnergy() << "   - NR iter = " << iter << "   -  NR error = " << error;
 	  // cout << " Residual = " << AxminusBNorm << endl;
-	  cout << " Residual = " << (myResults._residual)->norm() << endl;
+	  cout << " Residual = " << (myResults._residual).norm() << endl;
 
           /* // Computing the Maximum and Minimum eigenvalues:
           MatrixXd DenseStiffness;
@@ -119,14 +116,14 @@ namespace voom
 	  VectorXcd evals = DenseStiffness.eigenvalues();
 	  cout << "Max Eigenvalue = " << evals.real().maxCoeff() << "\t Min Eigenvalue = " << evals.real().minCoeff() << endl;
 	  */
-	  // _myModel->writeOutputVTK("IntermediateResult", iter);
 	} // while loop
+
 	// After finding current field, update prev field
 	// _myModel->setPrevField();
 	
 	break;  
       } // Solve for displacement
-    case 1: // Material parameters
+    case MAT: // Material parameters
       {	
 	// Initialize solver parameters
 	Real error = 1.0;
@@ -142,7 +139,7 @@ namespace voom
 	  VectorXd DeltaAlpha;
 	  // No choice of solver for now - Only cholesky
 	  SimplicialCholesky<SparseMatrix<Real > > chol(*(myResults._Hg));  // performs a Cholesky factorization of _stiffness
-	  DeltaAlpha = chol.solve(*(myResults._Gradg));                             // use the factorization to solve for the given right hand side
+	  DeltaAlpha = chol.solve(myResults._Gradg);                     // use the factorization to solve for the given right hand side
 
 	  // Update material properties in material
 	  for (set<MechanicsMaterial *>::iterator MatIt = UNIQUEmaterials.begin(); MatIt != UNIQUEmaterials.end(); MatIt++) {

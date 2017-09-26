@@ -2,12 +2,14 @@
 #ifndef __Result_h__
 #define __Result_h__
 
+#include "voom.h"
+
 namespace voom {
   //! Result is a class which contains standard result and defines basic interface to access/update them
 
   class Result 
   {
-  private : 
+  private: 
     Result() {}; // Default constructor is private because it should never be used by a derived class.
 
   public:
@@ -40,14 +42,6 @@ namespace voom {
     void setEnergy(Real energy)  { _energy = energy;   };
     Real getEnergy()  {return _energy; };
     void addEnergy(Real DeltaEnergy) {_energy += DeltaEnergy; };
-
-    // Field
-    virtual void setField(int ind, Real value) = 0; 
-    virtual void linearizedUpdate(const vector<Real > & locaValues, Real fact) = 0; 
-    virtual void linearizedUpdate(int ind, Real value) = 0;
-    virtual void printField(int nodeDoF = 3) = 0;
-    virtual void writeField(string OutputFile, int step) = 0;
-    virtual Real getField(int ind) = 0; 
     
     // Residual
     virtual void resetResidualToZero() = 0;
@@ -75,7 +69,7 @@ namespace voom {
     
     
 
-    
+  protected:
     //! Solution value at all nodes, local and ghost
     //! Displacement are stored unrolled, [phi_x, phi_y, phi_z]
     int           _pbDoF;

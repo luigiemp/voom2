@@ -4,9 +4,10 @@
 #define __LBFGSB_h__
 
 #include "voom.h"
+#include "State.h"
+#include "EigenResult.h"
 #include "Mesh.h"
 #include "Model.h"
-#include "EigenResult.h"
 
 namespace voom{
 			       
@@ -14,11 +15,12 @@ namespace voom{
   {
   public:
     //! Constructor
-    LBFGSB( Model *myModel, 
-	    EigenResult* myResults,
-	    int m=5,
-	    double factr=1.0e+1, double pgtol=1.0e-5,
-	    int iprint=0, int maxIterations=-1);
+    LBFGSB(State* myState,
+	   Model* myModel, 
+	   Result* myResults,
+	   int m = 5,
+	   double factr = 1.0e+1, double pgtol = 1.0e-5,
+	   int iprint = 0, int maxIterations = -1);
 
     //! Destructor
     ~LBFGSB() {};
@@ -30,45 +32,44 @@ namespace voom{
     void setBounds(const vector<int > & nbd, 
 		   const vector<double > & l, const vector<double > & u) {
       assert(nbd.size() == _n && l.size() == _n || u.size() == _n );
-      
       _nbd = nbd;
       _l = l;
       _u = u;
     }      
 
   protected:
-    int _counter; //********************* Temporary *****************
     Model*  _myModel;
-    EigenResult* _myResults;
+    State*  _myState;
+    Result* _myResults;
 
-    double _f;
-    vector<double > _x;
-    VectorXd _g;
-    vector<double > _l;
-    vector<double > _u;
-    vector<int > _nbd;
+    double           _f;
+    vector<double >  _x;
+    VectorXd         _g;
+    vector<double >  _l;
+    vector<double >  _u;
+    vector<int >   _nbd;
     vector<double > _wa;
-    vector<int > _iwa;
+    vector<int >   _iwa;
     
     int _n, _m;
     int _maxIterations;
     double _factr, _pgtol, _projg;
     int _iprint;
-
     int _iterNo;
 
     void _setFieldAndCompute() {
-      // Set myModel->_field = _x
-      _myModel->setField(_x.data());
+      // set field
+      _myState->getPhi(_x);
       
       // compute energy and residual
       _myResults->setRequest(FORCE | ENERGY); 
       _myModel->compute(_myResults);
-      //_myModel->writeOutputVTK("iteration", _counter); //******* Temporary**************************
-      //_counter ++; //******* Temporary**************************
+
       // extract energy and residual
       _f = _myResults->getEnergy();
-      _g = *(_myResults->_residual);  
+      for (int i=0; i<_n; i++) {
+	_g(i) = _myResults->getResidual(i);
+      }  
     };
 
     void resize(int n)  { 
