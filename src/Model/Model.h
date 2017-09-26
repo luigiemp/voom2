@@ -8,8 +8,9 @@
 #define __Model_h__
 
 #include "voom.h"
-#include "Body.h"
+#include "State.h"
 #include "Result.h"
+#include "Body.h"
 
 namespace voom {
   class Model {
@@ -17,11 +18,8 @@ namespace voom {
     Model() {}; // Default constructor is private because it should never be used by a derived class.
   
   public:
-    //! Constructor using an input file ... to be changed after implementation of input class - no longer current
-    // Model(Mesh* myMesh, const string inputFile, const uint NodeDoF);
-
     //! Constructor to be used
-    Model(vector<Body *> Bodies, Result* ModelResult): _bodies(Bodies), _modelResult(ModelResult) {} ;
+    Model(vector<Body *> Bodies, State* myState): _bodies(Bodies), _myState(myState) {} ;
 
     //! Destructor
     ~Model() {};
@@ -30,13 +28,15 @@ namespace voom {
     void compute(Result* R);
 
     //! Check consistency - common to all models
-    void checkConsistency(Result* R,  int nodeNum, int nodeDoF, 
-			  Real perturbationFactor, 
+    void checkConsistency(Result* R, Real perturbationFactor, 
 			  int request = 6, Real h = 1e-6, Real tol = 1e-6);
+
+    //! Return vector with all bodies in material
+    vector<Body *> getBodies() { return _bodies; } ;
 
   protected:
     vector<Body *> _bodies;
-    Result*        _modelResult;
+    State* _myState;
   
   }; // Model
 

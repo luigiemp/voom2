@@ -1,34 +1,36 @@
-bin_PROGRAMS = TestFoundationModel TestMechanicsModel # TestModel # TestSpringModel
+bin_PROGRAMS = TestModel
 INCLUDES = -I./							\
 	   -I./../ 						\
-	   -I./../../  						\
-	   -I./../Model 					\
+           -I./../../						\
 	   -I./../../VoomMath					\
+	   -I./../../Solver/Results				\
 	   -I./../../Quadrature					\
 	   -I./../../Shape 					\
 	   -I./../../Material 					\
 	   -I./../../Material/MechanicsMaterial			\
 	   -I./../../Element					\
 	   -I./../../Mesh					\
-	   -I./../../Solver					\
+	   -I./../../Body					\
+	   -I./../../Geometry					\
+	   -I./../../HalfEdgeMesh				\
 	   -I/u/local/apps/eigen/3.2.4/gcc-4.4.7/include/eigen3	\
-	   -I./../../Geometry -I./../../HalfEdgeMesh
+	   -I/u/local/apps/vtk/5.8.0/include/vtk-5.8	
 AM_LDFLAGS = 	-L./ 								\
 	     	-L./../ 							\
-	     	-L./../../Model					 		\
-		-L./../../Mesh							\
-		-L./../../Element 						\
-		-L./../../Material 						\
-		-L./../../Material/MechanicsMaterial				\
+		-L./../../VoomMath					 	\
 		-L./../../Quadrature 						\
 		-L./../../Shape 						\
-		-L./../../Solver						\
-		-L./../../VoomMath 						\
+		-L./../../Material 						\
+		-L./../../Material/MechanicsMaterial				\
+		-L./../../Element 						\
+		-L./../../Mesh							\
+		-L./../../Body							\
 		-L./../../Geometry						\
-		-L./../../HalfEdgeMesh
-LDADD   = 	-lModel -lMesh -lElement -lQuadrature -lShape -lMaterials -lVoomMath  \
-		-lGeometry -lHEMesh -lSolver -lMechanicsMaterial
-TestFoundationModel_SOURCES = TestFoundationModel.cc
-TestMechanicsModel_SOURCES = TestMechanicsModel.cc
-# TestModel_SOURCES = TestModel.cc
-# TestSpringModel_SOURCES = TestSpringModel.cc
+		-L./../../HalfEdgeMesh						\
+		-L/u/local/apps/vtk/5.8.0/lib/vtk-5.8
+LDADD   = 	-lModel	-lBody -lMesh -lElement -lQuadrature -lShape -lMaterials -lVoomMath  	\
+		-lGeometry -lHEMesh -lMechanicsMaterial					\
+	 	-lvtkIO -lvtkGraphics -lvtkGenericFiltering -lvtkFiltering -lvtkCommon 			\
+		-lvtksys -ldl -lpthread -lvtkzlib -lvtkDICOMParser -lvtkNetCDF -lvtkmetaio 		\
+		-lvtkNetCDF_cxx -lvtksqlite -lvtkpng -lvtkjpeg -lvtktiff -lvtkexpat -lvtkverdict
+TestModel_SOURCES = TestModel.cc
