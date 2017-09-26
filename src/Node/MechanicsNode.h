@@ -1,58 +1,26 @@
 //-*-C++-*-
-/*!
-  \file MechanicsNode.h
-  \brief Mechanics node derived from Field Node. In addition to reference
-  position we also need displacement at the node. In case of small displacement 
-  problems it is better to store displacement instead of current position. 
-  This is purely from numerical standpoint.
-*/
 
 #ifndef __MechanicsNode_h__
 #define __MechanicsNode_h__
+#include "BaseNode.h"
 
-#include "FieldNode.h"
-
-namespace voom{
-  class MechanicsNode : public FieldNode {
+namespace voom {
+  class MechanicsNode : public BaseNode {
   public:
     //! Constructor
-    MechanicsNode(unsigned int id, unsigned int dof, VectorXd& X):
-      FieldNode(id, dof, X), _u(VectorXd::Zero(X.size()) ) {};
-    
-    //! Get current position
-    const VectorXd& getu() { return _u; }
+    MechanicsNode(int ID, vector<int > DOF, Vector3d X): 
+      BaseNode(ID, DOF, X), _field(X) {}
+    MechanicsNode(int ID, vector<int > DOF, Vector3d X, Vector3d Field): 
+      BaseNode(ID, DOF, X), _field(Field) {}
 
-    //! Set displacement
-    void setu(const VectorXd& u);
-
-    //! Set particular displacement component
-    void setu(unsigned int id, Real value);
-
-    //! Get property associated with a node
-    vector<string> getPropertyList();
-
-    /*!
-      Given a propertyName as input the Real data is filled with values
-      and returned to the user. The integer length denotes the number of
-      values stored in the Real array.
-      \param propertyName String name which defines which property needs to 
-      be returned
-      \param data Real array where results are stored. Memory is 
-      allocated in this routine. Whatever is stores in data is cleared 
-      initially and values are stored in it.
-      \param length Number of entires stored in the array data.
-    */
-    virtual void getProperty(string propertyName, Real** data, uint& length);
-
-    //! Linear Update
-    virtual void linearizedUpdate(const VectorXd& data);
-
-    //! Get particular value in the property list.
-    virtual void linearizedUpdate(unsigned int dof, Real data);
+    //! Accessors and Mutators
+    Vector3d getField() { return _field; }
+    void setField(Vector3d Field) { _field = Field; }
+    void linearizeUpdate(Vector3d DeltaField) { _field += DeltaField; }
     
   protected:
-    //! Displacement 
-    VectorXd     _u;
+    //! Reference position
+    Vector3d _field;
   };
 }
 #endif

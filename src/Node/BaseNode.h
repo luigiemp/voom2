@@ -1,10 +1,11 @@
 //-*-C++-*-
 /*!
   \file BaseNode.h
-  \brief General node field class. It stores the nodal id, the number of 
-  degrees of the node, vector<string> which stores list of properties
-  which are stores in the node and Eigen::VectorXd which holds the numerical
-  values corresponding to the property.
+  \brief General node field class. It stores the:
+  - node id;
+  - the degrees of freedom of the node;
+  - the position of the node;
+  - the field values at the nodes in Eigen::VectorXd
  */
 #ifndef _BaseNode_
 #define _BaseNode_
@@ -15,40 +16,33 @@ namespace voom
 {
   //! A node base class holds id, dof, property values
   class BaseNode  {
+  private:
+    BaseNode() {}; // No node should be declared without id and corresponding dof
   public:
-    //! Default constructor
-    BaseNode() : _id(0), _dof(0) {};
-    //! Construct from id
-    BaseNode(unsigned int id) : _id(id), _dof(0) {};
-    //! Construct from id and dof
-    BaseNode(unsigned int id, unsigned int dof): _id(id), _dof(dof) {};
-    //! accessors and mutators
-    const unsigned int & getId() const {return _id;}
+    //! Constructor from id, and dof
+    BaseNode(int ID, vector<int > DOF) : _id(ID), _dof(DOF) {};
+    //! Constructor from id, dof, and position
+    BaseNode(int ID, vector<int > DOF, Vector3d X) : _id(ID), _dof(DOF), _X(X) {};
+   
+    //! accessors
+    int getId() {return _id;}
+    const vector<int > & getDoF() {return _dof;}
+    const Vector3d & getX() {return _X;};
 
-    //! Interfaces
-    int getDoF() { return _dof; }
-
-    /*!
-      Update to be used by solvers. Updates all the internal property for the
-      node.
-    */
-    virtual void linearizedUpdate(const VectorXd& data) = 0;
-
-    //! Get particular value in the property list.
-    virtual void linearizedUpdate(unsigned int dof, Real data) = 0;
-
-    //! Output interface
-    virtual vector<string> getPropertyList() = 0;
-
-    //! Get data associated with a property.
-    virtual void getProperty(string propertyName, Real** data, uint& length) {};
+    //! Set reference position
+    void setX(Vector3d & X) { 
+      assert(_X.size() == X.size() );
+      _X = X;
+    }
     
   protected:
     //! Nodal ID
-    unsigned int   _id; 
-
-    //! Degree of freedom associated with the node
-    unsigned int   _dof;
+    int _id; 
+    //! Node global DoF
+    vector<int > _dof;
+    //! Node reference position
+    Vector3d _X;
+    
   }; // class BaseNode
 } // namespace voom
 

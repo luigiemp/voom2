@@ -1,10 +1,4 @@
 //-*-C++-*-
-/*!
-  \file FieldNode.h
-  \brief Field Node derived from base node. Field node needs position to 
-  define it. Hence the reference position of the node is known.
-*/
-
 #ifndef __FieldNode_h__
 #define __FieldNode_h__
 #include "BaseNode.h"
