@@ -5,24 +5,33 @@ namespace voom {
 
   // Consistency Checks //
   void Body::checkConsistency(Result* R, Real perturbationFactor, int request,
-				       Real h, Real tol)
+			      Real h, Real tol)
   {
-    // Check only for local nodes
-    const int nodeNum   = _myMesh->getNumberOfNodes();
-    const int nLocalDoF = nodeNum*_nodeDoF;
+    // Find nodes in this body only
+    vector<GeomElement* > Elements = _myMesh->getElements();
+    set<int > UniqueBodyNodes;
+    for (int e = 0; e < _myMesh->getNumberOfElements(); e++) {
+      vector<int > ElNodesID = Elements[e]->getNodesID();
+      for (int n = 0; n < ElNodesID.size(); n++) {
+	UniqueBodyNodes.insert(ElNodesID[n]);
+      }
+    }
+
+   
 
     // Perturb field randomly to change from reference configuration
     // Save perturbed field to set the configuration back to reference 
     // at the end of the test
-    vector<Real > perturb(nLocalDoF, 0.0);
     srand( time(NULL) );
-    for(int a = 0; a < nodeNum; a++) {
-      for(int i = 0; i < _nodeDoF; i++) {
-	Real randomNum =  perturbationFactor*(Real(rand())/RAND_MAX - 0.5);
-	perturb[a*_nodeDoF + i] = randomNum;
-	R->linearizedUpdate(a*_nodeDoF + i, randomNum);
+    map<int, Real> perturb;
+    for (set<int >::iterator it = UniqueBodyNodes.begin(); it != UniqueBodyNodes.end(); it++) {
+      // cout << "Unique node = " << *it << endl;
+      for (int i = 0; i < _myState->getNodeDof(*it); i++) {
+	Real randomNum = perturbationFactor*(Real(rand())/RAND_MAX - 0.5);
+	perturb.insert(pair<int, Real>(_myState->getGdof(*it) + i, randomNum));
+	_myState->linearizedUpdate(_myState->getGdof(*it) + i, randomNum);
       }
-    }      
+    }
     
 
 
@@ -40,28 +49,29 @@ namespace voom {
 
       cout << "Body energy at test start = " <<  R->getEnergy() << endl;
 
-      for(int a = 0; a < nodeNum; a++) {
-	for(int i = 0; i < _nodeDoF; i++) {
+      for (set<int >::iterator it = UniqueBodyNodes.begin(); it != UniqueBodyNodes.end(); it++) {
+	for (int i = 0; i < _myState->getNodeDof(*it); i++) {
+	  int Gdof = _myState->getGdof(*it) + i;
 	  // Perturb +h
-	  R->linearizedUpdate(a*_nodeDoF + i, h);
+	  _myState->linearizedUpdate(Gdof, h);
 	  R->resetResults(ENERGY);
 	  this->compute(R);
 	  Real Wplus = R->getEnergy();
 	  
 	  // Perturb -2h
-	  R->linearizedUpdate(a*_nodeDoF + i, -2.0*h);
+	  _myState->linearizedUpdate(Gdof, -2.0*h);
 	  R->resetResults(ENERGY);
 	  this->compute(R);
 	  Real Wminus = R->getEnergy();
 	  
 	  // Bring back to original position
-	  R->linearizedUpdate(a*_nodeDoF + i, h);
+	  _myState->linearizedUpdate(Gdof, h);
 	  
 	  error += pow( (Wplus-Wminus)/(2.0*h) - 
-			R->getResidual(a*_nodeDoF + i), 2);
-	  norm += pow(R->getResidual(a*_nodeDoF + i), 2);
-	} // Loop over dimension
-      } // Loop over nodes
+			R->getResidual(Gdof), 2);
+	  norm  += pow(R->getResidual(Gdof), 2);
+	} // Loop over DoF
+      }
       error = sqrt(error);
       norm  = sqrt(norm);
 
@@ -87,33 +97,37 @@ namespace voom {
       R->FinalizeGlobalStiffnessAssembly();
 
       R->setRequest(FORCE); // Reset result request so that only forces are computed 
-      for(int a = 0; a < nodeNum; a++) {
-	for(int i = 0; i < _nodeDoF; i++) {
-	  for(int b = 0; b < nodeNum; b++) {
-	    for(int j = 0; j < _nodeDoF; j++) {
+
+
+      for (set<int >::iterator itA = UniqueBodyNodes.begin(); itA != UniqueBodyNodes.end(); itA++) {
+	for (int i = 0; i < _myState->getNodeDof(*itA); i++) {
+	  for (set<int >::iterator itB = UniqueBodyNodes.begin(); itB != UniqueBodyNodes.end(); itB++) {
+	    for (int j = 0; j < _myState->getNodeDof(*itB); j++) {
 	      // Perturb +h
-	      R->linearizedUpdate(b*_nodeDoF + j, h);
+	      int GdofI = _myState->getGdof(*itA) + i;
+	      int GdofJ = _myState->getGdof(*itB) + j;
+	      _myState->linearizedUpdate(GdofJ, h);
 	      R->resetResults(FORCE);
 	      this->compute(R);
-	      Real Fplus = R->getResidual(a*_nodeDoF + i);
-
+	      Real Fplus = R->getResidual(GdofI);
+	  
 	      // Perturb -2h
-	      R->linearizedUpdate(b*_nodeDoF + j, -2*h);
+	      _myState->linearizedUpdate(GdofJ, -2.0*h);
 	      R->resetResults(FORCE);
 	      this->compute(R);
-	      Real Fminus = R->getResidual(a*_nodeDoF + i);
-
+	      Real Fminus = R->getResidual(GdofI);
+	  
 	      // Bring back to original position
-	      R->linearizedUpdate(b*_nodeDoF + j, h);
-
+	      _myState->linearizedUpdate(GdofJ, h);
+	  
 	      // Computing Error and Norm;
-	      error += pow((Fplus - Fminus)/(2.*h) - R->getStiffness(a*_nodeDoF+i, b*_nodeDoF+j), 2.0);
-	      norm += pow( R->getStiffness(a*_nodeDoF+i, b*_nodeDoF+j), 2.0); 
-	      // cout << R->getStiffness(a*_nodeDoF+i, b*_nodeDoF+j) << "\t" << (Fplus - Fminus)/(2.*h) << endl;
-	    } // j loop
-	  } // b loop
-	} // i loop
-      } // a loop
+	      error += pow((Fplus - Fminus)/(2.*h) - R->getStiffness(GdofI, GdofJ), 2.0);
+	      norm  += pow( R->getStiffness(GdofI, GdofJ), 2.0); 
+	      // cout << R->getStiffness(GdofI, GdofJ) << "\t" << (Fplus - Fminus)/(2.*h) << endl;
+	    } // loop over dof of node j
+	  } // loop over nodes
+	} // loop over dof of node i
+      }// loop over nodes
       
       error = sqrt(error);
       norm  = sqrt(norm);
@@ -128,13 +142,84 @@ namespace voom {
     } // Check Stiffness    
 
     // Reset field to initial values
-    for(int a = 0; a < nodeNum; a++) {
-      for(int i = 0; i < _nodeDoF; i++) {
-	R->linearizedUpdate(a*_nodeDoF + i, -perturb[a*_nodeDoF + i]);
+    for (set<int >::iterator it = UniqueBodyNodes.begin(); it != UniqueBodyNodes.end(); it++) {
+      for (int i = 0; i < _myState->getNodeDof(*it); i++) {
+	int Gdof = _myState->getGdof(*it) + i;
+	_myState->linearizedUpdate(Gdof, -perturb[Gdof]);
       }
-    } 
+    }
     
   } // Check consistency
 
 
+
+  // Writing output
+  void Body::writeOutputVTK(const string OutputFile, int step)
+  {
+    /////
+    // Todo: NEED TO BE REWRITTEN TAKING INTO ACCOUNT MULTIPLE QUADRATURE POINTS PER ELEMENT !!!
+    /////
+
+    // Rewrite it with VTK Libraries
+    // Create outputFile name
+    string outputFileName = OutputFile + boost::lexical_cast<string>(step) + ".vtu";
+    vtkSmartPointer<vtkUnstructuredGrid> newUnstructuredGrid = vtkSmartPointer<vtkUnstructuredGrid>::New();
+
+    // Go to local node numbering for VTK file
+    vector<int > LtoG = _myMesh->getLocalToGlobal();
+    map<int, int> GtoL;
+    for (int i = 0; i < LtoG.size(); i++) {
+      GtoL.insert(pair<int, int>(LtoG[i], i) );
+    }
+
+
+
+    // Insert Points:
+    int NumNodes = LtoG.size();
+    vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
+    // points->SetNumberOfPoints(NumNodes);
+    for (int n = 0; n < NumNodes; n++) 
+      points->InsertNextPoint(_myState->getX(LtoG[n])(0), _myState->getX(LtoG[n])(1), _myState->getX(LtoG[n])(2) );
+    newUnstructuredGrid->SetPoints(points);
+    
+
+
+    // Element Connectivity:
+    // To-do: Figure out how to handle mixed meshes
+    string ElType = _myMesh->getElementType();
+    VTKCellType cellType;
+
+    if (ElType == "C3D8") // Full integration hexahedral element
+      cellType = VTK_HEXAHEDRON;
+    else if (ElType == "C3D8R") // Reduced integration hexahedral element
+      cellType = VTK_HEXAHEDRON;
+    else if (ElType == "C3D4") // Full integration linear tetrahedral element
+      cellType = VTK_TETRA;
+    else if (ElType == "C3D10") // Full integration quadratic tetrahedral element
+      cellType = VTK_QUADRATIC_TETRA;
+    else if (ElType == "TD3")   // Full integration linear triangular element
+      cellType = VTK_TRIANGLE;
+    else if (ElType == "TD6")   // Full integration quadratic triangular element
+      cellType = VTK_QUADRATIC_TRIANGLE;
+    else if (ElType == "Q4")    // Full integration linear quadrilateral element
+      cellType = VTK_QUAD;
+    else {
+      cout << "3D Element type not implemented in MechanicsModel writeOutput." << endl;
+      exit(EXIT_FAILURE);
+    }
+
+    vector <GeomElement*> elements = _myMesh->getElements();
+    for (int el_iter = 0; el_iter < elements.size(); el_iter++) {
+      vtkSmartPointer<vtkIdList> elConnectivity = vtkSmartPointer<vtkIdList>::New();
+
+      const vector<int > & NodesID = (elements[el_iter])->getNodesID();
+      for (int n = 0; n < NodesID.size(); n++) {
+        elConnectivity->InsertNextId(GtoL[NodesID[n]]);
+      }
+      newUnstructuredGrid->InsertNextCell(cellType, elConnectivity);
+    }
+
+  } // writeOutput
+
+  
 } // Namespace voom

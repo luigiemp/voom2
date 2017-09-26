@@ -6,6 +6,7 @@ INCLUDES     = 	-I./ 							\
 		-I./../Shape						\
 		-I./../Material						\
 		-I./../Material/MechanicsMaterial			\
+		-I./../Material/PairMaterial				\
 		-I./../Element						\
 		-I./../Mesh 						\
 		-I./../Solver/Results					\
@@ -18,4 +19,4 @@ AM_LDFLAGS  =	-L/u/local/apps/vtk/5.8.0/lib/vtk-5.8
 LDADD 	    =	-lvtkIO -lvtkGraphics -lvtkGenericFiltering -lvtkFiltering -lvtkCommon -lvtksys -ldl -lpthread -lvtkzlib -lvtkDICOMParser -lvtkNetCDF -lvtkmetaio -lvtkNetCDF_cxx -lvtksqlite -lvtkpng -lvtkjpeg -lvtktiff -lvtkexpat -lvtkverdict
 
 lib_LIBRARIES = libBody.a
-libBody_a_SOURCES = Body.cc MechanicsBody.cc
+libBody_a_SOURCES = Body.cc MechanicsBody.cc PressureBody.cc PotentialBody.cc TorsionalBody.cc PreferredNormalBody.cc

@@ -1,28 +1,45 @@
 #include "MechanicsBody.h"
+#include <string>
 
 namespace voom {
 
   // Constructor
-  MechanicsBody::MechanicsBody(Mesh* myMesh, const int NodeDoF,
-			       vector<MechanicsMaterial * > Materials,
-			       Result* R):
-    Body(myMesh, NodeDoF), _materials(Materials)
+  MechanicsBody::MechanicsBody(Mesh* myMesh, State* myState,
+			       vector<MechanicsMaterial * > Materials):
+    Body(myMesh, myState), _materials(Materials)
     {
       // Initialize _field vector for the part corresponding to this Body
-      this->initializeField(R);
+      this->initializeField(1);
     } // Constructor
 
 
 
+
+
+  void MechanicsBody::initializeField(Real fact) {
+    vector<GeomElement* > Elements = _myMesh->getElements();
+    for (int e = 0; e < _myMesh->getNumberOfElements(); e++) { // Loop Thhrough all elements - some nodes will be initiliazed multiple times - Otherwise we can first compile a set of unique nodal ids for this body
+      vector<int > ElNodesID = Elements[e]->getNodesID();
+      for (int n = 0; n < ElNodesID.size(); n++) {
+	int nodeNum = ElNodesID[n];
+	for (int i = 0; i < 3; i++) {
+	  _myState->setPhi( nodeNum, i, _myState->getX(nodeNum)(i) );
+	}
+      }
+    }
+  } // initializeField
+
+
+
+
+
   // Compute deformation gradient
-  void MechanicsBody::computeDeformationGradient(vector<Matrix3d > & Flist, GeomElement* geomEl, Result* R)
+  void MechanicsBody::computeDeformationGradient(vector<Matrix3d > & Flist, GeomElement* geomEl)
   {
     // Compute F at all quadrature points
     const int numQP = geomEl->getNumberOfQuadPoints();
-    const int dim   = _myMesh->getDimension();
-
     const vector<int > & NodesID = geomEl->getNodesID();
-    const int nodeNum = NodesID.size();
+    const int nodeNum = NodesID.size(), dim = 3; // We assume Mechanics Body is in 3D. Need to generalize this.
 
     for(int q = 0; q < numQP; q++) {
       // Initialize F to zero
@@ -30,7 +47,7 @@ namespace voom {
       for(int i = 0; i < dim; i++) {
 	for(int J = 0; J < dim; J++) {
 	  for(int a = 0; a < nodeNum; a++) {
-	    Flist[q](i,J) += R->getField(NodesID[a]*dim + i) * geomEl->getDN(q, a, J);
+	    Flist[q](i,J) += _myState->getPhi(NodesID[a], i) * geomEl->getDN(q, a, J);
 	  }
 	}
       }
@@ -41,16 +58,59 @@ namespace voom {
 
 
 
-  void MechanicsBody::computeGreenLagrangianStrainTensor(vector<Matrix3d> & Elist, GeomElement* geomEl, Result* R) 
+  void MechanicsBody::computeGreenLagrangianStrainTensor(vector<Matrix3d> & Elist, GeomElement* geomEl) 
   {
     const int numQP = geomEl->getNumberOfQuadPoints();
     vector<Matrix3d > Flist(numQP, Matrix3d::Zero());
-    this->computeDeformationGradient(Flist, geomEl, R);
+    this->computeDeformationGradient(Flist, geomEl);
 
     for (int q = 0; q < numQP; q++) {
       Elist[q] = 0.5 * (Flist[q].transpose() * Flist[q] - Matrix3d::Identity());
     }
   };  // computeGreenLagrangianStrainTensor
+
+
+
+
+
+  MechanicsBody::InvStruct MechanicsBody::computeInvariants(GeomElement* geomEl, int ElNum) 
+  {
+    InvStruct ElInvariants;
+    // Compute deformation gradients
+    const int numQP = geomEl->getNumberOfQuadPoints();
+    vector<Matrix3d > Flist(numQP, Matrix3d::Zero());
+    this->computeDeformationGradient(Flist, geomEl);
+    
+    // Setup names and storage for invariants
+    ElInvariants.InvName.push_back("J");    vector<Real > J;
+    int NumDir = vector<Vector3d> (_materials[0]-> getDirectionVectors()).size();
+    for (int i = 0; i < NumDir; i++) {
+      std::ostringstream oss;
+      oss << "E_" << i << i;
+      ElInvariants.InvName.push_back(oss.str()); 
+    }
+    vector<vector<Real > > TempInv(NumDir, vector<Real > (numQP, 0.0));
+
+    // Loop through quadrature points and per each QP compute an invariant
+    for (int q = 0; q < numQP; q++) {
+      Matrix3d F = Flist[q], E = Matrix3d::Zero();
+      E = 0.5 * (F.transpose() * F - Matrix3d::Identity());
+      J.push_back( F.determinant() );
+
+      vector<Vector3d > Dir = _materials[ElNum*numQP + q]->getDirectionVectors();
+      for (int i = 0; i < NumDir; i++) {
+	TempInv[i][q] = Dir[i].dot(E*Dir[i]);
+      }
+      
+    }
+    ElInvariants.InvValue.push_back(J);
+    for (int i = 0; i < NumDir; i++) {
+      ElInvariants.InvValue.push_back(TempInv[i]);
+    }
+
+    return ElInvariants;
+     
+  };  // computeInvariants
 
 
 
@@ -62,15 +122,16 @@ namespace voom {
     const vector<GeomElement* > elements = _myMesh->getElements();
     const int AvgNodePerEl = ((elements[0])->getNodesID()).size(); // It is just to pre-allocate memory space
     const int NumEl = elements.size();
-    const int dim = _myMesh->getDimension();
+    const int dim = 3;
     
-
-    int PbDoF = R->getPbDoF();
     int TotNumMatProp = R->getNumMatProp();
+    int PbDoF = R->getPbDoF();
     vector<VectorXd > dRdalpha;
+    VectorXd BodyResidual = VectorXd::Zero(PbDoF);
     if ( R->getRequest() & DMATPROP ) {
-      dRdalpha.assign( TotNumMatProp, VectorXd::Zero(PbDoF) ); }
-    int NumPropPerMat = (_materials[0]->getMaterialParameters()).size(); // Assume all materials have the same number of material properties
+      dRdalpha.assign( TotNumMatProp, VectorXd::Zero(PbDoF) ); 
+    }
+    int NumPropPerMat = (_materials[0]->getMaterialParameters()).size(); // Assumes all materials in Body have the same number of material properties
 
 
     // Loop through elements, also through material points array, which is unrolled
@@ -88,7 +149,7 @@ namespace voom {
       // F at each quadrature point are computed at the same time in one element
       vector<Matrix3d > Flist(numQP, Matrix3d::Zero());
       // Compute deformation gradients for current element
-      this->computeDeformationGradient(Flist, geomEl, R);
+      this->computeDeformationGradient(Flist, geomEl);
 
       // Loop over quadrature points
       for(int q = 0; q < numQP; q++) {
@@ -111,7 +172,8 @@ namespace voom {
                 tempResidual += FKres.P(i,J) * geomEl->getDN(q, a, J);
               } // J loop
               tempResidual *= Vol;
-              R->addResidual(NodesID[a]*dim+i, tempResidual);
+              R->addResidual(_myState->getGdof(NodesID[a])+i, tempResidual);
+	      BodyResidual(_myState->getGdof(NodesID[a])+i) += tempResidual;
             } // i loop
           } // a loop
         } // Internal force loop
@@ -146,7 +208,7 @@ namespace voom {
                   tempdRdalpha += FKres.Dmat.get(alpha,i,J) * geomEl->getDN(q, a, J);
                 } // J loop
                 tempdRdalpha *= Vol;
-                (dRdalpha[ (_materials[e*numQP + q]->getMatID())*NumPropPerMat + alpha])( NodesID[a]*dim + i) += tempdRdalpha;
+                (dRdalpha[ (_materials[e*numQP + q]->getMatID())*NumPropPerMat + alpha])( _myState->getGdof(NodesID[a]) + i ) += tempdRdalpha;
               } // i loop
             } // a loop
           } // alpha loop
@@ -161,7 +223,7 @@ namespace voom {
           for(int i = 0; i < dim; i++) {
             for(int b = 0; b < numNodes; b++) {
               for(int j = 0; j < dim; j++) {
-		R->addStiffness(NodesID[a]*dim + i, NodesID[b]*dim + j, Kele(a*dim + i, b*dim + j));
+		R->addStiffness(_myState->getGdof(NodesID[a]) + i, _myState->getGdof(NodesID[b]) + j, Kele(a*dim + i, b*dim + j));
               }
             }
           }
@@ -171,18 +233,11 @@ namespace voom {
     } // Element loop
 
 
-
+ 
     // Compute Gradg and Hg
     if ( R->getRequest() & DMATPROP ) {
-
-      // First extract residual
-      VectorXd Residual = VectorXd::Zero(PbDoF);
-      for (int i = 0; i < PbDoF; i++) {
-        Residual(i) = R->getResidual(i); // local copy
-      }
-
       for (int alpha = 0; alpha < TotNumMatProp; alpha++) {
-	R->addGradg(alpha, 2.0*dRdalpha[alpha].dot(Residual) );
+	R->addGradg(alpha, 2.0*dRdalpha[alpha].dot(BodyResidual) );
 	for (int beta = 0; beta < TotNumMatProp; beta++) {
 	  // !!!
 	  // WARNING : assume W is linear in alpha!!!!!
@@ -199,7 +254,7 @@ namespace voom {
 
 
 
-
+  
 
 
 
@@ -208,24 +263,30 @@ namespace voom {
   {
 
     // Perturb initial config - gradg and Hg are zero at F = I
-    const int nodeNum   = _myMesh->getNumberOfNodes();
-    const int nLocalDoF = nodeNum*_nodeDoF;
-    const int PbDoF = R->getPbDoF();
+    vector<GeomElement* > Elements = _myMesh->getElements();
+    set<int > UniqueBodyNodes;
+    for (int e = 0; e < _myMesh->getNumberOfElements(); e++) {
+      vector<int > ElNodesID = Elements[e]->getNodesID();
+      for (int n = 0; n < ElNodesID.size(); n++) {
+	UniqueBodyNodes.insert(n);
+      }
+    }
 
     // Perturb field randomly to change from reference configuration
-    // Save perturbed field to set the configuration back to reference
+    // Save perturbed field to set the configuration back to reference 
     // at the end of the test
-    vector<Real > perturb(nLocalDoF, 0.0);
     srand( time(NULL) );
-    for(int a = 0; a < nodeNum; a++) {
-      for(int i = 0; i < _nodeDoF; i++) {
-        Real randomNum =  perturbationFactor*(Real(rand())/RAND_MAX - 0.5);
-        perturb[a*_nodeDoF + i] = randomNum;
-        R->linearizedUpdate(a*_nodeDoF + i, randomNum);
+    map<int, Real> perturb;
+    for (set<int >::iterator it = UniqueBodyNodes.begin(); it != UniqueBodyNodes.end(); it++) {
+      for (int i = 0; i < _myState->getNodeDof(*it); i++) {
+	Real randomNum = perturbationFactor*(Real(rand())/RAND_MAX - 0.5);
+	perturb.insert(pair<int, Real>(_myState->getGdof(*it) + i, randomNum));
+	_myState->linearizedUpdate(_myState->getGdof(*it) + i, randomNum);
       }
     }
 
     Real error = 0.0, norm = 0.0;
+    int PbDoF = R->getPbDoF();
 
     set<MechanicsMaterial *> UNIQUEmaterials;
     for (int i = 0; i < _materials.size(); i++) {
@@ -238,8 +299,7 @@ namespace voom {
 
     // Test gradg //
     R->setRequest(FORCE); // Reset result request so that only forces are computed
-    for ( set<MechanicsMaterial *>::iterator itMat =  UNIQUEmaterials.begin();
-    itMat != UNIQUEmaterials.end(); itMat++ )
+    for ( set<MechanicsMaterial *>::iterator itMat =  UNIQUEmaterials.begin(); itMat != UNIQUEmaterials.end(); itMat++ )
     {
       vector<Real > MatProp = (*itMat)->getMaterialParameters();
       int MatID = (*itMat)->getMatID();
@@ -274,7 +334,7 @@ namespace voom {
 
         error += pow( (RTRplus-RTRminus)/(2.0*hM) -
 		      R->getGradg( MatID*MatProp.size() + m), 2.0 );
-        norm  += pow( R->getGradg(  MatID*MatProp.size() + m), 2.0 );
+        norm  += pow( R->getGradg( MatID*MatProp.size() + m), 2.0 );
 
         // cout << (*R->_Gradg)( MatID*MatProp.size() + m) << " " << (RTRplus-RTRminus)/(2.0*hM) << endl;
       } // Loop over m
@@ -358,29 +418,28 @@ namespace voom {
       cout << "** Hg consistency check FAILED" << endl;
       cout << "** Error: " << error << " Norm: " << norm << " Norm*tol: " << norm*tol << endl;
     }
-    
 
+
+    
     // Reset field to initial values
-    for(int a = 0; a < nodeNum; a++) {
-      for(int i = 0; i < _nodeDoF; i++) {
-        R->linearizedUpdate(a*_nodeDoF + i, -perturb[a*_nodeDoF + i]);
+    for (set<int >::iterator it = UniqueBodyNodes.begin(); it != UniqueBodyNodes.end(); it++) {
+      for (int i = 0; i < _myState->getNodeDof(*it); i++) {
+	int dof = _myState->getGdof(*it) + i;
+	_myState->linearizedUpdate(dof, -perturb[dof]);
       }
     }
 
   } // Check consistency of gradg and Hg - checkDmat
-
- 
 
 
 
 
 
   // Writing output
-  void MechanicsBody::writeOutputVTK(const string OutputFile, int step, Result* R)
+  void MechanicsBody::writeOutputVTK(const string OutputFile, int step)
   {
     /////
     // Todo: NEED TO BE REWRITTEN TAKING INTO ACCOUNT MULTIPLE QUADRATURE POINTS PER ELEMENT !!!
-    // Todo: Figure out how to handle mixed meshes
     /////
 
     // Rewrite it with VTK Libraries
@@ -388,220 +447,109 @@ namespace voom {
     string outputFileName = OutputFile + boost::lexical_cast<string>(step) + ".vtu";
     vtkSmartPointer<vtkUnstructuredGrid> newUnstructuredGrid = vtkSmartPointer<vtkUnstructuredGrid>::New();
 
+    // Go to local node numbering for VTK file
+    vector<int > LtoG = _myMesh->getLocalToGlobal();
+    map<int, int> GtoL;
+    for (int i = 0; i < LtoG.size(); i++) {
+      GtoL.insert(pair<int, int>(LtoG[i], i) );
+    }
+
+
+
     // Insert Points:
-    int NumNodes = _myMesh->getNumberOfNodes();
+    int NumNodes = LtoG.size();
     vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
     // points->SetNumberOfPoints(NumNodes);
-    for (int i = 0; i < NumNodes; i++) {
-      float x_point = 0.0; float y_point = 0.0; float z_point = 0.0;
-      x_point = _myMesh->getX(i)(0);
-      if (_myMesh->getDimension() > 1) y_point = _myMesh->getX(i)(1);
-      if (_myMesh->getDimension() > 2) z_point = _myMesh->getX(i)(2);
-      points->InsertNextPoint(x_point, y_point, z_point);
-      // points->InsertPoint(i, x_point, y_point, z_point);
-    }
+    for (int n = 0; n < NumNodes; n++) 
+      points->InsertNextPoint(_myState->getX(LtoG[n])(0), _myState->getX(LtoG[n])(1), _myState->getX(LtoG[n])(2) );
     newUnstructuredGrid->SetPoints(points);
     
-    // Element Connectivity:
-    vector <GeomElement*> elements = _myMesh->getElements();
-    int NumEl = elements.size();
-    int NodePerEl = (elements[0])->getNodesPerElement();
-    string ElType = _myMesh->getElementType();
-    int dim = _myMesh->getDimension();
 
+
+    // Element Connectivity:
+    // To-do: Figure out how to handle mixed meshes
+    string ElType = _myMesh->getElementType();
     VTKCellType cellType;
-    // Set Cell Type: http://www.vtk.org/doc/nightly/html/vtkCellType_8h.html
-    if (ElType == "C3D4") {
-      // Full integration linear tetrahedral element
-      cellType = VTK_TETRA; }
-    else if (ElType == "C3D10") {
-      // Full integration quadratic tetrahedral element
-      cellType = VTK_QUADRATIC_TETRA; }
+
+    if (ElType == "C3D8") // Full integration hexahedral element
+      cellType = VTK_HEXAHEDRON;
+    else if (ElType == "C3D8R") // Reduced integration hexahedral element
+      cellType = VTK_HEXAHEDRON;
+    else if (ElType == "C3D4") // Full integration linear tetrahedral element
+      cellType = VTK_TETRA;
+    else if (ElType == "C3D10") // Full integration quadratic tetrahedral element
+      cellType = VTK_QUADRATIC_TETRA;
+    else if (ElType == "TD3")   // Full integration linear triangular element
+      cellType = VTK_TRIANGLE;
+    else if (ElType == "TD6")   // Full integration quadratic triangular element
+      cellType = VTK_QUADRATIC_TRIANGLE;
+    else if (ElType == "Q4")    // Full integration linear quadrilateral element
+      cellType = VTK_QUAD;
     else {
-      cout << "3D Element type not implemented in MechanicsBody writeOutput." << endl;
+      cout << "3D Element type not implemented in MechanicsModel writeOutput." << endl;
       exit(EXIT_FAILURE);
     }
 
-    for (int el_iter = 0; el_iter < NumEl; el_iter++) {
+    vector <GeomElement*> elements = _myMesh->getElements();
+    for (int el_iter = 0; el_iter < elements.size(); el_iter++) {
       vtkSmartPointer<vtkIdList> elConnectivity = vtkSmartPointer<vtkIdList>::New();
 
       const vector<int > & NodesID = (elements[el_iter])->getNodesID();
-      for (int n = 0; n < NodePerEl; n++) {
-        elConnectivity->InsertNextId(NodesID[n]);
+      for (int n = 0; n < NodesID.size(); n++) {
+        elConnectivity->InsertNextId(GtoL[NodesID[n]]);
       }
       newUnstructuredGrid->InsertNextCell(cellType, elConnectivity);
     }
 
+ 
     // ** BEGIN: POINT DATA ** //
     // ~~ BEGIN: DISPLACEMENTS ~~ //
     vtkSmartPointer<vtkDoubleArray> displacements = vtkSmartPointer<vtkDoubleArray>::New();
-    displacements->SetNumberOfComponents(dim);
+    displacements->SetNumberOfComponents(3); // Dimension is fixed to 3 for now
     displacements->SetName("displacement");
     displacements->SetComponentName(0, "X");
-    if (dim > 1) displacements->SetComponentName(1, "Y");
-    if (dim > 2) displacements->SetComponentName(2, "Z");
+    displacements->SetComponentName(1, "Y");
+    displacements->SetComponentName(2, "Z");
 
-    for (int i = 0; i < NumNodes; i++ ) {
-      double x[dim];
-      VectorXd X = _myMesh->getX(i);
-      for (int j = 0; j < dim; j++) {
-        x[j] = R->getField(i*dim + j) - X(j);
+    for (int n = 0; n < NumNodes; n++ ) {
+      double u[3];
+      int node = LtoG[n];
+      for (int i = 0; i < 3; i++) {
+	u[i] = _myState->getPhi(node, i) - _myState->getX(node, i);
       }
-      displacements->InsertNextTuple(x);
+      displacements->InsertNextTuple(u);
     }
     newUnstructuredGrid->GetPointData()->AddArray(displacements);
     // ~~ END: DISPLACEMENTS ~~ //
+
+
+    // ** BEGIN CELL DATA ** //
+    // ~~ INVARIANTS ~~ //
+    vtkSmartPointer <vtkDoubleArray> InvariantsVTK = vtkSmartPointer<vtkDoubleArray>::New();
+    InvariantsVTK->SetName("Invariants");
+    InvStruct ElInvariants;
+    ElInvariants = this->computeInvariants(elements[0], 0);
+    int numInv = ElInvariants.InvName.size();
+
+    InvariantsVTK->SetNumberOfComponents(numInv);
+    for (int i = 0; i < numInv; i++) {
+      InvariantsVTK->SetComponentName(i, (ElInvariants.InvName[i]).c_str());
+    }
+
+    for (int e = 0; e < elements.size(); e++) {
+      // Setup an empty array to hold all Green strains
+      double AvgElInvariants[numInv];
+
+      ElInvariants = computeInvariants(elements[e], e);
+      for (int i = 0; i < numInv; i++) {
+	AvgElInvariants[i] = ElInvariants.AverageValue(i);
+      }
+
+      InvariantsVTK->InsertNextTuple(AvgElInvariants);
+    }
+    newUnstructuredGrid->GetCellData()->AddArray(InvariantsVTK);
+    // ** END CELL DATA ** //
     
-    // ~~ BEGIN: RESIDUALS ~~ //
-    vtkSmartPointer<vtkDoubleArray> residuals = vtkSmartPointer<vtkDoubleArray>::New();
-    residuals->SetNumberOfComponents(dim);
-    residuals->SetName("residual");
-    residuals->SetComponentName(0, "X"); residuals->SetComponentName(1, "Y");
-    if (dim > 2) residuals->SetComponentName(2, "Z");
-
-    // Compute Residual
-    int PbDoF = ( _myMesh->getNumberOfNodes())*this->getDoFperNode();
-    R->setRequest(FORCE);
-    this->compute(R);
-
-    for (int i = 0; i < NumNodes; i++ ) {
-      double res[dim];
-      for (int j = 0; j < dim; j++) {
-        res[j] = R->getResidual(i*dim + j);
-      }
-      residuals->InsertNextTuple(res);
-    }
-    newUnstructuredGrid->GetPointData()->AddArray(residuals);
-    // ~~ END: RESIDUALS ~~ //
-    // ** END: POINT DATA ** //
-    
-    // ** BEGIN: CELL DATA ** //
-    // ~~ BEGIN: \alpha MATERIAL PROPERTY (MAT_PARAM_ID) ~~ //
-    vtkSmartPointer<vtkDoubleArray> alpha = vtkSmartPointer<vtkDoubleArray>::New();
-    alpha->SetNumberOfComponents(2);
-    alpha->SetName("alpha");
-    alpha->SetComponentName(0, "Alpha_1"); alpha->SetComponentName(1, "Alpha_2");
-    for (int e = 0; e < NumEl; e++) {
-      GeomElement* geomEl = elements[e];
-      const int numQP = geomEl->getNumberOfQuadPoints();
-      double alpha_arr[2];
-      Real AvgMatProp_alpha1 = 0.0;
-      Real AvgMatProp_alpha2 = 0.0;
-      for (int q = 0; q < numQP; q++) {
-        vector <Real> MatProp = _materials[e*numQP + q]->getMaterialParameters();
-	if (!MatProp.empty()) {
-	  if (MatProp.size() > 0) AvgMatProp_alpha1 += MatProp[0];
-	  if (MatProp.size() > 1) AvgMatProp_alpha2 += MatProp[1];
-        }
-      }
-      AvgMatProp_alpha1 /= double(numQP); AvgMatProp_alpha2 /= double(numQP);
-      alpha_arr[0] = AvgMatProp_alpha1; alpha_arr[1] = AvgMatProp_alpha2;
-      alpha->InsertNextTuple(alpha_arr);
-    }
-    newUnstructuredGrid->GetCellData()->AddArray(alpha);
-    // ~~ END: \alpha MATERIAL PROPERTY (MAT_PARAM_ID) ~~ //
-    
-    // ~~ BEGIN: INTERNAL VARIABLES ~~ //
-    // TODO: This method assumes the same material throughout the entire body
-    int numInternalVariables = (_materials[0]->getInternalParameters()).size();
-    if (numInternalVariables > 0) {
-      vtkSmartPointer <vtkDoubleArray> internalVariables = vtkSmartPointer<vtkDoubleArray>::New();
-      internalVariables->SetName("Material_Internal_Variables");
-      internalVariables->SetNumberOfComponents(numInternalVariables);
-      for (int i = 0; i < numInternalVariables; i++) {
-        string tempName = "Internal_Variable_" +  boost::lexical_cast<string>(i);
-        internalVariables->SetComponentName(i, tempName.c_str());
-      }
-      for (int e = 0; e < NumEl; e++) {
-        GeomElement* geomEl = elements[e];
-        const int numQP = geomEl->getNumberOfQuadPoints();
-        vector<Real> IntProp = _materials[e*numQP]->getInternalParameters();
-        if (!IntProp.size() == numInternalVariables) {
-	  cout << "Internal Variables output for multi-materials not supported yet." << endl;
-          // double* tempIntProp = new double[numInternalVariables]();
-          double tempIntProp[numInternalVariables];
-          for (int p = 0; p < numInternalVariables; p++) tempIntProp[p] = -123.4; // Some error value. NaN is better.
-	  internalVariables->InsertNextTuple(tempIntProp);
-	  // delete tempIntProp;
-	  continue;
-        }
-
-        fill(IntProp.begin(), IntProp.end(), 0.0);
-
-        // Get Internal Properties from each quad point.
-        for (int q = 0; q < numQP; q++) {
-          vector <Real> IntPropQuad = _materials[e*numQP + q]->getInternalParameters();
-          for (int p = 0; p < numInternalVariables; p++) IntProp[p] = IntProp[p] + IntPropQuad[p];
-        }
-        // Average over quad points for cell data.
-        // double* intPropArr = new double(numInternalVariables);
-        double intPropArr[numInternalVariables];
-        for (int i = 0; i < numInternalVariables; i++) 
-  	  intPropArr[i] = IntProp[i]/numQP;
-        internalVariables->InsertNextTuple(intPropArr);
-	// delete [] intPropArr;
-      }
-      newUnstructuredGrid->GetCellData()->AddArray(internalVariables);
-    }
-    // ~~ END: INTERNAL VARIABLES ~~ //
-  
-    // ~~ BEGIN: 1ST PIOLA-KIRCHHOFF STRESS ~~ //
-    // Loop through elements, also through material points array, which is unrolled
-    // int index = 0;
-    
-    vtkSmartPointer <vtkDoubleArray> FirstPKStress = vtkSmartPointer<vtkDoubleArray>::New();
-    FirstPKStress->SetName("First_PK_Stress");
-    FirstPKStress->SetNumberOfComponents(dim*dim);
-    for (int i = 0; i < dim; i++) { // row
-      for (int j = 0; j < dim; j++) {
-        string tempCompName = "P" + boost::lexical_cast<string>(i+1) + boost::lexical_cast<string>(j+1);
-        FirstPKStress->SetComponentName(i*3 + j, tempCompName.c_str());
-      }
-    }
-
-    MechanicsMaterial::FKresults FKres;
-    FKres.request = 2;
-    for(int e = 0; e < NumEl; e++)
-    {
-      // The dynamic allocation results in a memory leak + Seg fault. Not great.
-      // double* eleFirstPKStress = new (nothrow) double(dim*dim);
-      double eleFirstPKStress[dim * dim];
-      for (int i = 0; i < dim; i++)
-        for (int j = 0; j < dim; j++)
-          eleFirstPKStress[i*dim + j] = 0.0;
-
-      // double eleFirstPKStress[9] = {0.0};;
-      GeomElement* geomEl = elements[e];
-      const int numQP = geomEl->getNumberOfQuadPoints();
-      
-      // F at each quadrature point are computed at the same time in one element
-      vector<Matrix3d > Flist(numQP, Matrix3d::Zero());
-      // Compute deformation gradients for current element
-      this->computeDeformationGradient(Flist, geomEl, R);
-
-      // Loop over quadrature Points
-      // for (int q = 0; q < numQP; q++) {
-      //   _materials[e]->compute(FKres, Flist[q], &Fiber);
-      /*
-      WARNING
-      THIS ONLY WORKS WITH 1QP PER ELEMENT - BAD - NEEDS TO BE CHANGED!!
-      */
-      // }
-      // Read through this on how to visualize data at integration points:
-      // http://www.vtk.org/Wiki/VTK/VTK_integration_point_support
-
-      _materials[e*numQP + 0]->compute(FKres, Flist[0]);
-      
-      for (int i = 0; i < dim; i++)
-	for (int j = 0; j < dim; j++) 
-	  eleFirstPKStress[i*3 + j] = FKres.P(i,j);
-      
-      FirstPKStress->InsertNextTuple(eleFirstPKStress);
-      // delete eleFirstPKStress;
-    }
-    newUnstructuredGrid->GetCellData()->AddArray(FirstPKStress);
-    // ~~ END: 1ST PIOLA-KIRCHHOFF STRESS ~~ //
-    // ** END: CELL DATA ** //
 
     // Write file
     vtkSmartPointer<vtkXMLUnstructuredGridWriter> writer = vtkSmartPointer<vtkXMLUnstructuredGridWriter>::New();
@@ -610,10 +558,132 @@ namespace voom {
     writer->Write();
     
   } // writeOutput
+ 
 
-  
 
-  
+  void MechanicsBody::writeQPdataVTK(const string OutputFile, int step) 
+  {
+    string outputFileName = OutputFile + boost::lexical_cast<string>(step) + ".vtp";
+    
+    vtkSmartPointer<vtkPolyData> IntegrationPointGrid = vtkSmartPointer<vtkPolyData>::New();
+    vtkSmartPointer<vtkPoints> IntegrationPoints = vtkSmartPointer<vtkPoints>::New();
+    vtkSmartPointer<vtkDoubleArray> IntegrationPointsDisplacements = vtkSmartPointer<vtkDoubleArray>::New();
+    IntegrationPointsDisplacements->SetNumberOfComponents(3);
+    IntegrationPointsDisplacements->SetName("Displacements");
+
+    vector <GeomElement*> elements = _myMesh->getElements();
+    for (int e = 0; e < elements.size(); e++) {
+      GeomElement* geomEl = elements[e];
+      const int numQP = geomEl->getNumberOfQuadPoints();
+      const vector<int>& NodesID = geomEl->getNodesID();
+      const uint numNodesOfEl = NodesID.size();
+
+      for (int q = 0; q < numQP; q++) {
+	Real Point[3] = {0.0};
+	Real Displacement[3] = {0.0};
+	for (int i = 0; i < 3; i++) {
+	  for (int n = 0; n < numNodesOfEl; n++) {
+	    Point[i]        += _myState->getX(NodesID[n], i) * geomEl->getN(q,n);
+	    Displacement[i] += ( _myState->getPhi(NodesID[n], i) - _myState->getX(NodesID[n], i) ) * geomEl->getN(q, n);
+	  }
+	}
+	IntegrationPoints->InsertNextPoint(Point);
+	IntegrationPointsDisplacements->InsertNextTuple(Displacement);
+      }
+    }
+    IntegrationPointGrid->SetPoints(IntegrationPoints);
+    IntegrationPointGrid->GetPointData()->AddArray(IntegrationPointsDisplacements);
+
+    
+    // Plot material directions
+    int NumDir = vector<Vector3d> (_materials[0]->getDirectionVectors()).size();
+    vector<vtkSmartPointer<vtkDoubleArray> > directions; 
+    vector<vtkSmartPointer<vtkDoubleArray> > alphas;
+
+    for (int i = 0; i < NumDir; i++) {
+      vtkSmartPointer<vtkDoubleArray> vtkP_A = vtkSmartPointer<vtkDoubleArray>::New();
+      directions.push_back(vtkP_A);
+      vtkSmartPointer<vtkDoubleArray> vtkP_B = vtkSmartPointer<vtkDoubleArray>::New();
+      alphas.push_back(vtkP_B);
+    
+    }
+
+    for (int i = 0; i < NumDir; i++) {
+      std::ostringstream ossA, ossB;
+      ossA << "v_" << i;
+      directions[i]->SetNumberOfComponents(3);
+      directions[i]->SetName(ossA.str().c_str());
+
+      ossB << "alpha_" << i;
+      alphas[i]->SetNumberOfComponents(1);
+      alphas[i]->SetName(ossB.str().c_str());
+    }
+    
+    // Jacobian
+    vtkSmartPointer<vtkDoubleArray> Jacobian = vtkSmartPointer<vtkDoubleArray>::New();
+    Jacobian->SetNumberOfComponents(1);
+    Jacobian->SetName("J");
+ 
+    // Other invariants
+    vtkSmartPointer <vtkDoubleArray> InvariantsVTK = vtkSmartPointer<vtkDoubleArray>::New();
+    InvariantsVTK->SetName("Invariants");
+    InvStruct ElInvariants;
+    ElInvariants = this->computeInvariants(elements[0], 0);
+    int numInv = ElInvariants.InvName.size();
+
+    InvariantsVTK->SetNumberOfComponents(numInv);
+    for (int i = 0; i < numInv; i++) {
+      InvariantsVTK->SetComponentName(i, (ElInvariants.InvName[i]).c_str());
+    }
+    
+
+
+    for (int e = 0; e < elements.size(); e++) {
+      GeomElement* geomEl = elements[e];
+      const int numQP = geomEl->getNumberOfQuadPoints();
+      vector<Matrix3d > Flist(numQP, Matrix3d::Zero());
+      this->computeDeformationGradient(Flist, geomEl);
+
+      InvStruct ElInvariants;
+      ElInvariants = computeInvariants(elements[e], e);
+      
+      for (int q = 0; q < numQP; q++) {
+	vector<Vector3d > Dir = _materials[e*numQP + q]->getDirectionVectors();
+	double J[1] = {Flist[q].determinant()};
+	Jacobian->InsertNextTuple(J);
+
+	InvariantsVTK->InsertNextTuple((ElInvariants.InvQP(q)).data());
+
+	for (int i = 0; i < NumDir; i++) {
+	  Vector3d DirRotated;
+	  DirRotated = Flist[q]*Dir[i];
+	  DirRotated /= DirRotated.norm();  // Compute rotation of directions due to deformation
+	  double v[3] = {DirRotated[0], DirRotated[1], DirRotated[2]};
+	  directions[i]->InsertNextTuple(v);
+	  Real angle = acos( Dir[i].dot(DirRotated) );
+	  if (angle > 0.5*M_PI) { angle -= M_PI; };
+	  alphas[i]->InsertNextTuple(&angle);
+	}
+      }
+    }
+
+    IntegrationPointGrid->GetPointData()->AddArray(Jacobian);
+    IntegrationPointGrid->GetPointData()->AddArray(InvariantsVTK); 
+    
+    for (int i = 0; i < NumDir; i++) {
+      IntegrationPointGrid->GetPointData()->AddArray(directions[i]);
+      IntegrationPointGrid->GetPointData()->AddArray(alphas[i]);     // Plot direction angle change
+    }
+    
+    
+
+    // Write File
+    vtkSmartPointer<vtkXMLPolyDataWriter> IntegrationPointWriter = vtkSmartPointer<vtkXMLPolyDataWriter>::New();
+    IntegrationPointWriter->SetFileName(outputFileName.c_str());
+    IntegrationPointWriter->SetInput(IntegrationPointGrid);
+    IntegrationPointWriter->Write();
+  }
+
 
 
 

@@ -31,11 +31,41 @@ namespace voom{
 
   public:
 
+    struct InvStruct
+    {
+      // Finite kinematics request and result type
+      InvStruct() {};
+    
+      vector<vector<Real > > InvValue;
+      vector<string > InvName;
+
+      Real AverageValue(int ind) {
+	Real AvgInv = 0.0;
+	int NumQP = InvValue[ind].size();
+	for (int i = 0; i < NumQP; i++) {
+	  AvgInv += InvValue[ind][i];
+	}
+	AvgInv /= double(NumQP);
+	return AvgInv;
+      }
+
+      vector<Real > InvQP(int q) {
+	int NumInv = InvValue.size();
+	vector<Real > QPInvariants(NumInv, 0.0);
+	for (int i = 0; i < NumInv; i++) {
+	  QPInvariants[i] = InvValue[i][q];
+	}
+	return  QPInvariants;
+      }
+    
+    }; // struct InvStruct
+
+
+
     //! Basic Constructor
     /*! Construct from basic data structures defining the mesh and materials. */
-    MechanicsBody(Mesh* aMesh, const int NodeDoF,
-		  vector<MechanicsMaterial * > Materials,
-		  Result* R);
+    MechanicsBody(Mesh* myMesh, State *myState,
+		  vector<MechanicsMaterial * > Materials);
 
     //! Destructor
     ~MechanicsBody() {
@@ -48,18 +78,9 @@ namespace voom{
 		delete (*it);
     };
 
-    //! Initialize field
+    //! Initialize field - Only of the nodes related to this body
     // From constant value
-    void initializeField(Result* R, Real fact = 1.0) {
-      const int numNodes = _myMesh->getNumberOfNodes();
-      const int dim = _myMesh->getDimension();
-      
-      for (int i = 0; i < numNodes; i++) { // i -> node number
-	for (int j = 0; j < dim; j++) {
-	  R->setField(i*dim+j, _myMesh->getX(i,j)*fact);
-	}
-      }
-    };
+    void initializeField(Real fact = 1.0);
 
     int getNumMat() {
       set<MechanicsMaterial *> UNIQUEmaterials;
@@ -89,20 +110,23 @@ namespace voom{
     void checkDmat(Result* R, Real perturbationFactor, Real h, Real tol);
 
     //! Write mechanics body to paraview file
-    void writeOutputVTK(const string OutputFile, int step, Result* R);
+    void writeOutputVTK(const string OutputFile, int step);
+    void writeQPdataVTK(const string OutputFile, int step);
 
 
 
   protected:
     //! Compute Deformation Gradient
-    void computeDeformationGradient(vector<Matrix3d > & Flist, GeomElement* geomEl, Result* R);
+    void computeDeformationGradient(vector<Matrix3d > & Flist, GeomElement* geomEl);
 
     //! Compute Green Lagrangian Strain Tensor
-    void computeGreenLagrangianStrainTensor(vector<Matrix3d> & Elist, GeomElement* geomEl, Result* R);
+    void computeGreenLagrangianStrainTensor(vector<Matrix3d> & Elist, GeomElement* geomEl);
+
+    //! Compute deformation invariants
+    InvStruct computeInvariants(GeomElement* geomEl, int ElNum);
 
     //! List of Material data at each QP in the model
     vector<MechanicsMaterial * > _materials;
-
   };
 
 } // namespace voom

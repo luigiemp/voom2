@@ -7,16 +7,36 @@
 #include "Mesh.h"
 #include "Result.h"
 
+// Include files for Writing Output:
+#include <boost/lexical_cast.hpp>
+#include <vtkVersion.h>
+#include <vtkIdList.h>
+#include <vtkPoints.h>
+#include <vtkPointData.h>
+#include <vtkCellData.h>
+#include <vtkTensor.h>
+#include <vtkSmartPointer.h>
+#include <vtkUnstructuredGrid.h>
+#include <vtkPolyData.h>
+#include <vtkPolyDataWriter.h>
+#include <vtkUnstructuredGridWriter.h>
+#include <vtkXMLPolyDataWriter.h>
+#include <vtkXMLUnstructuredGridWriter.h>
+#include <vtkCellType.h>
+#include <vtkCellArray.h>
+#include <vtkPolyLine.h>
+#include <vtkDoubleArray.h>
+
+
 namespace voom {
   class Body {
   private :
     Body() {}; // Default constructor is private because it should never be used by a derived class.
   
   public:
-    //! Constructor to be used
-    Body(Mesh* myMesh, const int NodeDoF)
-      : _myMesh(myMesh), _nodeDoF(NodeDoF) {
-    }
+    //! Constructor where different nodes have different DoF
+    Body(Mesh* myMesh, State* myState)
+      : _myMesh(myMesh), _myState(myState) {}
 
     //! Destructor
     virtual ~Body() {};
@@ -29,33 +49,24 @@ namespace voom {
 			  Real h = 1e-6, Real tol = 1e-6);
 
     //! Return number of unique material pointers
-    virtual int getNumMat() = 0;
-
-    //! Get DoF per Node
-    int getDoFperNode() {
-      return _nodeDoF;
-    }
+    // virtual int getNumMat() = 0;
     
     //! GetMesh
-    Mesh * getMesh() {
+    Mesh* getMesh() {
       return _myMesh;
     }
 
-    //! Initialize field
-    // From constant value
-    virtual void initializeField(Result* R, Real fact = 1.0) = 0;
+    //! GetState
+    State* getState() {
+      return _myState;
+    }
 
-    //! Finalize compute
-    virtual void FinalizeCompute() {} ;
-
-    //! Write mechanics body to paraview file
-    virtual void writeOutputVTK(const string OutputFile, int step, Result* R) = 0;
+    //! Write body to paraview file
+    virtual void writeOutputVTK(const string OutputFile, int step);
 
   protected:
     Mesh*        _myMesh;
-
-    //! DoF per node
-    int         _nodeDoF;
+    State*       _myState;
   
   }; // Body
 

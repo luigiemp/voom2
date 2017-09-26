@@ -17,10 +17,14 @@ int main(int argc, char** argv) {
     cout << " TEST OF MECHANICS BODY " << endl << endl;
   
     cout << " TEST OF 1st MECHANICS BODY " << endl << endl;
-    
-    FEMesh myFEmesh("../../Mesh/Test/Cube.node", "../../Mesh/Test/Cube.ele");   uint NumQP = 1;
 
-    int NodeDoF = 3;
+    State myState;
+    bool CheckOverlap = false;
+    int dofPerNode = 3;
+    FEMesh myFEmesh("../../Mesh/Test/Cube.node", "../../Mesh/Test/Cube.ele", &myState, dofPerNode, CheckOverlap);   
+    uint NumQP = 1;
+
+    
 
     int NumMat = myFEmesh.getNumberOfElements()*NumQP;
     vector<MechanicsMaterial * > materials;
@@ -34,13 +38,20 @@ int main(int argc, char** argv) {
       CompNeoHookean* Mat = new CompNeoHookean(k, 1.0+double(rand())/RAND_MAX, 3.0+double(rand())/RAND_MAX);
       materials.push_back(Mat);
     }
+    
+    MechanicsBody myBody(&myFEmesh, &myState, materials);
+    int PbDoF = myState.getDOFcount();
+    cout << "PbDoF = " << PbDoF << endl;
+    // myState.printPhi();
+    myBody.writeOutputVTK("myBodyTestOutput", 1);
 
-    int PbDoF = myFEmesh.getNumberOfNodes()*NodeDoF;
+
+
     EigenResult myResult(PbDoF, NumMat*(materials[0]->getMaterialParameters()).size() );
     cout << endl << "Material parameters per element = " << (materials[0]->getMaterialParameters()).size() << endl;
     myResult.initializeResults(PbDoF*4);
-    
-    MechanicsBody myBody(&myFEmesh, NodeDoF, materials, &myResult);
+
+
 
     Real perturbationFactor = 0.1;
     int myRequest = FORCE | STIFFNESS; // Check both Forces and Stiffness
@@ -52,7 +63,7 @@ int main(int argc, char** argv) {
     cout << endl << "Body energy is  = " << myResult.getEnergy() << endl;
     // Change field and recompute energy
     for (int i=0; i<PbDoF; i++) {
-      myResult.linearizedUpdate(i, double(0.1*rand())/RAND_MAX);
+      myState.linearizedUpdate(i, double(0.1*rand())/RAND_MAX);
     }
     myResult.resetResults(ENERGY);
     myBody.compute(&myResult);
@@ -60,7 +71,7 @@ int main(int argc, char** argv) {
 
     myBody.checkConsistency(&myResult, perturbationFactor, myRequest, myH, myTol);
     myBody.checkDmat(&myResult, perturbationFactor, myH, myTol);
-
+    
 
     
     cout << endl << " END OF TEST OF 1st MECHANICS BODY " << endl;
