@@ -12,6 +12,7 @@
 #include "Humphrey_Compressible.h"
 #include "LinYinActive.h"
 #include "LinYinActive_Compressible.h"
+#include "ImposedKinematics.h"
 using namespace voom;
 
 int main()
@@ -410,9 +411,55 @@ int main()
     MatMech.checkConsistency(Rm,F);
   }
 
+
+  {
+    cout << endl << ".................................... " << endl << endl;
+    cout << endl << "Testing ImposedKinematics material. " << endl;
+    
+    int NumAlphas = 5;
+    int MatID = 0;
+    vector<Real > Alphas;
+    vector<Real > Stretches;
+    vector<Vector3d > Directions;
+    Real Beta = double(rand())/RAND_MAX;
+    
+    for (int a = 0; a < NumAlphas; a++) {
+      Alphas.push_back(double(rand())/RAND_MAX);
+      Stretches.push_back(double(rand())/RAND_MAX);
+      Vector3d N; N << double(rand())/RAND_MAX, double(rand())/RAND_MAX, double(rand())/RAND_MAX;
+      N /= N.norm();
+      Directions.push_back(N);
+    }
+
+    ImposedKinematics MatMech(MatID, Alphas, Stretches, Directions, Beta);
+    
+    MechanicsMaterial::FKresults Rm;
+    Rm.request = (ENERGY | FORCE | STIFFNESS | DMATPROP);
+    Matrix3d F;
+    F << 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0;
+    srand(time(NULL));
+    for (unsigned int i = 0; i<3; i++) 
+      for (unsigned int J = 0; J<3; J++) 
+	F(i,J) += 0.1*(double(rand())/RAND_MAX);
+    cout << "determinant(F) = " << F.determinant() << endl;
+
+    MatMech.compute(Rm, F);
+    
+    cout << "Energy     = " << Rm.W << endl;
+    cout << "P(2,2)     = " << Rm.P(2,2) << endl;
+    cout << "K[0,0,0,0] = " << Rm.K.get(0,0,0,0) << endl;
+    cout << endl << "Material ID = " << MatMech.getMatID() << endl << endl;
+ 
+    MatMech.checkConsistency(Rm,F);
+ }
+
+
+
+
     cout << endl << "....................................... " << endl;
     cout << "Test of voom material classes completed " << endl;
   
   
+
   return 0;
 }

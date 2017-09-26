@@ -40,8 +40,8 @@ namespace voom
     void setMaterialParameters(const vector<Real > &) {;}
     void setInternalParameters(const vector<Real > &) {;}
     
-    vector<Real > getMaterialParameters() {;}
-    vector<Real > getInternalParameters() {;}
+    vector<Real > getMaterialParameters() {vector<Real > empty; return empty;}
+    vector<Real > getInternalParameters() {vector<Real > empty; return empty;}
 
   };
   

@@ -11,4 +11,4 @@ INCLUDES     = 	-I./ 					\
 
 lib_LIBRARIES=libMechanicsMaterial.a
 libMechanicsMaterial_a_SOURCES = MechanicsMaterial.cc CompNeoHookean.cc Jacobian.cc PassMyoA.cc Holzapfel.cc Guccione.cc PlasticMaterial.cc Humphrey.cc \
-LinYinActive.cc LinYinActive_Compressible.cc Humphrey_Compressible.cc
+LinYinActive.cc LinYinActive_Compressible.cc Humphrey_Compressible.cc ImposedKinematics.cc
