@@ -3,9 +3,9 @@
 namespace voom {
       	
   //! recursive funtion to compute factorial
-  uint factorial(uint n)
+  int factorial(int n)
   {
-    unsigned int temp;
+    int temp;
     if(n <= 1) return 1;
     temp = n * factorial(n - 1);
     return temp;
@@ -150,4 +150,15 @@ namespace voom {
            exp(SAES.eigenvalues()[2])*( v2*v2.transpose() );
   }
 
-};
+  
+
+  int LeviCivita(int i, int j, int k) {
+    if( (i==j) || (i==k) || (j==k) ) {
+      return 0; }
+    else {
+      return (j-i)*(k-i)*(k-j)/2 ;
+    }
+  }
+
+
+} // namespace voom

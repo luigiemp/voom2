@@ -17,13 +17,15 @@
 namespace voom
 {
   inline Real square(Real a) {return (a*a); };
-  uint factorial(uint n);
+  int factorial(int n);
 
   Real det(const MatrixXd & A);
 
   void inv(const MatrixXd & A, MatrixXd & B);
 
   Matrix3d VoomExpSymmMatrix(const Matrix3d &A);
+
+  int LeviCivita(int i, int j, int k);
 };
 
 #endif // _VOOM_MATH_
