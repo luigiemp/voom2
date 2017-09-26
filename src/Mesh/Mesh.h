@@ -8,6 +8,7 @@
 #define __Mesh_h__
 
 #include "voom.h"
+#include "State.h"
 #include "GeomElement.h"
 #include "FEgeomElement.h"
 #include "Quadrature.h"
@@ -37,12 +38,13 @@ namespace voom
 
   class Mesh
   {
+  private:
+    Mesh();
+
   public:
     //! Input-file based Constructor
-    Mesh(const string Nodes, const string ConnTable);
-
-    //! Position only based constructor
-    Mesh(const vector<VectorXd > &  X): _X(X) {};
+    Mesh(string Nodes, string ConnTable, State* myState, int dofPerNode, bool CheckOverlap);
+    Mesh(const vector<VectorXd > &  Positions, State* myState, int dofPerNode, bool CheckOverlap);
 
     //! Destructor
     // Destructor made virtual due to inheritance
@@ -51,69 +53,36 @@ namespace voom
 	delete _elements[i];
     }
 
-    //! Get mesh dimension
-    uint getDimension() { return _X[0].size(); }
-
-    //! Get position data
-    VectorXd getX() {
-      uint Xsize = _X.size();
-      uint dim = _X[0].size();
-      VectorXd X0 = VectorXd::Zero(Xsize*dim);
-      for (int i = 0; i < Xsize; i++) {
-	for (int j = 0; j < dim; j++) {
-	  X0(i*dim + j) = _X[i](j);
-	}
-      }
-      return X0;
-    }
-
-    const VectorXd & getX(const int nodeId) {
-      return _X[nodeId];
-    }
-
-    //! Get position component
-    Real getX(const int nodeId, const uint dof) {
-      return getX(nodeId)(dof);
-    }
-
-    //! Get number of Nodes
-    int getNumberOfNodes() { return _X.size(); }
-
     //! Get number of elements
     int getNumberOfElements() { return _elements.size(); }
 
     //! Get list of elements
-    const vector<GeomElement* > & getElements() {
-      return _elements;
-    }
+    const vector<GeomElement* > & getElements() { return _elements; }
 
     //! Get element type (assumed one element type per mesh - no mixed meshes for now)
     string getElementType() { return _elementType; }
+
+    const vector<int > & getLocalToGlobal() { return _LocaltoGlobal; }
+   
+    //! Get X - useful if _gState is not the same as the one in model (e.g., see Potential Body)
+    Vector3d getX(int nodeID) {return _gState->getX(nodeID); }
 
     // //! Return mapping between local and global DoF and ghost DoF
     // const vector<int > & getLocalDoF() { return _localDoF; };
     // const vector<int > & getGhostDoF() { return _ghostDoF; };
 
-    //! Gateway to mesh class
-    // static Mesh* New(const string inputFile);
-
   protected:
-    //! Default constructor is protected because it should be called only by derived classes, not from outside
-    Mesh() {};
-    // //! Protected because elements are not initialized here and should be used only from a derived class
-    // Mesh(const vector<VectorXd > &  Positions,
-    // 	 const vector<int > & LocalDoF,
-    // 	 const vector<int > & GhostDoF):
-    //   _positions(Positions), _localDoF(LocalDoF), _ghostDoF(GhostDoF) {};
-
-    //! Nodal positions
-    vector<VectorXd >     _X;
+    //! State where nodal positions and dof are stored
+    State * _gState;
 
     //! List of Elements
     vector<GeomElement* > _elements;
 
     //! Element type
     string _elementType;
+
+    //! Map between local nodes and global nodes: needed to fill in State and elements from connTable
+    vector<int > _LocaltoGlobal; // Local nodal i to global node k - k = _LocaltoGlobal[i];
 
     // //! Map of Degrees of freedom local ID to global ID
     // vector<int >          _localDoF;

@@ -5,7 +5,8 @@
 namespace voom {
 
   // Constructor from input file
-  LoopShellMesh::LoopShellMesh(const string Nodes, const string ConnTable): Mesh(Nodes, ConnTable) {
+  LoopShellMesh::LoopShellMesh(const string Nodes, const string ConnTable, State* myState, bool CheckOverlap)
+    :Mesh(Nodes, ConnTable, myState, CheckOverlap) {
 
     _elementType = "LoopShell";
 

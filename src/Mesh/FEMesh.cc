@@ -3,10 +3,11 @@
 namespace voom {
 
   // Constructor from input file
-  FEMesh::FEMesh(const string Nodes, const string ConnTable): Mesh(Nodes, ConnTable) {
+  FEMesh::FEMesh(const string Nodes, const string ConnTable, State* myState, int dofPerNode, bool CheckOverlap)
+    : Mesh(Nodes, ConnTable, myState, dofPerNode, CheckOverlap) {
     ifstream inp(ConnTable.c_str());
 
-    uint NumEl = 0, temp = 0;
+    int NumEl = 0, temp = 0;
     string ElType;
     // First line
     // First number is NumNodes, Second is type of element
@@ -14,46 +15,50 @@ namespace voom {
     _elementType = ElType;
     _elements.resize(NumEl);
 
-    uint NumNodesEl = this->createElementShapeAndQuadrature(ElType);
+    int NumNodesEl = this->createElementShapeAndQuadrature(ElType);
 
     // Compute the geometric elements
-    for (uint e = 0; e < NumEl; e++) {
+    for (int e = 0; e < NumEl; e++) {
       vector<int > ConnEl(NumNodesEl, 0);
       vector<VectorXd > Xel;
-      for (uint n = 0; n < NumNodesEl; n++) {
-        inp >> ConnEl[n];
-        Xel.push_back(_X[ConnEl[n]]);
+      for (int n = 0; n < NumNodesEl; n++) {
+        inp >> temp;
+	ConnEl[n] = _LocaltoGlobal[temp];
+        Xel.push_back(_gState->getX(ConnEl[n]));
       }
-
       _elements[e] = new FEgeomElement(e, ConnEl, Xel, _shapes, _quadrature);
     } // End of FEgeom
   } // End constructor from input files
 
+
+
   // Constructor from nodes and connectivities
-  FEMesh::FEMesh(const vector<VectorXd > &  Positions,
-    const vector<vector<int > > & Connectivity,
-    string ElementType):
-    Mesh(Positions)
+  FEMesh::FEMesh(const vector<VectorXd > &  Positions, State* myState, int dofPerNode, bool CheckOverlap,
+    const vector<vector<int > > & Connectivity, string ElementType):
+    Mesh(Positions, myState, dofPerNode, CheckOverlap)
   {
     _elementType = ElementType;
-    this->createElementShapeAndQuadrature(ElementType);
+    int NumNodesEl = this->createElementShapeAndQuadrature(ElementType);
 
     // Resize element container
-    uint NumEl = Connectivity.size();
+    int NumEl = Connectivity.size();
     _elements.resize(NumEl);
 
     // Create list of elements
-    for(uint i = 0; i < NumEl; i++) {
+    for(int e = 0; e < NumEl; e++) {
       // Temporary list of nodal positions
-      vector<VectorXd > Xel(Connectivity[i].size() );
-      for(uint m = 0; m < Connectivity[i].size(); m++)
-        Xel[m] = _X[Connectivity[i][m]];
+      vector<VectorXd > Xel;
+      vector<int > ConnEl(NumNodesEl, 0);
+      for(int n = 0; n < Connectivity[e].size(); n++) {
+	ConnEl[n] = _LocaltoGlobal[Connectivity[e][n]];
+        Xel.push_back(_gState->getX(ConnEl[n]));
+      }
 
-      FEgeomElement *myElement = new FEgeomElement(i, Connectivity[i],
-        Xel, _shapes, _quadrature);
-        _elements[i] = myElement;
+      _elements[e] = new FEgeomElement(e, ConnEl, Xel, _shapes, _quadrature);
     } // Loop over element list
   } // Constructor from nodes and connectivities
+
+
 
   int FEMesh::createElementShapeAndQuadrature(const string ElType) {
     uint NumNodesEl = 0;

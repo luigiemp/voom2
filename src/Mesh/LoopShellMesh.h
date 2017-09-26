@@ -17,16 +17,7 @@ namespace voom{
     typedef std::vector<int> CornerValences; //Valences of nodes at three corners
 
     //! Constructor from input file
-    LoopShellMesh(const string Nodes, const string ConnTable);
-    //! Constructor from nodes and connectivities
-    //! (assume only one type of elements and quadrature in one mesh)
-    // LoopShellMesh(const vector<VectorXd > &  Positions,
-    // 	   const vector<vector<int > > & Connectivity, 
-    // 	   string ElementType,
-    // 	   uint QuadOrder);
-
-    // Build a mesh using the same nodes that are already used by another mesh
-    // LoopShellMesh(LoopShellMesh*, const string ConnTable);
+    LoopShellMesh(const string Nodes, const string ConnTable, State* myState, bool CheckOverlap);
 
     //! Destructor
     // Destructor made virtual due to inheritance
@@ -49,7 +40,7 @@ namespace voom{
     //! corresponding to a regular or an irregular patch. The value
     //! stored is a vector of type Shape*. Each entry of the vector is
     //! the shape functions at a quadrature point
-    map< CornerValences ,vector<LoopShellShape*> > _shapes;
+    map<CornerValences, vector<LoopShellShape*> > _shapes;
     
     //! One Quadrature rule per each element type
     Quadrature*    _quadrature;
