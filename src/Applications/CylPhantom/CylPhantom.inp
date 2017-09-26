@@ -1,0 +1,14 @@
+ModelName	./CPinp/V3/SliceLinHexa
+OutFolder	./CPout/V3/SliceLinHexa
+Nsteps		20
+Alphas0		1.0
+Alphas1		1.0
+Alphas2		1.0
+Alphas3		5.0
+Beta		1.0
+kLJ		0.05
+r0		0.0
+SearchR_B 	0.75
+SearchR_P 	0.75
+TorK		0.0
+Knormal		1.0
