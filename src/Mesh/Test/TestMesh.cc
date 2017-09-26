@@ -1,11 +1,11 @@
 #include "FEMesh.h"
-#include "LoopShellMesh.h"
+// #include "LoopShellMesh.h"
 
 using namespace voom;
 
-int main(int argc, char** argv)
+int main()
 {
-
+  
   cout << endl << "Testing voom mesh class ... " << endl;
   cout << "................................... " << endl << endl;
   
@@ -13,14 +13,14 @@ int main(int argc, char** argv)
   {
     cout << endl << "Test FEmesh constructor from nodes and conn table files " << endl;
 
-    FEMesh TestFEmesh("NodeFile.dat", "ElFile.dat");
-    cout << "Number Of Nodes   : " << TestFEmesh.getNumberOfNodes() << endl;
+    State myState;
+    bool CheckOverlap = false;
+    int dofPerNode = 3;
+    FEMesh TestFEmesh("NodeFile.dat", "ElFile.dat", &myState, dofPerNode, CheckOverlap);
     cout << "Number Of Element : " << TestFEmesh.getNumberOfElements() << endl;
-    cout << "Mesh Dimension    : " << TestFEmesh.getDimension() << endl;
     cout << endl << "Nodal position" << endl;
-    for(uint i = 0; i < TestFEmesh.getNumberOfNodes(); i++) {
-      for(uint m = 0 ; m < TestFEmesh.getDimension(); m++)
-  	cout << setw(10) << TestFEmesh.getX(i, m) << " " ;
+    for(int i = 0; i < myState.getXsize(); i++) {
+      cout << myState.getX(i)(0) << " " << myState.getX(i)(1) << " " << myState.getX(i)(2) << " " ;
       cout << endl;
     }   
     cout << endl << "Conn table" << endl;
@@ -34,23 +34,23 @@ int main(int argc, char** argv)
     
     cout << endl << "END of Test FEmesh constructor from nodes and conn table files " << endl; 
   }
-
+ 
 
 
   // Test FEmesh constructor from nodes and conn table
   {
     cout << endl << "Test FEmesh constructor from nodes and conn table files " << endl;
 
-    FEMesh TestFEmesh("Cube.node", "Cube.ele");
-    cout << "Number Of Nodes   : " << TestFEmesh.getNumberOfNodes() << endl;
+    State myState;
+    bool CheckOverlap = false;
+    int dofPerNode = 3;
+      FEMesh TestFEmesh("Cube.node", "Cube.ele", &myState, dofPerNode, CheckOverlap);
     cout << "Number Of Element : " << TestFEmesh.getNumberOfElements() << endl;
-    cout << "Mesh Dimension    : " << TestFEmesh.getDimension() << endl;
     cout << endl << "Nodal position" << endl;
-    for(uint i = 0; i < TestFEmesh.getNumberOfNodes(); i++) {
-      for(uint m = 0 ; m < TestFEmesh.getDimension(); m++)
-  	cout << setw(10) << TestFEmesh.getX(i, m) << " " ;
+    for(int i = 0; i < myState.getXsize(); i++) {
+      cout << myState.getX(i)(0) << " " << myState.getX(i)(1) << " " << myState.getX(i)(2) << " " ;
       cout << endl;
-    }   
+    } 
     cout << endl << "Conn table" << endl;
     vector<GeomElement* > Els = TestFEmesh.getElements();
     for(uint e = 0; e < TestFEmesh.getNumberOfElements(); e++) {
@@ -63,22 +63,22 @@ int main(int argc, char** argv)
     cout << endl << "END of Test FEmesh constructor from nodes and conn table files " << endl; 
   }
 
-
+  
 
   // Test FEmesh constructor from nodes and conn table - Lin tet cube
   {
     cout << endl << "Test FEmesh constructor from nodes and conn table files " << endl;
 
-    FEMesh TestFEmesh("Cube.node", "SurfCube.ele");
-    cout << "Number Of Nodes   : " << TestFEmesh.getNumberOfNodes() << endl;
+    State myState;
+    bool CheckOverlap = false;
+    int dofPerNode = 3;
+    FEMesh TestFEmesh("Cube.node", "SurfCube.ele", &myState, dofPerNode, CheckOverlap);
     cout << "Number Of Element : " << TestFEmesh.getNumberOfElements() << endl;
-    cout << "Mesh Dimension    : " << TestFEmesh.getDimension() << endl;
     cout << endl << "Nodal position" << endl;
-    for(uint i = 0; i < TestFEmesh.getNumberOfNodes(); i++) {
-      for(uint m = 0 ; m < TestFEmesh.getDimension(); m++)
-  	cout << setw(10) << TestFEmesh.getX(i, m) << " " ;
+    for(int i = 0; i < myState.getXsize(); i++) {
+      cout << myState.getX(i)(0) << " " << myState.getX(i)(1) << " " << myState.getX(i)(2) << " " ;
       cout << endl;
-    }   
+    } 
     cout << endl << "Conn table" << endl;
     vector<GeomElement* > Els = TestFEmesh.getElements();
     for(uint e = 0; e < TestFEmesh.getNumberOfElements(); e++) {
@@ -86,27 +86,27 @@ int main(int argc, char** argv)
       for(uint n = 0 ; n < NodesID.size(); n++)
   	cout << NodesID[n] << " " ;
       cout << endl;
-    }   
+    }     
     
     cout << endl << "END of Test FEmesh constructor from nodes and conn table files " << endl; 
   }
 
-
+ 
 
   // Test FEmesh constructor from nodes and conn table
   {
     cout << endl << "Test FEmesh constructor from nodes and conn table files " << endl;
 
-    FEMesh TestFEmesh("CubeQuad.node", "CubeQuad.ele");
-    cout << "Number Of Nodes   : " << TestFEmesh.getNumberOfNodes() << endl;
+    State myState;
+    bool CheckOverlap = false;
+    int dofPerNode = 3;
+    FEMesh TestFEmesh("CubeQuad.node", "CubeQuad.ele", &myState, dofPerNode, CheckOverlap);
     cout << "Number Of Element : " << TestFEmesh.getNumberOfElements() << endl;
-    cout << "Mesh Dimension    : " << TestFEmesh.getDimension() << endl;
     cout << endl << "Nodal position" << endl;
-    for(uint i = 0; i < TestFEmesh.getNumberOfNodes(); i++) {
-      for(uint m = 0 ; m < TestFEmesh.getDimension(); m++)
-  	cout << setw(10) << TestFEmesh.getX(i, m) << " " ;
+    for(int i = 0; i < myState.getXsize(); i++) {
+      cout << myState.getX(i)(0) << " " << myState.getX(i)(1) << " " << myState.getX(i)(2) << " " ;
       cout << endl;
-    }   
+    } 
     cout << endl << "Conn table" << endl;
     vector<GeomElement* > Els = TestFEmesh.getElements();
     for(uint e = 0; e < TestFEmesh.getNumberOfElements(); e++) {
@@ -114,27 +114,27 @@ int main(int argc, char** argv)
       for(uint n = 0 ; n < NodesID.size(); n++)
   	cout << NodesID[n] << " " ;
       cout << endl;
-    }   
+    }     
     
     cout << endl << "END of Test FEmesh constructor from nodes and conn table files " << endl; 
   }
 
-
+  
 
   // Test FEmesh constructor from nodes and conn table - Quad cube
   {
     cout << endl << "Test FEmesh constructor from nodes and conn table files " << endl;
 
-    FEMesh TestFEmesh("CubeQuad.node", "SurfCubeQuad.ele");
-    cout << "Number Of Nodes   : " << TestFEmesh.getNumberOfNodes() << endl;
+    State myState;
+    bool CheckOverlap = false;
+    int dofPerNode = 3;
+    FEMesh TestFEmesh("CubeQuad.node", "SurfCubeQuad.ele", &myState, dofPerNode, CheckOverlap);
     cout << "Number Of Element : " << TestFEmesh.getNumberOfElements() << endl;
-    cout << "Mesh Dimension    : " << TestFEmesh.getDimension() << endl;
     cout << endl << "Nodal position" << endl;
-    for(uint i = 0; i < TestFEmesh.getNumberOfNodes(); i++) {
-      for(uint m = 0 ; m < TestFEmesh.getDimension(); m++)
-  	cout << setw(10) << TestFEmesh.getX(i, m) << " " ;
+    for(int i = 0; i < myState.getXsize(); i++) {
+      cout << myState.getX(i)(0) << " " << myState.getX(i)(1) << " " << myState.getX(i)(2) << " " ;
       cout << endl;
-    }   
+    } 
     cout << endl << "Conn table" << endl;
     vector<GeomElement* > Els = TestFEmesh.getElements();
     for(uint e = 0; e < TestFEmesh.getNumberOfElements(); e++) {
@@ -142,7 +142,7 @@ int main(int argc, char** argv)
       for(uint n = 0 ; n < NodesID.size(); n++)
   	cout << NodesID[n] << " " ;
       cout << endl;
-    }   
+    }     
     
     cout << endl << "END of Test FEmesh constructor from nodes and conn table files " << endl; 
   }
@@ -153,32 +153,97 @@ int main(int argc, char** argv)
   {
     cout << endl << "CoarseLV " << endl;
 
-    FEMesh TestFEmesh("CoarseLV.node", "CoarseLV.ele");
-    cout << "Number Of Nodes   : " << TestFEmesh.getNumberOfNodes() << endl;
+    State myState;
+    bool CheckOverlap = false;
+    int dofPerNode = 3;
+    FEMesh TestFEmesh("CoarseLV.node", "CoarseLV.ele", &myState, dofPerNode, CheckOverlap);
     cout << "Number Of Element : " << TestFEmesh.getNumberOfElements() << endl;
-    cout << "Mesh Dimension    : " << TestFEmesh.getDimension() << endl;
-    // cout << endl << "Nodal position" << endl;
-    // for(uint i = 0; i < TestFEmesh.getNumberOfNodes(); i++) {
-    //   for(uint m = 0 ; m < TestFEmesh.getDimension(); m++)
-    // 	cout << setw(10) << TestFEmesh.getX(i, m) << " " ;
-    //   cout << endl;
-    // }   
-    // cout << endl << "Conn table" << endl;
-    // vector<GeomElement* > Els = TestFEmesh.getElements();
-    // for(uint e = 0; e < TestFEmesh.getNumberOfElements(); e++) {
-    //   vector<int > NodesID = Els[e]->getNodesID();
-    //   for(uint n = 0 ; n < NodesID.size(); n++)
-    // 	cout << NodesID[n] << " " ;
-    //   cout << endl;
-    // }   
+    cout << endl << "Nodal position" << endl;
+    for(int i = 0; i < myState.getXsize(); i++) {
+      cout << myState.getX(i)(0) << " " << myState.getX(i)(1) << " " << myState.getX(i)(2) << " " ;
+      cout << endl;
+    } 
+    cout << endl << "Conn table" << endl;
+    vector<GeomElement* > Els = TestFEmesh.getElements();
+    for(uint e = 0; e < TestFEmesh.getNumberOfElements(); e++) {
+      vector<int > NodesID = Els[e]->getNodesID();
+      for(uint n = 0 ; n < NodesID.size(); n++)
+  	cout << NodesID[n] << " " ;
+      cout << endl;
+    }     
     
     cout << endl << "END of CoarseLV test " << endl; 
   }
 
 
-  LoopShellMesh icosa("T7nodes.dat","T7connectivity.dat");
+
+  // Test FEmesh constructor with shared nodes
+  {
+    cout << endl << "Double cube " << endl;
+
+    State myState;
+    bool CheckOverlap = true;
+    int dofPerNode = 3;
+    FEMesh CubeMeshOne("../../Mesh/Test/CubeQuad.node", "../../Mesh/Test/CubeQuad.ele", &myState, dofPerNode, CheckOverlap);
+    CheckOverlap = true;
+    FEMesh CubeMeshTwo("../../Mesh/Test/CubeQuadTZ.node", "../../Mesh/Test/CubeQuad.ele", &myState, dofPerNode, CheckOverlap);
+
+    cout << "Number Of Element : " << CubeMeshTwo.getNumberOfElements() << endl;
+    cout << endl << "Nodal position" << endl;
+    for(int i = 0; i < myState.getXsize(); i++) {
+      cout << myState.getX(i)(0) << " " << myState.getX(i)(1) << " " << myState.getX(i)(2) << " " ;
+      cout << endl;
+    } 
+    cout << endl << "Conn table" << endl;
+    vector<GeomElement* > Els = CubeMeshTwo.getElements();
+    for(uint e = 0; e < CubeMeshTwo.getNumberOfElements(); e++) {
+      vector<int > NodesID = Els[e]->getNodesID();
+      for(uint n = 0 ; n < NodesID.size(); n++)
+  	cout << NodesID[n] << " " ;
+      cout << endl;
+    }     
+    
+    cout << endl << "END of Double Cube Test " << endl; 
+  }
+
+
+
+  // Test FEmesh constructor with linear hexa mesh plus shared nodes
+  {
+    cout << endl << "Double hexa cube " << endl;
+
+    State myState;
+    bool CheckOverlap = true;
+    int dofPerNode = 3;
+    FEMesh CubeMeshOne("../../Mesh/Test/CubeHexa.node", "../../Mesh/Test/CubeHexa.ele", &myState, dofPerNode, CheckOverlap);
+    CheckOverlap = true;
+    FEMesh CubeMeshTwo("../../Mesh/Test/CubeHexa.node", "../../Mesh/Test/CubeHexa.ele", &myState, dofPerNode, CheckOverlap);
+
+    cout << "Number Of Element : " << CubeMeshTwo.getNumberOfElements() << endl;
+    cout << endl << "Nodal position" << endl;
+    for(int i = 0; i < myState.getXsize(); i++) {
+      cout << myState.getX(i)(0) << " " << myState.getX(i)(1) << " " << myState.getX(i)(2) << " " ;
+      cout << endl;
+    } 
+    cout << endl << "Conn table" << endl;
+    vector<GeomElement* > Els = CubeMeshTwo.getElements();
+    for(uint e = 0; e < CubeMeshTwo.getNumberOfElements(); e++) {
+      vector<int > NodesID = Els[e]->getNodesID();
+      for(uint n = 0 ; n < NodesID.size(); n++)
+  	cout << NodesID[n] << " " ;
+      cout << endl;
+    }     
+    
+    cout << endl << "END of Double Cube Test " << endl; 
+  }
+
+
+
+  // LoopShellMesh icosa("T7nodes.dat","T7connectivity.dat");
   
-  // cout << endl << "........................ " << endl;
-  // cout << "Test of voom mesh class completed" << endl;
-  return 0;
+
+
+  cout << endl << "........................ " << endl;
+  cout << "Test of voom mesh class completed" << endl;
+  
 }
