@@ -20,7 +20,7 @@ namespace voom {
     Shape() {;}
 
     //! Destructor
-    ~Shape() {;}
+    virtual ~Shape() {;}
 
     //! Update recomputes N and DN at new Point
     virtual void update(const VectorXd & Point) = 0;

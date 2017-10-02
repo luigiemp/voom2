@@ -15,6 +15,7 @@ namespace voom
   class Quadrature
   {
     public:
+      virtual ~Quadrature() {;};
       // Operators
       const vector<Real >     & getQuadWeights() const {return _quadWeights; };
       const vector<VectorXd > & getQuadPoints()  const {return _quadPoints;  };
