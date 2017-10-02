@@ -52,7 +52,7 @@ namespace voom {
     };
     void setPhi(const vector<Real > & Phi, Real fact = 1.0) {
       assert(_phi.size() == Phi.size());
-      for (int i=0; i++; i<Phi.size()) {
+      for (int i=0; i<Phi.size(); i++) {
 	_phi[i] = Phi[i]*fact;
       }; 
     }
