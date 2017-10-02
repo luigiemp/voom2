@@ -28,7 +28,7 @@ namespace voom {
     uint getMaxIter() {return _maxIter; };
     
     void setBeta(Real beta) {_beta = beta; };
-    void setTol(Real tol) {_tol = _tol; };
+    void setTol(Real tol) {_tol = tol; };
     void setMaxIter(uint maxIter) {_maxIter = maxIter; };
       
   private:
