@@ -8,7 +8,7 @@ SUBDIRS = 	VoomMath			\
 		Material/MechanicsMaterial	\
 		Material/PairMaterial		\
 		Material/PairMaterial/Test	\
-		Material/Test			\
+		Material/MechanicsMaterial/Test	\
 		Material/ViscousMaterial/Test	\
 	  	Quadrature			\
 	  	Quadrature/Test			\

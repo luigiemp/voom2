@@ -64,8 +64,8 @@ AC_CONFIG_FILES([
 		  src/HalfEdgeMesh/Test/Makefile
 		  src/Potential/Makefile
 		  src/Material/Makefile 
-		  src/Material/Test/Makefile
 		  src/Material/MechanicsMaterial/Makefile
+		  src/Material/MechanicsMaterial/Test/Makefile
 		  src/Material/ViscousMaterial/Makefile
 		  src/Material/ViscousMaterial/Test/Makefile
 		  src/Material/PairMaterial/Makefile

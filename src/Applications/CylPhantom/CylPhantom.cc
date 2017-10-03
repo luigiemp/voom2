@@ -37,26 +37,23 @@ int main(int argc, char** argv)
      Real ECCa = -0.13, ECCb = -0.20;
      Real ELLa = -0.19, ELLb = -0.03;
 
-     Real EFF = -0.15; 
+     Real EFF = -0.125; 
      
      Real Beta = 1.0;
      int Ndir = 4;
      vector<Real > Alphas(Ndir, 1.0), Stretches(Ndir, 1.0); 
-     Real Repi = 5.5, Rendo = 4.0;
-     Real thetaEpi = -M_PI*53.5/180, thetaEndo = 53.5*M_PI/180.0; // 39.5*M_PI/180.0; 
+     Real Repi = 4.5, Rendo = 3.5;
+     Real thetaEpi = -M_PI*53.5/180, thetaEndo = 39.5*M_PI/180.0; 
 
      // BC
-     Real kLJ = 0.1;
-     Real r0  = 0.0;
-     Real SearchR_B = 1.0, SearchR_P = 0.5;
-     Harmonic PairMat( kLJ, r0 );
+     Real kP  = 0.1, kB  = 0.1;
+     Real r0P = 0.0, r0B = 0.0;
+     Real SearchR_P = 1.0, SearchR_B = 0.5;
 
      Real TorK = 0.0;
      Vector3d Center = Vector3d::Zero();
 
      Real Knormal = 1.0;;
-
-
 
 
 
@@ -78,10 +75,12 @@ int main(int argc, char** argv)
      inp >> temp >> Alphas[2];
      inp >> temp >> Alphas[3];
      inp >> temp >> Beta;
-     inp >> temp >> kLJ;
-     inp >> temp >> r0;
-     inp >> temp >> SearchR_B;
+     inp >> temp >> kP;
+     inp >> temp >> kB;
+     inp >> temp >> r0P;
+     inp >> temp >> r0B;
      inp >> temp >> SearchR_P;
+     inp >> temp >> SearchR_B;
      inp >> temp >> TorK;
      inp >> temp >> Knormal;
      
@@ -96,10 +95,12 @@ int main(int argc, char** argv)
 	  << " Alphas[2]     : " << Alphas[2] << endl
 	  << " Alphas[3]     : " << Alphas[3] << endl
 	  << " Beta          : " << Beta      << endl
-	  << " kLJ           : " << kLJ       << endl
-	  << " r0            : " << r0        << endl
-	  << " SearchR_B     : " << SearchR_B << endl
+	  << " kP            : " << kP        << endl
+	  << " kB            : " << kB        << endl
+	  << " r0P           : " << r0P       << endl
+	  << " r0B           : " << r0B       << endl
 	  << " SearchR_P     : " << SearchR_P << endl
+	  << " SearchR_B     : " << SearchR_B << endl
 	  << " TorK          : " << TorK      << endl
 	  << " Knormal       : " << Knormal   << endl;
      
@@ -116,18 +117,14 @@ int main(int argc, char** argv)
   ostringstream inpA, inpB;
   inpA << ModelName << ".node";   inpB << ModelName << ".ele";
   FEMesh SliceMesh(inpA.str(), inpB.str(), &myState, dofPerNode, CheckOverlap);
-  cout << "here1" << endl;
   // Membrane meshes
   inpB.str(""); inpB.clear(); inpB << ModelName << ".EpiEleSet";
   FEMesh PericardiumMesh(inpA.str(), inpB.str(), &AuxState, dofPerNode, CheckOverlap);
-  cout << "here2" << endl;
   CheckOverlap = true;
   inpB.str(""); inpB.clear(); inpB << ModelName << ".BottomEleSet";
   FEMesh BottomMesh(inpA.str(), inpB.str(), &AuxState, dofPerNode, CheckOverlap);
-  cout << "here3" << endl;
   inpB.str(""); inpB.clear(); inpB << ModelName << ".TopEleSet";
   FEMesh TopMesh(inpA.str(), inpB.str(), &AuxState, dofPerNode, CheckOverlap);
-  cout << "here4" << endl;
 
  
 
@@ -238,12 +235,14 @@ int main(int argc, char** argv)
     TopNodeFile >> TopNodes[i];
     // cout << TopNodes[i] << endl;
   }
-	
-  PotentialBody Pericardium(&PericardiumMesh, &myState, &PairMat, EpiNodes, SearchR_P);
+
+  Harmonic PairMatP( kP, r0P );	
+  PotentialBody Pericardium(&PericardiumMesh, &myState, &PairMatP, EpiNodes, SearchR_P);
   TestResult.resetResults(ENERGY);
   Pericardium.compute(&TestResult);
   cout << endl << "Pericardium energy is  = " << TestResult.getEnergy() << endl;
-  PotentialBody Bottom(&BottomMesh, &myState, &PairMat, BottomNodes, SearchR_B);
+  Harmonic PairMatB( kB, r0B );
+  PotentialBody Bottom(&BottomMesh, &myState, &PairMatB, BottomNodes, SearchR_B);
   TestResult.resetResults(ENERGY);
   Bottom.compute(&TestResult);
   cout << endl << "Bottom energy is  = " << TestResult.getEnergy() << endl;
@@ -276,7 +275,7 @@ int main(int argc, char** argv)
 
   EigenNRsolver mySolver(&myState, &myModel, 
 			 DoFid, DoFvalues,
-			 CHOL, 1.0e-7, 20);
+			 CHOL, 1.0e-7, 50);
 
   
   Slice.writeOutputVTK(OutFolder, 0);
@@ -300,10 +299,10 @@ int main(int argc, char** argv)
     }
 
     // Update BC bodies
-    Pericardium.setSearchR(SearchR_P*(1.0 + i/Nsteps));
-    Pericardium.setInteractions();
+    // Pericardium.setSearchR(SearchR_P*(1.0 + double(i)/Nsteps));
+    // Pericardium.setInteractions();
     // TorBody.updateXprev();
-    Bottom.setSearchR(SearchR_B*(1.0 + i/Nsteps));
+    // Bottom.setSearchR(SearchR_B*(1.0 + double(i)/Nsteps));
     Bottom.setInteractions();
 
     mySolver.solve(DISP);
