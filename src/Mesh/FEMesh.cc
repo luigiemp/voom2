@@ -16,6 +16,10 @@ namespace voom {
     _elements.resize(NumEl);
 
     int NumNodesEl = this->createElementShapeAndQuadrature(ElType);
+    if (NumNodesEl == 0) {
+      cout << "Failed reading " << ConnTable << endl;
+      exit(EXIT_FAILURE);
+    }
 
     // Compute the geometric elements
     for (int e = 0; e < NumEl; e++) {
@@ -142,7 +146,6 @@ namespace voom {
     else {
       cerr << "** ERROR: Unknown finite element type: " << ElType << endl;
       cerr << "Exiting...\n";
-      exit(EXIT_FAILURE);
     }
     return NumNodesEl;
   } // End createElementShapeAndQuadrature
