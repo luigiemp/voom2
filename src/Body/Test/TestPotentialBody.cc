@@ -20,9 +20,9 @@ int main(int argc, char** argv) {
     State myState, AuxState;
     bool CheckOverlap = false;
     int  dofPerNode   = 3;
-    FEMesh CubeMesh("../../Mesh/Test/Cube.node", "../../Mesh/Test/Cube.ele", &myState, dofPerNode, CheckOverlap);
-    FEMesh MembraneMesh("../../Mesh/Test/CubeTZ.node", "../../Mesh/Test/SurfCube.ele", &AuxState, dofPerNode, CheckOverlap);
-    // FEMesh myFEmesh("../../Mesh/Test/CubeQuad.node", "../../Mesh/Test/SurfCubeQuad.ele", &myState, dofPerNode, CheckOverlap);   
+    FEMesh CubeMesh("../../../../voom2/src/Mesh/Test/Cube.node", "../../../../voom2/src/Mesh/Test/Cube.ele", &myState, dofPerNode, CheckOverlap);
+    FEMesh MembraneMesh("../../../../voom2/src/Mesh/Test/CubeTZ.node", "../../../../voom2/src/Mesh/Test/SurfCube.ele", &AuxState, dofPerNode, CheckOverlap);
+    // FEMesh myFEmesh("../../../../voom2/src/Mesh/Test/CubeQuad.node", "../../../../voom2/src/Mesh/Test/SurfCubeQuad.ele", &myState, dofPerNode, CheckOverlap);   
     uint NumQP = 1;
     
 

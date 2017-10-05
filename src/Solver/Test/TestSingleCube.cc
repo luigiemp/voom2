@@ -20,10 +20,10 @@ int main(int argc, char** argv)
   State myState;
   bool CheckOverlap = false;
   int dofPerNode = 3;
-  // FEMesh CubeMesh("../../Mesh/Test/CubeQuad.node", "../../Mesh/Test/CubeQuad.ele", &myState, dofPerNode, CheckOverlap);
-  FEMesh CubeMesh("../../Mesh/Test/CubeQuad.node", "../../Mesh/Test/CubeQuad.ele", &myState, dofPerNode, CheckOverlap);
+  // FEMesh CubeMesh("../../../../voom2/src/Mesh/Test/CubeQuad.node", "../../../../voom2/src/Mesh/Test/CubeQuad.ele", &myState, dofPerNode, CheckOverlap);
+  FEMesh CubeMesh("../../../../voom2/src/Mesh/Test/CubeQuad.node", "../../../../voom2/src/Mesh/Test/CubeQuad.ele", &myState, dofPerNode, CheckOverlap);
   CheckOverlap = true;
-  FEMesh SurfFEmesh("../../Mesh/Test/CubeQuad.node", "../../Mesh/Test/SurfCubeQuad.ele", &myState, dofPerNode, CheckOverlap);   
+  FEMesh SurfFEmesh("../../../../voom2/src/Mesh/Test/CubeQuad.node", "../../../../voom2/src/Mesh/Test/SurfCubeQuad.ele", &myState, dofPerNode, CheckOverlap);   
 
 
   // Initialize Materials   

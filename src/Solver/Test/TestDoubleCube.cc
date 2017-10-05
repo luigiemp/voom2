@@ -20,14 +20,14 @@ int main(int argc, char** argv)
   State myState;
   bool CheckOverlap = false;
   int dofPerNode = 3;
-  // FEMesh CubeMeshOne("../../Mesh/Test/Cube.node", "../../Mesh/Test/Cube.ele", &myState, dofPerNode, CheckOverlap);
+  // FEMesh CubeMeshOne("../../../../voom2/src/Mesh/Test/Cube.node", "../../../../voom2/src/Mesh/Test/Cube.ele", &myState, dofPerNode, CheckOverlap);
   // CheckOverlap = true;
-  // FEMesh CubeMeshTwo("../../Mesh/Test/CubeTZ.node", "../../Mesh/Test/Cube.ele", &myState, dofPerNode, CheckOverlap);
-  // FEMesh SurfFEmesh("../../Mesh/Test/Cube.node", "../../Mesh/Test/SurfCube.ele", &myState, dofPerNode, CheckOverlap);
-  FEMesh CubeMeshOne("../../Mesh/Test/CubeTet938.node", "../../Mesh/Test/CubeTet938.ele", &myState, dofPerNode, CheckOverlap);
+  // FEMesh CubeMeshTwo("../../../../voom2/src/Mesh/Test/CubeTZ.node", "../../../../voom2/src/Mesh/Test/Test/Cube.ele", &myState, dofPerNode, CheckOverlap);
+  // FEMesh SurfFEmesh("../../../../voom2/src/Mesh/Test/Cube.node", "../../../../voom2/src/Mesh/Test/SurfCube.ele", &myState, dofPerNode, CheckOverlap);
+  FEMesh CubeMeshOne("../../../../voom2/src/Mesh/Test/CubeTet938.node", "../../../../voom2/src/Mesh/Test/CubeTet938.ele", &myState, dofPerNode, CheckOverlap);
   CheckOverlap = true;
-  FEMesh CubeMeshTwo("../../Mesh/Test/CubeTet938TZ.node", "../../Mesh/Test/CubeTet938.ele", &myState, dofPerNode, CheckOverlap);
-  FEMesh SurfFEmesh("../../Mesh/Test/CubeTet938.node", "../../Mesh/Test/SurfCubeTet938.ele", &myState, dofPerNode, CheckOverlap);   
+  FEMesh CubeMeshTwo("../../../../voom2/src/Mesh/Test/CubeTet938TZ.node", "../../../../voom2/src/Mesh/Test/CubeTet938.ele", &myState, dofPerNode, CheckOverlap);
+  FEMesh SurfFEmesh("../../../../voom2/src/Mesh/Test/CubeTet938.node", "../../../../voom2/src/Mesh/Test/SurfCubeTet938.ele", &myState, dofPerNode, CheckOverlap);   
  
  
 

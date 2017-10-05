@@ -21,12 +21,12 @@ int main(int argc, char** argv)
   State myState, AuxState;
   bool CheckOverlap = false;
   int dofPerNode = 3;
-  FEMesh CubeMesh("../../Mesh/Test/Cube.node", "../../Mesh/Test/Cube.ele", &myState, dofPerNode, CheckOverlap);
+  FEMesh CubeMesh("../../../../voom2/src/Mesh/Test/Cube.node", "../../../../voom2/src/Mesh/Test/Cube.ele", &myState, dofPerNode, CheckOverlap);
   // Membrane meshes
-  FEMesh MembraneMeshA("../../Mesh/Test/Cube.node", "../../Mesh/Test/SurfCubeZ.ele", &AuxState, dofPerNode, CheckOverlap);
+  FEMesh MembraneMeshA("../../../../voom2/src/Mesh/Test/Cube.node", "../../../../voom2/src/Mesh/Test/SurfCubeZ.ele", &AuxState, dofPerNode, CheckOverlap);
   CheckOverlap = true;
-  FEMesh MembraneMeshB("../../Mesh/Test/Cube.node", "../../Mesh/Test/SurfCubeX.ele", &AuxState, dofPerNode, CheckOverlap);
-  FEMesh MembraneMeshC("../../Mesh/Test/Cube.node", "../../Mesh/Test/SurfCubeY.ele", &AuxState, dofPerNode, CheckOverlap);
+  FEMesh MembraneMeshB("../../../../voom2/src/Mesh/Test/Cube.node", "../../../../voom2/src/Mesh/Test/SurfCubeX.ele", &AuxState, dofPerNode, CheckOverlap);
+  FEMesh MembraneMeshC("../../../../voom2/src/Mesh/Test/Cube.node", "../../../../voom2/src/Mesh/Test/SurfCubeY.ele", &AuxState, dofPerNode, CheckOverlap);
  
  
   

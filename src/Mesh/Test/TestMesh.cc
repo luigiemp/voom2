@@ -16,7 +16,7 @@ int main()
     State myState;
     bool CheckOverlap = false;
     int dofPerNode = 3;
-    FEMesh TestFEmesh("NodeFile.dat", "ElFile.dat", &myState, dofPerNode, CheckOverlap);
+    FEMesh TestFEmesh("../../../../voom2/src/Mesh/Test/NodeFile.dat", "../../../../voom2/src/Mesh/Test/ElFile.dat", &myState, dofPerNode, CheckOverlap);
     cout << "Number Of Element : " << TestFEmesh.getNumberOfElements() << endl;
     cout << endl << "Nodal position" << endl;
     for(int i = 0; i < myState.getXsize(); i++) {
@@ -44,7 +44,7 @@ int main()
     State myState;
     bool CheckOverlap = false;
     int dofPerNode = 3;
-      FEMesh TestFEmesh("Cube.node", "Cube.ele", &myState, dofPerNode, CheckOverlap);
+      FEMesh TestFEmesh("../../../../voom2/src/Mesh/Test/Cube.node", "../../../../voom2/src/Mesh/Test/Cube.ele", &myState, dofPerNode, CheckOverlap);
     cout << "Number Of Element : " << TestFEmesh.getNumberOfElements() << endl;
     cout << endl << "Nodal position" << endl;
     for(int i = 0; i < myState.getXsize(); i++) {
@@ -72,7 +72,7 @@ int main()
     State myState;
     bool CheckOverlap = false;
     int dofPerNode = 3;
-    FEMesh TestFEmesh("Cube.node", "SurfCube.ele", &myState, dofPerNode, CheckOverlap);
+    FEMesh TestFEmesh("../../../../voom2/src/Mesh/Test/Cube.node", "../../../../voom2/src/Mesh/Test/SurfCube.ele", &myState, dofPerNode, CheckOverlap);
     cout << "Number Of Element : " << TestFEmesh.getNumberOfElements() << endl;
     cout << endl << "Nodal position" << endl;
     for(int i = 0; i < myState.getXsize(); i++) {
@@ -100,7 +100,7 @@ int main()
     State myState;
     bool CheckOverlap = false;
     int dofPerNode = 3;
-    FEMesh TestFEmesh("CubeQuad.node", "CubeQuad.ele", &myState, dofPerNode, CheckOverlap);
+    FEMesh TestFEmesh("../../../../voom2/src/Mesh/Test/CubeQuad.node", "../../../../voom2/src/Mesh/Test/CubeQuad.ele", &myState, dofPerNode, CheckOverlap);
     cout << "Number Of Element : " << TestFEmesh.getNumberOfElements() << endl;
     cout << endl << "Nodal position" << endl;
     for(int i = 0; i < myState.getXsize(); i++) {
@@ -128,7 +128,7 @@ int main()
     State myState;
     bool CheckOverlap = false;
     int dofPerNode = 3;
-    FEMesh TestFEmesh("CubeQuad.node", "SurfCubeQuad.ele", &myState, dofPerNode, CheckOverlap);
+    FEMesh TestFEmesh("../../../../voom2/src/Mesh/Test/CubeQuad.node", "../../../../voom2/src/Mesh/Test/SurfCubeQuad.ele", &myState, dofPerNode, CheckOverlap);
     cout << "Number Of Element : " << TestFEmesh.getNumberOfElements() << endl;
     cout << endl << "Nodal position" << endl;
     for(int i = 0; i < myState.getXsize(); i++) {
@@ -156,7 +156,7 @@ int main()
     State myState;
     bool CheckOverlap = false;
     int dofPerNode = 3;
-    FEMesh TestFEmesh("CoarseLV.node", "CoarseLV.ele", &myState, dofPerNode, CheckOverlap);
+    FEMesh TestFEmesh("../../../../voom2/src/Mesh/Test/CoarseLV.node", "../../../../voom2/src/Mesh/Test/CoarseLV.ele", &myState, dofPerNode, CheckOverlap);
     cout << "Number Of Element : " << TestFEmesh.getNumberOfElements() << endl;
     cout << endl << "Nodal position" << endl;
     for(int i = 0; i < myState.getXsize(); i++) {
@@ -184,9 +184,9 @@ int main()
     State myState;
     bool CheckOverlap = true;
     int dofPerNode = 3;
-    FEMesh CubeMeshOne("../../Mesh/Test/CubeQuad.node", "../../Mesh/Test/CubeQuad.ele", &myState, dofPerNode, CheckOverlap);
+    FEMesh CubeMeshOne("../../../../voom2/src/Mesh/Test/CubeQuad.node", "../../../../voom2/src/Mesh/Test/CubeQuad.ele", &myState, dofPerNode, CheckOverlap);
     CheckOverlap = true;
-    FEMesh CubeMeshTwo("../../Mesh/Test/CubeQuadTZ.node", "../../Mesh/Test/CubeQuad.ele", &myState, dofPerNode, CheckOverlap);
+    FEMesh CubeMeshTwo("../../../../voom2/src/Mesh/Test/CubeQuadTZ.node", "../../../../voom2/src/Mesh/Test/CubeQuad.ele", &myState, dofPerNode, CheckOverlap);
 
     cout << "Number Of Element : " << CubeMeshTwo.getNumberOfElements() << endl;
     cout << endl << "Nodal position" << endl;
@@ -215,9 +215,9 @@ int main()
     State myState;
     bool CheckOverlap = true;
     int dofPerNode = 3;
-    FEMesh CubeMeshOne("../../Mesh/Test/CubeHexa.node", "../../Mesh/Test/CubeHexa.ele", &myState, dofPerNode, CheckOverlap);
+    FEMesh CubeMeshOne("../../../../voom2/src/Mesh/Test/CubeHexa.node", "../../../../voom2/src/Mesh/Test/CubeHexa.ele", &myState, dofPerNode, CheckOverlap);
     CheckOverlap = true;
-    FEMesh CubeMeshTwo("../../Mesh/Test/CubeHexa.node", "../../Mesh/Test/CubeHexa.ele", &myState, dofPerNode, CheckOverlap);
+    FEMesh CubeMeshTwo("../../../../voom2/src/Mesh/Test/CubeHexa.node", "../../../../voom2/src/Mesh/Test/CubeHexa.ele", &myState, dofPerNode, CheckOverlap);
 
     cout << "Number Of Element : " << CubeMeshTwo.getNumberOfElements() << endl;
     cout << endl << "Nodal position" << endl;
