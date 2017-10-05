@@ -14,7 +14,7 @@
 #include <vtkPoints.h>
 #include <vtkPointData.h>
 #include <vtkCellData.h>
-#include <vtkTensor.h>
+// #include <vtkTensor.h>
 #include <vtkSmartPointer.h>
 #include <vtkUnstructuredGrid.h>
 #include <vtkPolyData.h>

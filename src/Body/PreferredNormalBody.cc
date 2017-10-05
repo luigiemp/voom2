@@ -96,7 +96,7 @@ namespace voom {
     
 	// Data structure used for force and stiffness
 	vector<MatrixXd> dnedx(3, MatrixXd::Zero(numNodes, 3)); // Used for stiffness but computed here
-	if (R->getRequest() & FORCE | STIFFNESS) {
+	if (R->getRequest() & FORCE || R->getRequest() & STIFFNESS) {
 	  for (int a = 0; a < numNodes; a++) {
 	    for (int j = 0; j < 3; j++) {
 	      int aj = NodesID[a] * 3 + j;

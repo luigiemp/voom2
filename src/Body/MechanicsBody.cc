@@ -554,7 +554,11 @@ namespace voom {
     // Write file
     vtkSmartPointer<vtkXMLUnstructuredGridWriter> writer = vtkSmartPointer<vtkXMLUnstructuredGridWriter>::New();
     writer->SetFileName(outputFileName.c_str());
-    writer->SetInput(newUnstructuredGrid);
+    #if VTK_MAJOR_VERSION <= 5
+        writer->SetInput(newUnstructuredGrid);
+    #else
+        writer->SetInputData(newUnstructuredGrid);
+    #endif
     writer->Write();
     
   } // writeOutput
@@ -680,7 +684,11 @@ namespace voom {
     // Write File
     vtkSmartPointer<vtkXMLPolyDataWriter> IntegrationPointWriter = vtkSmartPointer<vtkXMLPolyDataWriter>::New();
     IntegrationPointWriter->SetFileName(outputFileName.c_str());
-    IntegrationPointWriter->SetInput(IntegrationPointGrid);
+    #if VTK_MAJOR_VERSION <= 5
+    	IntegrationPointWriter->SetInput(IntegrationPointGrid);
+    #else	
+        IntegrationPointWriter->SetInputData(IntegrationPointGrid);
+    #endif    
     IntegrationPointWriter->Write();
   }
 
