@@ -30,6 +30,9 @@ namespace voom {
     //! Get element ID
     int getGeomElementID() {return _elemID; }
 
+    //! Virtual destructor
+    virtual ~GeomElement() {;}
+
     //! Get nodes per element
     uint getNodesPerElement() {return _nodesID.size(); }
 
