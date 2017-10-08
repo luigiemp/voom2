@@ -422,6 +422,7 @@ int main()
     vector<Real > Stretches;
     vector<Vector3d > Directions;
     Real Beta = double(rand())/RAND_MAX;
+    Real Gamma = double(rand())/RAND_MAX;
     
     for (int a = 0; a < NumAlphas; a++) {
       Alphas.push_back(double(rand())/RAND_MAX);
@@ -431,7 +432,7 @@ int main()
       Directions.push_back(N);
     }
 
-    ImposedKinematics MatMech(MatID, Alphas, Stretches, Directions, Beta);
+    ImposedKinematics MatMech(MatID, Alphas, Stretches, Directions, Beta, Gamma);
     
     MechanicsMaterial::FKresults Rm;
     Rm.request = (ENERGY | FORCE | STIFFNESS | DMATPROP);

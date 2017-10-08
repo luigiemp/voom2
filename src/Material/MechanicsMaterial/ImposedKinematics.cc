@@ -15,9 +15,12 @@ namespace voom {
 
     // Start from incompressibility term
     if( R.request & ENERGY ) {
-      R.W = _beta*(pow(I3, 2.0) + pow(I3,-2.0) - 2.0); }
+      R.W = _beta*(pow(I3, 2.0) + pow(I3,-2.0) - 2.0) +
+            _gamma*( C.trace() - 3.0 ); 
+    }
     if( (R.request & FORCE) || (R.request & DMATPROP) ) {
-      R.P = 4.0*_beta*(I3 - pow(I3,-3.0) )*I3*invF.transpose();
+      R.P = 4.0*_beta*(I3 - pow(I3,-3.0) )*I3*invF.transpose() +
+	2.0*_gamma*F;
     }
     if( R.request & STIFFNESS )
     {
@@ -26,7 +29,7 @@ namespace voom {
 	for (unsigned int k = 0; k<3; k++) {
 	  for (unsigned int J = 0; J<3; J++) {
 	    for (unsigned int i = 0; i<3; i++) {
-	      R.K.sequentialSet( 2.0*_beta*( (I3 - pow(I3,-3.0) )*2.0*I3*( 2.0*invF(J,i)*invF(L,k) - invF(J,k)*invF(L,i) ) + 4.0*(1.0 + 3.0*pow(I3,-4.0) )*pow(I3,2.0)*invF(J,i)*invF(L,k) ) );
+	      R.K.sequentialSet( 2.0*_beta*( (I3 - pow(I3,-3.0) )*2.0*I3*( 2.0*invF(J,i)*invF(L,k) - invF(J,k)*invF(L,i) ) + 4.0*(1.0 + 3.0*pow(I3,-4.0) )*pow(I3,2.0)*invF(J,i)*invF(L,k) ) + 2.0*_gamma*Delta(i,k)*Delta(J,L) );
 	      R.K.incrementIterator();
 	    } // L
 	  } // k

@@ -272,10 +272,16 @@ namespace voom {
     // Create a vtkPoints object and store the points in it
     vtkSmartPointer<vtkPoints> Rpoints = vtkSmartPointer<vtkPoints>::New();
 
-    for(int i = 0; i < _myState->getXsize(); i++) {
+    int StateXsize = _myState->getXsize();
+    for(int i = 0; i < StateXsize; i++) {
       double BodyNode[3] = { _myState->getPhi(i, 0) , _myState->getPhi(i, 1) , _myState->getPhi(i, 2)};
       Rpoints->InsertNextPoint(BodyNode);
     }
+    for (int n = 0; n < NumNodes; n++) {
+      Rpoints->InsertNextPoint(_myMesh->getX(LtoG[n])(0), _myMesh->getX(LtoG[n])(1), _myMesh->getX(LtoG[n])(2) );
+    }
+
+
 
     // Create a cell array to store the lines in and add the lines to it
     vtkSmartPointer<vtkCellArray> cells = vtkSmartPointer<vtkCellArray>::New();
@@ -285,7 +291,7 @@ namespace voom {
 	vtkSmartPointer<vtkPolyLine> polyLine = vtkSmartPointer<vtkPolyLine>::New();
 	polyLine->GetPointIds()->SetNumberOfIds(2);
 	polyLine->GetPointIds()->SetId(0, _bodyNodes[i]); 
-	polyLine->GetPointIds()->SetId(1, _interactions[i][j]);
+	polyLine->GetPointIds()->SetId(1, _interactions[i][j]+StateXsize);
 	cells->InsertNextCell(polyLine);
       }
     }

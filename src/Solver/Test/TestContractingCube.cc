@@ -44,10 +44,10 @@ int main(int argc, char** argv)
   Vector3d N1, N2, N3;
   N1 << 1.0, 0.0, 0.0; N2 << 0.0, 1.0, 0.0; N3 << 0.0, 0.0, 1.0;
   Directions[0] = N1; Directions[1] = N2; Directions[2] = N3;
-  Real Beta = 1.0;
+  Real Beta = 1.0, Gamma = 1.0;
   for (int e = 0; e < Elements.size(); e++) {
     for (int q = 0; q < Elements[e]->getNumberOfQuadPoints(); q++) { // One material object per QP
-      materials.push_back(new ImposedKinematics(indMat, Alphas, Stretches, Directions, Beta));
+      materials.push_back(new ImposedKinematics(indMat, Alphas, Stretches, Directions, Beta, Gamma));
       indMat++;
     }
   }

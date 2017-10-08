@@ -34,12 +34,13 @@ int main(int argc, char** argv)
      // Imposed Kinematics Material
      
      Real ERRa =  0.36, ERRb =  0.09;
-     Real ECCa = -0.13, ECCb = -0.20;
+     Real ECCa = -0.15, ECCb = -0.10;
      Real ELLa = -0.19, ELLb = -0.03;
 
-     Real EFF = -0.125; 
+     Real EFF = -0.15; 
      
-     Real Beta = 1.0;
+     Real Beta  = 1.0;
+     Real Gamma = 1.0;
      int Ndir = 4;
      vector<Real > Alphas(Ndir, 1.0), Stretches(Ndir, 1.0); 
      Real Repi = 4.5, Rendo = 3.5;
@@ -75,6 +76,7 @@ int main(int argc, char** argv)
      inp >> temp >> Alphas[2];
      inp >> temp >> Alphas[3];
      inp >> temp >> Beta;
+     inp >> temp >> Gamma;
      inp >> temp >> kP;
      inp >> temp >> kB;
      inp >> temp >> r0P;
@@ -95,6 +97,7 @@ int main(int argc, char** argv)
 	  << " Alphas[2]     : " << Alphas[2] << endl
 	  << " Alphas[3]     : " << Alphas[3] << endl
 	  << " Beta          : " << Beta      << endl
+	  << " Gamma         : " << Gamma     << endl
 	  << " kP            : " << kP        << endl
 	  << " kB            : " << kB        << endl
 	  << " r0P           : " << r0P       << endl
@@ -187,7 +190,7 @@ int main(int argc, char** argv)
       QPStretchGrad[3] = 2.0*EFF / double(Nsteps);
       StretchGrad.push_back(QPStretchGrad);
 
-      materials.push_back(new ImposedKinematics(indMat, Alphas, Stretches, Directions, Beta));
+      materials.push_back(new ImposedKinematics(indMat, Alphas, Stretches, Directions, Beta, Gamma));
       indMat++;
     }
   }
@@ -303,7 +306,7 @@ int main(int argc, char** argv)
     // Pericardium.setInteractions();
     // TorBody.updateXprev();
     // Bottom.setSearchR(SearchR_B*(1.0 + double(i)/Nsteps));
-    Bottom.setInteractions();
+    // Bottom.setInteractions();
 
     mySolver.solve(DISP);
     Slice.writeOutputVTK(OutFolder, i);
