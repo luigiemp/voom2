@@ -411,7 +411,6 @@ int main()
     MatMech.checkConsistency(Rm,F);
   }
 
-
   {
     cout << endl << ".................................... " << endl << endl;
     cout << endl << "Testing ImposedKinematics material. " << endl;
